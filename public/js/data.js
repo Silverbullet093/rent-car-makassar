@@ -1,18 +1,18 @@
 // Data awal armada mobil dan konfigurasi default owner
 const DEFAULT_OWNER_CONFIG = {
-    businessName: "Rent Car Makassar",
+    businessName: "RPM Rent Car Makassar",
     tagline: "Sewa Mobil Terpercaya, Nyaman & Harga Transparan",
     description: "Penyedia jasa rental mobil profesional melayani sewa lepas kunci (berkendara sendiri) maupun dengan supir berpengalaman untuk keperluan wisata, dinas bisnis, pernikahan, mudik, dan perjalanan keluarga.",
-    whatsappNumber: "6281234567890", // Ganti dengan nomor WhatsApp owner (awali dengan 62)
+    whatsappNumber: "6281234567890",
     phone: "0812-3456-7890",
-    email: "kontak@garudarentcar.com",
+    email: "reservasi@rpmrentcarmakassar.com",
     address: "Jl. Perintis Kemerdekaan No. 10, Makassar, Sulawesi Selatan",
     mapsUrl: "https://maps.google.com/?q=Jl.+Perintis+Kemerdekaan+No.+10,+Makassar,+Sulawesi+Selatan",
     operatingHours: "Buka 24 Jam Setiap Hari",
     socialMedia: {
-        instagram: "@garudarentcar_id",
-        facebook: "Garuda Rent Car Official",
-        tiktok: "@garudarentcar"
+        instagram: "@rentcarmakassar_id",
+        facebook: "Rent Car Makassar Official",
+        tiktok: "@rentcarmakassar"
     },
     isHolidayPricingActive: false,
     holidayNotes: "Tarif Musim Libur & Hari Besar Nasional (Peak Season)"
@@ -217,7 +217,7 @@ const DEFAULT_REVIEWS = [
         name: "Alex Pratama",
         rating: 5,
         car_name: "Toyota Innova Zenix",
-        comment: "Pelayanan Garuda Rent Car sangat memuaskan! Mobil Innova Zenix-nya sangat bersih, wangi, dan mesin halus. Driver juga ramah dan tepat waktu saat penjemputan di Bandara.",
+        comment: "Pelayanan RPM Rent Car sangat memuaskan! Mobil Innova Zenix-nya sangat bersih, wangi, dan mesin halus. Driver juga ramah dan tepat waktu saat penjemputan di Bandara.",
         avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80",
         status: "approved",
         created_at: new Date().toISOString()
@@ -227,7 +227,7 @@ const DEFAULT_REVIEWS = [
         name: "Sofia Lestari",
         rating: 5,
         car_name: "Honda HRV SE",
-        comment: "Sewa lepas kunci di sini sangat praktis & cepat proses syaratnya. Mobil HRV matic kondisi mulus 100%. Pasti bakal langganan setiap kali kunjungan dinas!",
+        comment: "Sewa lepas kunci di sini sangat praktis & cepat proses syaratnya. Mobil kondisi mulus 100%. Pasti bakal langganan setiap kali kunjungan dinas!",
         avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80",
         status: "approved",
         created_at: new Date().toISOString()

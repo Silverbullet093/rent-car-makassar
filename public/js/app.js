@@ -54,9 +54,9 @@ function formatDisplayDate(dateStr) {
 
 // Inisialisasi State dari LocalStorage & API
 async function initStorage() {
-    if (!localStorage.getItem('rcm_cars_v2')) {
+    if (localStorage.getItem('rcm_cars_v_rev') !== '3') {
         localStorage.removeItem('garuda_rent_cars');
-        localStorage.setItem('rcm_cars_v2', 'true');
+        localStorage.setItem('rcm_cars_v_rev', '3');
     }
 
     // Cars setup
@@ -65,10 +65,11 @@ async function initStorage() {
         try {
             state.cars = JSON.parse(savedCars);
         } catch (e) {
-            state.cars = [];
+            state.cars = [...(typeof DEFAULT_CARS !== 'undefined' ? DEFAULT_CARS : [])];
         }
-    } else {
-        state.cars = [];
+    }
+    if (!state.cars || state.cars.length === 0) {
+        state.cars = [...(typeof DEFAULT_CARS !== 'undefined' ? DEFAULT_CARS : [])];
         localStorage.setItem('garuda_rent_cars', JSON.stringify(state.cars));
     }
 
@@ -77,7 +78,7 @@ async function initStorage() {
         const res = await fetch('/api/cars');
         if (res.ok) {
             const result = await res.json();
-            if (result.data) {
+            if (result.data && result.data.length > 0) {
                 state.cars = result.data.map(c => ({
                     id: c.id.toString(),
                     carCode: c.car_code,
@@ -98,10 +99,16 @@ async function initStorage() {
                     description: c.description
                 }));
                 localStorage.setItem('garuda_rent_cars', JSON.stringify(state.cars));
+            } else if ((!state.cars || state.cars.length === 0) && typeof DEFAULT_CARS !== 'undefined') {
+                state.cars = [...DEFAULT_CARS];
+                localStorage.setItem('garuda_rent_cars', JSON.stringify(state.cars));
             }
         }
     } catch (err) {
-        // Silent fallback to local storage
+        if ((!state.cars || state.cars.length === 0) && typeof DEFAULT_CARS !== 'undefined') {
+            state.cars = [...DEFAULT_CARS];
+            localStorage.setItem('garuda_rent_cars', JSON.stringify(state.cars));
+        }
     }
 
     // Config setup

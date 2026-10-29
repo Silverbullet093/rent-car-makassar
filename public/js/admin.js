@@ -113,9 +113,9 @@ function closeAdminSidebar() {
 
 // Inisialisasi Data
 async function initAdmin() {
-    if (!localStorage.getItem('rcm_cars_v2')) {
+    if (localStorage.getItem('rcm_cars_v_rev') !== '3') {
         localStorage.removeItem('garuda_rent_cars');
-        localStorage.setItem('rcm_cars_v2', 'true');
+        localStorage.setItem('rcm_cars_v_rev', '3');
     }
 
     const savedConfig = localStorage.getItem('garuda_rent_config');
@@ -181,15 +181,18 @@ async function fetchAdminCars() {
         try {
             adminState.cars = JSON.parse(savedCars);
         } catch (e) {
-            adminState.cars = [];
+            adminState.cars = [...(typeof DEFAULT_CARS !== 'undefined' ? DEFAULT_CARS : [])];
         }
+    }
+    if (!adminState.cars || adminState.cars.length === 0) {
+        adminState.cars = [...(typeof DEFAULT_CARS !== 'undefined' ? DEFAULT_CARS : [])];
     }
 
     try {
         const res = await fetch('/api/cars');
         if (res.ok) {
             const result = await res.json();
-            if (result.data) {
+            if (result.data && result.data.length > 0) {
                 adminState.cars = result.data.map(c => ({
                     id: c.id.toString(),
                     carCode: c.car_code,
@@ -209,10 +212,16 @@ async function fetchAdminCars() {
                     description: c.description
                 }));
                 saveCarsData();
+            } else if ((!adminState.cars || adminState.cars.length === 0) && typeof DEFAULT_CARS !== 'undefined') {
+                adminState.cars = [...DEFAULT_CARS];
+                saveCarsData();
             }
         }
     } catch (err) {
-        // LocalStorage fallback
+        if ((!adminState.cars || adminState.cars.length === 0) && typeof DEFAULT_CARS !== 'undefined') {
+            adminState.cars = [...DEFAULT_CARS];
+            saveCarsData();
+        }
     }
 }
 
