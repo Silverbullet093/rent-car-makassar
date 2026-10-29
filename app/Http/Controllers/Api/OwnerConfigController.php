@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Http\Controllers\Api;
 
@@ -23,12 +23,12 @@ class OwnerConfigController extends Controller
                     'description' => 'Penyedia jasa rental mobil profesional melayani sewa lepas kunci maupun dengan supir.',
                     'whatsapp_number' => '6281234567890',
                     'phone' => '0812-3456-7890',
-                    'email' => 'kontak@garudarentcar.com',
+                    'email' => 'kontak@rentcarmakassar.com',
                     'address' => 'Makassar & Sekitarnya',
                     'operating_hours' => 'Buka 24 Jam Setiap Hari',
-                    'instagram' => '@garudarentcar_id',
-                    'facebook' => 'Garuda Rent Car Official',
-                    'tiktok' => '@garudarentcar',
+                    'instagram' => '@rentcarmakassar_id',
+                    'facebook' => 'Rent Car Makassar Official',
+                    'tiktok' => '@rentcarmakassar',
                     'is_holiday_pricing_active' => false,
                     'holiday_notes' => 'Tarif Musim Libur & Hari Besar Nasional (Peak Season)',
                 ]);
@@ -47,7 +47,7 @@ class OwnerConfigController extends Controller
                     'description' => 'Penyedia jasa rental mobil profesional melayani sewa lepas kunci maupun dengan supir.',
                     'whatsapp_number' => '6281234567890',
                     'phone' => '0812-3456-7890',
-                    'email' => 'kontak@garudarentcar.com',
+                    'email' => 'kontak@rentcarmakassar.com',
                     'address' => 'Makassar & Sekitarnya',
                     'operating_hours' => 'Buka 24 Jam Setiap Hari',
                     'is_holiday_pricing_active' => false,

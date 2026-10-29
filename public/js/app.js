@@ -1,5 +1,5 @@
 /**
- * Aplikasi Rental Mobil Garuda — Frontend Pelanggan & Pemesanan
+ * Aplikasi Rental Mobil RPM — Frontend Pelanggan & Pemesanan
  */
 
 // Global State
@@ -54,13 +54,18 @@ function formatDisplayDate(dateStr) {
 
 // Inisialisasi State dari LocalStorage & API
 async function initStorage() {
-    if (localStorage.getItem('rcm_cars_v_rev') !== '3') {
-        localStorage.removeItem('garuda_rent_cars');
-        localStorage.setItem('rcm_cars_v_rev', '3');
+    // Bersihkan cache lama (garuda_ keys) & paksa refresh data
+    ['garuda_rent_cars','garuda_rent_config','garuda_rent_reviews','garuda_rent_bookings'].forEach(k => localStorage.removeItem(k));
+    if (localStorage.getItem('rcm_cars_v_rev') !== '4') {
+        localStorage.removeItem('rcm_rent_cars');
+        localStorage.removeItem('rcm_rent_config');
+        localStorage.removeItem('rcm_rent_reviews');
+        localStorage.removeItem('rcm_rent_bookings');
+        localStorage.setItem('rcm_cars_v_rev', '4');
     }
 
     // Cars setup
-    const savedCars = localStorage.getItem('garuda_rent_cars');
+    const savedCars = localStorage.getItem('rcm_rent_cars');
     if (savedCars) {
         try {
             state.cars = JSON.parse(savedCars);
@@ -70,7 +75,7 @@ async function initStorage() {
     }
     if (!state.cars || state.cars.length === 0) {
         state.cars = [...(typeof DEFAULT_CARS !== 'undefined' ? DEFAULT_CARS : [])];
-        localStorage.setItem('garuda_rent_cars', JSON.stringify(state.cars));
+        localStorage.setItem('rcm_rent_cars', JSON.stringify(state.cars));
     }
 
     // Try fetching cars from API if available
@@ -98,21 +103,21 @@ async function initStorage() {
                     image: c.image || 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80',
                     description: c.description
                 }));
-                localStorage.setItem('garuda_rent_cars', JSON.stringify(state.cars));
+                localStorage.setItem('rcm_rent_cars', JSON.stringify(state.cars));
             } else if ((!state.cars || state.cars.length === 0) && typeof DEFAULT_CARS !== 'undefined') {
                 state.cars = [...DEFAULT_CARS];
-                localStorage.setItem('garuda_rent_cars', JSON.stringify(state.cars));
+                localStorage.setItem('rcm_rent_cars', JSON.stringify(state.cars));
             }
         }
     } catch (err) {
         if ((!state.cars || state.cars.length === 0) && typeof DEFAULT_CARS !== 'undefined') {
             state.cars = [...DEFAULT_CARS];
-            localStorage.setItem('garuda_rent_cars', JSON.stringify(state.cars));
+            localStorage.setItem('rcm_rent_cars', JSON.stringify(state.cars));
         }
     }
 
     // Config setup
-    const savedConfig = localStorage.getItem('garuda_rent_config');
+    const savedConfig = localStorage.getItem('rcm_rent_config');
     if (savedConfig) {
         try {
             state.ownerConfig = JSON.parse(savedConfig);
@@ -121,7 +126,7 @@ async function initStorage() {
         }
     } else {
         state.ownerConfig = { ...DEFAULT_OWNER_CONFIG };
-        localStorage.setItem('garuda_rent_config', JSON.stringify(state.ownerConfig));
+        localStorage.setItem('rcm_rent_config', JSON.stringify(state.ownerConfig));
     }
 
     // Try fetching config from API
@@ -149,7 +154,7 @@ async function initStorage() {
                     isHolidayPricingActive: !!c.is_holiday_pricing_active,
                     holidayNotes: c.holiday_notes
                 };
-                localStorage.setItem('garuda_rent_config', JSON.stringify(state.ownerConfig));
+                localStorage.setItem('rcm_rent_config', JSON.stringify(state.ownerConfig));
             }
         }
     } catch (err) {
@@ -166,7 +171,7 @@ async function initStorage() {
 
 // Inisialisasi Data Reviews
 async function initReviewsStorage() {
-    const savedReviews = localStorage.getItem('garuda_rent_reviews');
+    const savedReviews = localStorage.getItem('rcm_rent_reviews');
     if (savedReviews) {
         try {
             state.reviews = JSON.parse(savedReviews);
@@ -175,7 +180,7 @@ async function initReviewsStorage() {
         }
     } else {
         state.reviews = [...DEFAULT_REVIEWS];
-        localStorage.setItem('garuda_rent_reviews', JSON.stringify(state.reviews));
+        localStorage.setItem('rcm_rent_reviews', JSON.stringify(state.reviews));
     }
 
     // Try fetching approved reviews from backend API
@@ -185,7 +190,7 @@ async function initReviewsStorage() {
             const result = await res.json();
             if (result.data && result.data.length > 0) {
                 state.reviews = result.data;
-                localStorage.setItem('garuda_rent_reviews', JSON.stringify(state.reviews));
+                localStorage.setItem('rcm_rent_reviews', JSON.stringify(state.reviews));
             }
         }
     } catch (err) {
@@ -225,7 +230,7 @@ function renderOwnerInfo() {
 
     const emailEls = document.querySelectorAll('.owner-email');
     emailEls.forEach(el => {
-        el.textContent = cfg.email || 'kontak@garudarentcar.com';
+        el.textContent = cfg.email || 'kontak@rentcarmakassar.com';
         if (el.tagName === 'A') el.href = `mailto:${cfg.email || ''}`;
     });
 
@@ -408,15 +413,7 @@ function renderCarsCatalog() {
                                 ${formatRupiah(activePrice)}<span style="font-size: 0.75rem; font-weight: 400; color: var(--clr-text-muted);"> / hari</span>
                             </div>
                         </div>
-                        ${!isHoliday ? `
-                            <div style="font-size: 0.7rem; color: var(--clr-text-subtle); text-align: right;">
-                                Libur: <span style="font-weight: 600; color: var(--clr-text-muted);">${formatRupiah(car.priceHoliday)}</span>
-                            </div>
-                        ` : `
-                            <div style="font-size: 0.7rem; color: var(--clr-text-subtle); text-align: right;">
-                                Normal: <span style="text-decoration: line-through;">${formatRupiah(car.priceNormal)}</span>
-                            </div>
-                        `}
+
                     </div>
 
                     <button
@@ -747,7 +744,7 @@ async function handleReviewSubmit(e) {
         created_at: new Date().toISOString()
     };
     state.reviews.unshift(newLocalReview);
-    localStorage.setItem('garuda_rent_reviews', JSON.stringify(state.reviews));
+    localStorage.setItem('rcm_rent_reviews', JSON.stringify(state.reviews));
 
     closeReviewModal();
 
@@ -777,7 +774,7 @@ async function fetchConfirmedBookings(carId) {
 
     // 2. Gabungkan dengan LocalStorage (sinkronisasi offline & realtime)
     try {
-        const saved = localStorage.getItem('garuda_rent_bookings');
+        const saved = localStorage.getItem('rcm_rent_bookings');
         if (saved) {
             const localList = JSON.parse(saved);
             localList.forEach(lb => {
@@ -1410,12 +1407,12 @@ async function handleBookingSubmit(e) {
     // 1. Simpan ke LocalStorage agar langsung tampil di Dashboard Admin Data Booking
     try {
         let existingBookings = [];
-        const saved = localStorage.getItem('garuda_rent_bookings');
+        const saved = localStorage.getItem('rcm_rent_bookings');
         if (saved) {
             existingBookings = JSON.parse(saved);
         }
         existingBookings.unshift(newBookingObj);
-        localStorage.setItem('garuda_rent_bookings', JSON.stringify(existingBookings));
+        localStorage.setItem('rcm_rent_bookings', JSON.stringify(existingBookings));
     } catch (err) {}
 
     // 2. Simpan ke Database Backend API Laravel (/api/bookings)
@@ -1462,11 +1459,11 @@ async function handleBookingSubmit(e) {
                 newBookingObj.booking_code = apiRes.data.booking_code || generatedCode;
                 // Update local storage dengan ID resmi dari database
                 try {
-                    const saved = localStorage.getItem('garuda_rent_bookings');
+                    const saved = localStorage.getItem('rcm_rent_bookings');
                     if (saved) {
                         let cur = JSON.parse(saved);
                         if (cur.length > 0) cur[0] = newBookingObj;
-                        localStorage.setItem('garuda_rent_bookings', JSON.stringify(cur));
+                        localStorage.setItem('rcm_rent_bookings', JSON.stringify(cur));
                     }
                 } catch (e) {}
             }

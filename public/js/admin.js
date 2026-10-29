@@ -64,7 +64,7 @@ function showAdminToast(title, message, type = 'success') {
 
     const toast = document.createElement('div');
     toast.className = `admin-toast toast-${type}`;
-    
+
     let iconHtml = '<i class="fa-solid fa-check"></i>';
     if (type === 'warning') iconHtml = '<i class="fa-solid fa-triangle-exclamation"></i>';
     if (type === 'error') iconHtml = '<i class="fa-solid fa-xmark"></i>';
@@ -113,12 +113,17 @@ function closeAdminSidebar() {
 
 // Inisialisasi Data
 async function initAdmin() {
-    if (localStorage.getItem('rcm_cars_v_rev') !== '3') {
-        localStorage.removeItem('garuda_rent_cars');
-        localStorage.setItem('rcm_cars_v_rev', '3');
+    // Bersihkan cache lama (garuda_ keys)
+    ['garuda_rent_cars','garuda_rent_config','garuda_rent_reviews','garuda_rent_bookings'].forEach(k => localStorage.removeItem(k));
+    if (localStorage.getItem('rcm_cars_v_rev') !== '4') {
+        localStorage.removeItem('rcm_rent_cars');
+        localStorage.removeItem('rcm_rent_config');
+        localStorage.removeItem('rcm_rent_reviews');
+        localStorage.removeItem('rcm_rent_bookings');
+        localStorage.setItem('rcm_cars_v_rev', '4');
     }
 
-    const savedConfig = localStorage.getItem('garuda_rent_config');
+    const savedConfig = localStorage.getItem('rcm_rent_config');
     if (savedConfig) {
         try {
             adminState.ownerConfig = JSON.parse(savedConfig);
@@ -127,7 +132,7 @@ async function initAdmin() {
         }
     } else {
         adminState.ownerConfig = { ...DEFAULT_OWNER_CONFIG };
-        localStorage.setItem('garuda_rent_config', JSON.stringify(adminState.ownerConfig));
+        localStorage.setItem('rcm_rent_config', JSON.stringify(adminState.ownerConfig));
     }
 
     // Load Owner Config, Cars, Reviews & Bookings from Database API
@@ -136,7 +141,7 @@ async function initAdmin() {
     await fetchAdminReviews();
     await fetchAdminBookings();
 
-    adminState.isLoggedIn = sessionStorage.getItem('garuda_admin_logged') === 'true';
+    adminState.isLoggedIn = sessionStorage.getItem('rcm_admin_logged') === 'true';
     checkAuthView();
 }
 
@@ -152,16 +157,16 @@ async function fetchAdminOwnerConfig() {
                     businessName: c.business_name || 'Rent Car Makassar',
                     tagline: c.tagline || '',
                     description: c.description || '',
-                    whatsappNumber: c.whatsapp_number || '6281234567890',
-                    phone: c.phone || '0812-3456-7890',
-                    email: c.email || 'kontak@garudarentcar.com',
+                    whatsappNumber: c.whatsapp_number || '62137560263',
+                    phone: c.phone || '0821-3756-0263',
+                    email: c.email || 'kontak@rentcarmakassar.com',
                     address: c.address || 'Jl. Perintis Kemerdekaan No. 10, Makassar, Sulawesi Selatan',
                     mapsUrl: c.maps_url || 'https://maps.google.com/?q=Jl.+Perintis+Kemerdekaan+No.+10,+Makassar,+Sulawesi+Selatan',
                     operatingHours: c.operating_hours || 'Buka 24 Jam Setiap Hari',
                     socialMedia: {
-                        instagram: c.instagram || '@garudarentcar_id',
-                        facebook: c.facebook || 'Garuda Rent Car Official',
-                        tiktok: c.tiktok || '@garudarentcar'
+                        instagram: c.instagram || '@rentcarmakassar',
+                        facebook: c.facebook || 'Rent Car makassar Makassar',
+                        tiktok: c.tiktok || '@rentcarmakassar'
                     },
                     isHolidayPricingActive: Boolean(c.is_holiday_pricing_active),
                     holidayNotes: c.holiday_notes || 'Tarif Musim Libur & Hari Besar Nasional (Peak Season)'
@@ -176,7 +181,7 @@ async function fetchAdminOwnerConfig() {
 
 // Fetch Armada Mobil dari Database API Laravel
 async function fetchAdminCars() {
-    const savedCars = localStorage.getItem('garuda_rent_cars');
+    const savedCars = localStorage.getItem('rcm_rent_cars');
     if (savedCars) {
         try {
             adminState.cars = JSON.parse(savedCars);
@@ -227,7 +232,7 @@ async function fetchAdminCars() {
 
 // Fetch Reviews for Admin Moderation
 async function fetchAdminReviews() {
-    const savedReviews = localStorage.getItem('garuda_rent_reviews');
+    const savedReviews = localStorage.getItem('rcm_rent_reviews');
     if (savedReviews) {
         try {
             adminState.reviews = JSON.parse(savedReviews);
@@ -236,7 +241,7 @@ async function fetchAdminReviews() {
         }
     } else {
         adminState.reviews = [...DEFAULT_REVIEWS];
-        localStorage.setItem('garuda_rent_reviews', JSON.stringify(adminState.reviews));
+        localStorage.setItem('rcm_rent_reviews', JSON.stringify(adminState.reviews));
     }
 
     try {
@@ -245,7 +250,7 @@ async function fetchAdminReviews() {
             const result = await res.json();
             if (result.data) {
                 adminState.reviews = result.data;
-                localStorage.setItem('garuda_rent_reviews', JSON.stringify(adminState.reviews));
+                localStorage.setItem('rcm_rent_reviews', JSON.stringify(adminState.reviews));
             }
         }
     } catch (err) {
@@ -254,15 +259,15 @@ async function fetchAdminReviews() {
 }
 
 function saveCarsData() {
-    localStorage.setItem('garuda_rent_cars', JSON.stringify(adminState.cars));
+    localStorage.setItem('rcm_rent_cars', JSON.stringify(adminState.cars));
 }
 
 function saveConfigData() {
-    localStorage.setItem('garuda_rent_config', JSON.stringify(adminState.ownerConfig));
+    localStorage.setItem('rcm_rent_config', JSON.stringify(adminState.ownerConfig));
 }
 
 function saveReviewsData() {
-    localStorage.setItem('garuda_rent_reviews', JSON.stringify(adminState.reviews));
+    localStorage.setItem('rcm_rent_reviews', JSON.stringify(adminState.reviews));
 }
 
 // Tampilan Auth vs Dashboard
@@ -288,7 +293,7 @@ function handleAdminLogin(e) {
 
     if ((user === 'admin' && pass === 'admin123') || (user === 'owner' && pass === 'owner123')) {
         adminState.isLoggedIn = true;
-        sessionStorage.setItem('garuda_admin_logged', 'true');
+        sessionStorage.setItem('rcm_admin_logged', 'true');
         const err = document.getElementById('loginErrorMessage');
         if (err) err.classList.add('hidden');
         checkAuthView();
@@ -305,7 +310,7 @@ function handleAdminLogin(e) {
 function handleAdminLogout() {
     if (confirm('Apakah Anda yakin ingin keluar dari Dashboard Owner?')) {
         adminState.isLoggedIn = false;
-        sessionStorage.removeItem('garuda_admin_logged');
+        sessionStorage.removeItem('rcm_admin_logged');
         checkAuthView();
     }
 }
@@ -317,7 +322,7 @@ function switchTab(tabName) {
 
     // Sembunyikan semua tab pane
     document.querySelectorAll('.tab-pane').forEach(p => p.classList.add('hidden'));
-    
+
     // Tampilkan tab aktif
     const activePane = document.getElementById(`tab-content-${tabName}`);
     if (activePane) activePane.classList.remove('hidden');
@@ -447,7 +452,7 @@ function renderOverviewQuickCars() {
                         <div style="font-size: 0.65rem; color: var(--clr-text-subtle);">${car.transmission} • ${formatRupiah(car.priceNormal)}/hr</div>
                     </div>
                 </div>
-                <button 
+                <button
                     onclick="toggleCarStatus('${car.id}')"
                     class="${isReady ? 'status-pill-ready' : 'status-pill-used'}" style="cursor: pointer; flex-shrink: 0;">
                     ${isReady ? '● Ready' : '● Digunakan'}
@@ -507,7 +512,7 @@ function renderCarsTable() {
                     ${formatRupiah(car.driverFee || 150000)}
                 </td>
                 <td style="padding: 1rem;">
-                    <button 
+                    <button
                         onclick="toggleCarStatus('${car.id}')"
                         class="${isReady ? 'status-pill-ready' : 'status-pill-used'}" style="cursor: pointer;">
                         ${isReady ? '● Ready' : '● Sedang Digunakan'}
@@ -591,7 +596,7 @@ function renderReviewsTable() {
 
     tbody.innerHTML = filtered.map(rev => {
         const rating = parseInt(rev.rating || 5);
-        const starsHtml = Array.from({ length: 5 }, (_, i) => 
+        const starsHtml = Array.from({ length: 5 }, (_, i) =>
             `<svg style="width:0.875rem;height:0.875rem;fill:${i < rating ? '#22c55e' : '#cbd5e1'};stroke:${i < rating ? '#22c55e' : '#cbd5e1'}" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`
         ).join('');
 
@@ -740,7 +745,7 @@ function openAdminAddReviewModal() {
     if (modal) modal.classList.remove('hidden');
     const form = document.getElementById('adminReviewForm');
     if (form) form.reset();
-    
+
     const titleEl = document.getElementById('adminReviewModalTitle');
     if (titleEl) titleEl.textContent = 'Tambah Review Pelanggan Manual';
 
@@ -1144,13 +1149,13 @@ function renderContactForm() {
     if (businessInput) businessInput.value = cfg.businessName || 'Rent Car Makassar';
     if (waInput) waInput.value = cfg.whatsappNumber || '6281234567890';
     if (phoneInput) phoneInput.value = cfg.phone || '0812-3456-7890';
-    if (emailInput) emailInput.value = cfg.email || 'kontak@garudarentcar.com';
+    if (emailInput) emailInput.value = cfg.email || 'kontak@rentcarmakassar.com';
     if (addressInput) addressInput.value = cfg.address || 'Jl. Perintis Kemerdekaan No. 10, Makassar, Sulawesi Selatan';
     if (mapsInput) mapsInput.value = cfg.mapsUrl || cfg.maps_url || 'https://maps.google.com/?q=Jl.+Perintis+Kemerdekaan+No.+10,+Makassar,+Sulawesi+Selatan';
     if (hoursInput) hoursInput.value = cfg.operatingHours || 'Buka 24 Jam Setiap Hari';
-    if (igInput) igInput.value = sm.instagram || cfg.instagram || '@garudarentcar_id';
-    if (fbInput) fbInput.value = sm.facebook || cfg.facebook || 'Garuda Rent Car Official';
-    if (tiktokInput) tiktokInput.value = sm.tiktok || cfg.tiktok || '@garudarentcar';
+    if (igInput) igInput.value = sm.instagram || cfg.instagram || '@rentcarmakassar_id';
+    if (fbInput) fbInput.value = sm.facebook || cfg.facebook || 'Rent Car Makassar Official';
+    if (tiktokInput) tiktokInput.value = sm.tiktok || cfg.tiktok || '@rentcarmakassar';
 }
 
 // Simpan Kontak Owner & WhatsApp
@@ -1464,12 +1469,12 @@ function formatBookingDateRange(startDateStr, endDateStr, startTimeStr, endTimeS
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         const startParts = startDateStr.split('-');
         const endParts = endDateStr.split('-');
-        
+
         if (startParts.length === 3 && endParts.length === 3) {
             const startD = parseInt(startParts[2], 10);
             const startM = months[parseInt(startParts[1], 10) - 1];
             const startY = startParts[0];
-            
+
             const endD = parseInt(endParts[2], 10);
             const endM = months[parseInt(endParts[1], 10) - 1];
             const endY = endParts[0];
@@ -1492,7 +1497,7 @@ async function fetchAdminBookings() {
     let loadedBookings = [];
 
     // 1. Try reading from LocalStorage
-    const savedBookings = localStorage.getItem('garuda_rent_bookings');
+    const savedBookings = localStorage.getItem('rcm_rent_bookings');
     if (savedBookings) {
         try {
             loadedBookings = JSON.parse(savedBookings);
@@ -1539,11 +1544,11 @@ async function fetchAdminBookings() {
     }
 
     adminState.bookings = loadedBookings;
-    localStorage.setItem('garuda_rent_bookings', JSON.stringify(adminState.bookings));
+    localStorage.setItem('rcm_rent_bookings', JSON.stringify(adminState.bookings));
 }
 
 function saveBookingsData() {
-    localStorage.setItem('garuda_rent_bookings', JSON.stringify(adminState.bookings));
+    localStorage.setItem('rcm_rent_bookings', JSON.stringify(adminState.bookings));
 }
 
 function renderBookingsTable() {
@@ -1554,12 +1559,12 @@ function renderBookingsTable() {
     const filterStatus = document.getElementById('adminBookingFilterStatus')?.value || adminState.bookingFilterStatus || 'all';
 
     let filtered = (adminState.bookings || []).filter(b => {
-        const matchesSearch = !searchQuery || 
+        const matchesSearch = !searchQuery ||
             (b.customer_name && b.customer_name.toLowerCase().includes(searchQuery)) ||
             (b.customer_phone && b.customer_phone.toLowerCase().includes(searchQuery)) ||
             (b.car_name && b.car_name.toLowerCase().includes(searchQuery)) ||
             (b.booking_code && b.booking_code.toLowerCase().includes(searchQuery));
-        
+
         let matchesStatus = true;
         if (filterStatus !== 'all') {
             const curStatus = (b.status || 'pending').toLowerCase();
@@ -1760,7 +1765,7 @@ async function handleAdminUploadKtp(event) {
     const reader = new FileReader();
     reader.onload = async function(e) {
         const rawBase64 = e.target.result;
-        
+
         // Kompres via Canvas (max 1280px)
         const tempImg = new Image();
         tempImg.onload = async function() {
@@ -1827,7 +1832,7 @@ function openAdminBookingModal() {
     const carSelect = document.getElementById('abCarId');
     if (carSelect) {
         if (adminState.cars && adminState.cars.length > 0) {
-            carSelect.innerHTML = adminState.cars.map(c => 
+            carSelect.innerHTML = adminState.cars.map(c =>
                 `<option value="${c.id}">${c.brand} ${c.model} (${c.year})</option>`
             ).join('');
         } else {
@@ -1957,10 +1962,10 @@ async function handleSaveAdminBooking(e) {
 
 function resetAllDataToDefault() {
     if (confirm('PERINGATAN: Apakah Anda yakin ingin mereset seluruh data kembali ke setelan awal pabrik?')) {
-        localStorage.removeItem('garuda_rent_cars');
-        localStorage.removeItem('garuda_rent_config');
-        localStorage.removeItem('garuda_rent_reviews');
-        localStorage.removeItem('garuda_rent_bookings');
+        localStorage.removeItem('rcm_rent_cars');
+        localStorage.removeItem('rcm_rent_config');
+        localStorage.removeItem('rcm_rent_reviews');
+        localStorage.removeItem('rcm_rent_bookings');
         initAdmin();
         alert('Data berhasil direset.');
     }

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
@@ -16,6 +16,8 @@
 
     <!-- Custom Red Crimson Vanilla CSS -->
     <link rel="stylesheet" href="/css/style.css">
+    <!-- Mobile Responsive Patch -->
+    <link rel="stylesheet" href="/css/responsive-mobile.css">
 </head>
 <body>
 
@@ -925,7 +927,7 @@
                     </div>
                     <div style="color: #94a3b8; font-size: 0.8125rem;">
                         <span>Email Resmi:</span>
-                        <a href="mailto:kontak@garudarentcar.com" class="owner-email footer-light-link" style="font-weight: 700; color: #f8fafc; margin-left: 0.35rem;">kontak@garudarentcar.com</a>
+                        <a href="mailto:kontak@rentcarmakassar.com" class="owner-email footer-light-link" style="font-weight: 700; color: #f8fafc; margin-left: 0.35rem;">kontak@rentcarmakassar.com</a>
                     </div>
                 </div>
 

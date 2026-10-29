@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace Database\Seeders;
 
@@ -17,7 +17,7 @@ class ReviewSeeder extends Seeder
                 'name' => 'Alex Pratama',
                 'rating' => 5,
                 'car_name' => 'Toyota Innova Zenix',
-                'comment' => 'Pelayanan Garuda Rent Car sangat memuaskan! Mobil Innova Zenix-nya sangat bersih, wangi, dan mesin halus. Driver juga ramah dan tepat waktu saat penjemputan di Bandara.',
+                'comment' => 'Pelayanan Rent Car Makassar sangat memuaskan! Mobil Innova Zenix-nya sangat bersih, wangi, dan mesin halus. Driver juga ramah dan tepat waktu saat penjemputan di Bandara.',
                 'avatar' => 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
                 'status' => 'approved',
             ],

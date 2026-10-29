@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
@@ -15,6 +15,8 @@
 
     <!-- Custom Vanilla CSS -->
     <link rel="stylesheet" href="/css/style.css">
+    <!-- Mobile Responsive Patch -->
+    <link rel="stylesheet" href="/css/responsive-mobile.css">
 </head>
 <body style="background-color: var(--clr-bg); color: var(--clr-text-main);">
 
@@ -288,7 +290,8 @@
                             </div>
                         </div>
 
-                        <table class="data-table">
+                        <div style="overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 0 0 var(--radius-lg) var(--radius-lg);">
+                        <table class="data-table" style="min-width: 640px;">
                             <thead>
                                 <tr>
                                     <th>Mobil & Kategori</th>
@@ -303,6 +306,7 @@
                                 <!-- Populated by JS -->
                             </tbody>
                         </table>
+                        </div>
                     </div>
                 </div>
 
@@ -470,7 +474,8 @@
                         <div style="padding-top: 1.5rem; border-top: 1px solid #f1f5f9;">
                             <h4 style="font-size: 0.75rem; font-weight: 800; color: var(--clr-text-main); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem;">Tabel Perbandingan Tarif Normal vs Tarif Libur</h4>
                             <div class="table-container">
-                                <table class="data-table">
+                                <div style="overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 0 0 var(--radius-lg) var(--radius-lg);">
+                        <table class="data-table" style="min-width: 640px;">
                                     <thead>
                                         <tr>
                                             <th>Unit Mobil</th>
@@ -548,15 +553,15 @@
                                 <div class="grid sm:grid-cols-3 gap-3">
                                     <div class="form-group" style="margin-bottom: 0;">
                                         <label class="form-label">Instagram</label>
-                                        <input type="text" id="ownerIg" placeholder="@garudarentcar_id" class="form-input">
+                                        <input type="text" id="ownerIg" placeholder="@rentcarmakassar_id" class="form-input">
                                     </div>
                                     <div class="form-group" style="margin-bottom: 0;">
                                         <label class="form-label">Facebook</label>
-                                        <input type="text" id="ownerFb" placeholder="Garuda Rent Car Official" class="form-input">
+                                        <input type="text" id="ownerFb" placeholder="Rent Car Makassar Official" class="form-input">
                                     </div>
                                     <div class="form-group" style="margin-bottom: 0;">
                                         <label class="form-label">TikTok</label>
-                                        <input type="text" id="ownerTiktok" placeholder="@garudarentcar" class="form-input">
+                                        <input type="text" id="ownerTiktok" placeholder="@rentcarmakassar" class="form-input">
                                     </div>
                                 </div>
                             </div>
