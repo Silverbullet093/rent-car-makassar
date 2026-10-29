@@ -58,7 +58,7 @@ async function initStorage() {
         localStorage.removeItem('garuda_rent_cars');
         localStorage.setItem('rcm_cars_v2', 'true');
     }
-    
+
     // Cars setup
     const savedCars = localStorage.getItem('garuda_rent_cars');
     if (savedCars) {
@@ -189,7 +189,7 @@ async function initReviewsStorage() {
 // Render Header, Info Rental & Kontak Owner
 function renderOwnerInfo() {
     const cfg = state.ownerConfig;
-    
+
     // Title & Taglines
     document.querySelectorAll('.brand-title').forEach(el => {
         if (el.dataset.customBrand === 'rpm') {
@@ -286,8 +286,8 @@ function renderCarsCatalog() {
     // Filter Pencarian
     if (state.searchQuery.trim() !== '') {
         const q = state.searchQuery.toLowerCase();
-        filtered = filtered.filter(c => 
-            c.brand.toLowerCase().includes(q) || 
+        filtered = filtered.filter(c =>
+            c.brand.toLowerCase().includes(q) ||
             c.model.toLowerCase().includes(q) ||
             c.category.toLowerCase().includes(q)
         );
@@ -330,9 +330,9 @@ function renderCarsCatalog() {
                 <div>
                     <!-- Foto & Status Tag -->
                     <div class="card-img-wrap">
-                        <img 
-                            src="${car.image}" 
-                            alt="${car.brand} ${car.model}" 
+                        <img
+                            src="${car.image}"
+                            alt="${car.brand} ${car.model}"
                             loading="lazy"
                             onerror="this.src='https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80'"
                         />
@@ -412,9 +412,9 @@ function renderCarsCatalog() {
                         `}
                     </div>
 
-                    <button 
+                    <button
                         onclick="openBookingModal('${car.id}')"
-                        class="btn ${isReady ? 'btn-primary' : 'btn-outline'}" 
+                        class="btn ${isReady ? 'btn-primary' : 'btn-outline'}"
                         style="width: 100%;">
                         <span>${isReady ? 'Pilih & Pesan Unit' : 'Cek Detail / Booking Jadwal'}</span>
                         <svg style="width:0.875rem;height:0.875rem;display:inline-block;vertical-align:-1px;margin-left:0.25rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
@@ -570,7 +570,7 @@ function renderReviews() {
 
     container.innerHTML = displayList.map(rev => {
         const rating = parseInt(rev.rating || 5);
-        const starsHtml = Array.from({ length: 5 }, (_, i) => 
+        const starsHtml = Array.from({ length: 5 }, (_, i) =>
             `<svg style="width:1rem;height:1rem;fill:${i < rating ? '#22c55e' : '#cbd5e1'};stroke:${i < rating ? '#22c55e' : '#cbd5e1'}" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`
         ).join('');
 
@@ -593,8 +593,8 @@ function renderReviews() {
                 <!-- Footer Card: Author Info & Rating -->
                 <div style="padding-top: 1rem; border-top: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between;">
                     <div style="display: flex; align-items: center; gap: 0.75rem;">
-                        <img 
-                            src="${avatarSrc}" 
+                        <img
+                            src="${avatarSrc}"
                             alt="${rev.name}"
                             onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(rev.name)}&background=22c55e&color=fff'"
                             style="width: 2.75rem; height: 2.75rem; border-radius: 50%; object-fit: cover; border: 2px solid #e2e8f0;"
@@ -633,12 +633,12 @@ function renderReviews() {
 function openReviewModal() {
     state.selectedReviewRating = 5;
     state.reviewAvatarBase64 = null;
-    
+
     const form = document.getElementById('reviewForm');
     if (form) form.reset();
-    
+
     setReviewRating(5);
-    
+
     const modal = document.getElementById('reviewModal');
     if (modal) modal.classList.remove('hidden');
 }
@@ -955,7 +955,7 @@ function renderBookingCalendar(type) {
             // Jika tanggal sama persis dengan tanggal selesai sewa (end_date) -> Tanda Kuning (Waktu Jangka Selesai Peminjaman)
             if (currDate.getTime() === bEnd.getTime()) {
                 isFinish = true;
-            } 
+            }
             // Jika dalam masa sewa (dari start_date sampai sebelum end_date) -> Tanda Merah (Dibooking)
             else if (currDate >= bStart && currDate < bEnd) {
                 isBooked = true;
@@ -1090,7 +1090,7 @@ async function openBookingModal(carId) {
     document.getElementById('modalCarTitle').textContent = `${car.brand} ${car.model} (${car.year})`;
     document.getElementById('modalCarCategory').textContent = car.category;
     document.getElementById('modalCarDesc').textContent = car.description;
-    
+
     // Spesifikasi
     document.getElementById('modalCarSeats').textContent = `${car.seats} Kursi`;
     document.getElementById('modalCarTrans').textContent = car.transmission;
@@ -1110,7 +1110,7 @@ async function openBookingModal(carId) {
     // Set Option Select Mobil di Form
     const selectUnit = document.getElementById('bookCarSelect');
     if (selectUnit) {
-        selectUnit.innerHTML = state.cars.map(c => 
+        selectUnit.innerHTML = state.cars.map(c =>
             `<option value="${c.id}" ${c.id === car.id ? 'selected' : ''}>${c.brand} ${c.model} (${c.year}) — ${formatRupiah(state.ownerConfig.isHolidayPricingActive ? c.priceHoliday : c.priceNormal)}/hari</option>`
         ).join('');
     }
@@ -1132,7 +1132,7 @@ async function openBookingModal(carId) {
     // Set Default Date di luar tanggal bentrok (contoh: 22 s/d 24 Oktober 2026)
     const startDateInput = document.getElementById('bookStartDate');
     const endDateInput = document.getElementById('bookEndDate');
-    
+
     if (startDateInput) startDateInput.value = '2026-10-22';
     if (endDateInput) endDateInput.value = '2026-10-24';
 
@@ -1415,7 +1415,7 @@ async function handleBookingSubmit(e) {
     try {
         const res = await fetch('/api/bookings', {
             method: 'POST',
-            headers: { 
+            headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
             },
@@ -1671,6 +1671,8 @@ document.addEventListener('DOMContentLoaded', () => {
         reviewAvatarInput.addEventListener('change', handleReviewAvatarUpload);
     }
 });
+
+state.cars = [...DEFAULT_CARS];
 
 // Alias for form submission compatibility and global handlers
 window.submitBookingWhatsApp = handleBookingSubmit;

@@ -23,9 +23,9 @@ class OwnerConfigSeeder extends Seeder
                 'email' => 'reservasi@rpmrentcarmakassar.com',
                 'address' => 'Jl. Perintis Kemerdekaan No. 10, Makassar, Sulawesi Selatan',
                 'operating_hours' => 'Buka 24 Jam Setiap Hari',
-                'instagram' => '@garudarentcar_id',
-                'facebook' => 'Garuda Rent Car Official',
-                'tiktok' => '@garudarentcar',
+                'instagram' => '@rentcarmakassar_id',
+                'facebook' => ' Rent Car Makassar Official',
+                'tiktok' => '@rentcarmakassar',
                 'is_holiday_pricing_active' => false,
                 'holiday_notes' => 'Tarif Musim Libur & Hari Besar Nasional (Peak Season)',
             ]

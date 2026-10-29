@@ -15,7 +15,7 @@ class DatabaseSeeder extends Seeder
     {
         // Admin Default
         User::updateOrCreate(
-            ['email' => 'admin@garudarentcar.com'],
+            ['email' => 'admin@rentcarmakassar.com'],
             [
                 'name' => 'Owner Admin',
                 'password' => Hash::make('admin123'),
