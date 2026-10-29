@@ -13,22 +13,30 @@ class ReviewController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Review::query();
+        try {
+            $query = Review::query();
 
-        // If status filter is passed (e.g. status=all for admin), otherwise default to 'approved' for public view
-        if ($request->has('status') && $request->status !== 'all') {
-            $query->where('status', $request->status);
-        } elseif (!$request->has('status')) {
-            $query->where('status', 'approved');
+            // If status filter is passed (e.g. status=all for admin), otherwise default to 'approved' for public view
+            if ($request->has('status') && $request->status !== 'all') {
+                $query->where('status', $request->status);
+            } elseif (!$request->has('status')) {
+                $query->where('status', 'approved');
+            }
+
+            $reviews = $query->orderBy('created_at', 'desc')->get();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Daftar review berhasil diambil',
+                'data' => $reviews,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Database tidak tersedia, menggunakan data lokal.',
+                'data' => [],
+            ], 200);
         }
-
-        $reviews = $query->orderBy('created_at', 'desc')->get();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Daftar review berhasil diambil',
-            'data' => $reviews,
-        ]);
     }
 
     /**

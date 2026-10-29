@@ -13,30 +13,48 @@ class OwnerConfigController extends Controller
      */
     public function show()
     {
-        $config = OwnerConfig::first();
+        try {
+            $config = OwnerConfig::first();
 
-        if (!$config) {
-            $config = OwnerConfig::create([
-                'business_name' => 'Garuda Rent Car',
-                'tagline' => 'Sewa Mobil Terpercaya, Nyaman & Harga Transparan',
-                'description' => 'Penyedia jasa rental mobil profesional melayani sewa lepas kunci maupun dengan supir.',
-                'whatsapp_number' => '6281234567890',
-                'phone' => '0812-3456-7890',
-                'email' => 'kontak@garudarentcar.com',
-                'address' => 'Jl. Raya Protokol No. 88, Jakarta Selatan',
-                'operating_hours' => 'Buka 24 Jam Setiap Hari',
-                'instagram' => '@garudarentcar_id',
-                'facebook' => 'Garuda Rent Car Official',
-                'tiktok' => '@garudarentcar',
-                'is_holiday_pricing_active' => false,
-                'holiday_notes' => 'Tarif Musim Libur & Hari Besar Nasional (Peak Season)',
+            if (!$config) {
+                $config = OwnerConfig::create([
+                    'business_name' => 'RPM Rent Car',
+                    'tagline' => 'Sewa Mobil Terpercaya, Nyaman & Harga Transparan',
+                    'description' => 'Penyedia jasa rental mobil profesional melayani sewa lepas kunci maupun dengan supir.',
+                    'whatsapp_number' => '6281234567890',
+                    'phone' => '0812-3456-7890',
+                    'email' => 'kontak@garudarentcar.com',
+                    'address' => 'Makassar & Sekitarnya',
+                    'operating_hours' => 'Buka 24 Jam Setiap Hari',
+                    'instagram' => '@garudarentcar_id',
+                    'facebook' => 'Garuda Rent Car Official',
+                    'tiktok' => '@garudarentcar',
+                    'is_holiday_pricing_active' => false,
+                    'holiday_notes' => 'Tarif Musim Libur & Hari Besar Nasional (Peak Season)',
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $config,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'business_name' => 'RPM Rent Car',
+                    'tagline' => 'Sewa Mobil Terpercaya, Nyaman & Harga Transparan',
+                    'description' => 'Penyedia jasa rental mobil profesional melayani sewa lepas kunci maupun dengan supir.',
+                    'whatsapp_number' => '6281234567890',
+                    'phone' => '0812-3456-7890',
+                    'email' => 'kontak@garudarentcar.com',
+                    'address' => 'Makassar & Sekitarnya',
+                    'operating_hours' => 'Buka 24 Jam Setiap Hari',
+                    'is_holiday_pricing_active' => false,
+                    'holiday_notes' => 'Tarif Musim Libur & Hari Besar Nasional (Peak Season)',
+                ],
             ]);
         }
-
-        return response()->json([
-            'success' => true,
-            'data' => $config,
-        ]);
     }
 
     /**

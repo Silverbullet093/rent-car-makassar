@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return redirect('/rcm-makassar');
+    return view('index');
 });
 
 Route::get('/rcm-makassar', function () {
@@ -15,5 +15,5 @@ Route::get('/adminrcm', function () {
 });
 
 Route::get('/admin', function () {
-    return redirect('/adminrcm');
+    return view('admin');
 });

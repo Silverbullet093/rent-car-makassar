@@ -13,32 +13,40 @@ class CarController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Car::query();
+        try {
+            $query = Car::query();
 
-        if ($request->has('search') && $request->search != '') {
-            $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('brand', 'like', "%{$search}%")
-                  ->orWhere('model', 'like', "%{$search}%")
-                  ->orWhere('category', 'like', "%{$search}%");
-            });
+            if ($request->has('search') && $request->search != '') {
+                $search = $request->search;
+                $query->where(function($q) use ($search) {
+                    $q->where('brand', 'like', "%{$search}%")
+                      ->orWhere('model', 'like', "%{$search}%")
+                      ->orWhere('category', 'like', "%{$search}%");
+                });
+            }
+
+            if ($request->has('category') && $request->category != 'semua' && $request->category != '') {
+                $query->where('category', $request->category);
+            }
+
+            if ($request->has('status') && $request->status != '') {
+                $query->where('status', $request->status);
+            }
+
+            $cars = $query->orderBy('id', 'asc')->get();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Daftar armada mobil berhasil diambil',
+                'data' => $cars,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Database offline atau belum terkonfigurasi',
+                'data' => [],
+            ], 200);
         }
-
-        if ($request->has('category') && $request->category != 'semua' && $request->category != '') {
-            $query->where('category', $request->category);
-        }
-
-        if ($request->has('status') && $request->status != '') {
-            $query->where('status', $request->status);
-        }
-
-        $cars = $query->orderBy('id', 'asc')->get();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Daftar armada mobil berhasil diambil',
-            'data' => $cars,
-        ]);
     }
 
     /**

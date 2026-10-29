@@ -14,22 +14,30 @@ class BookingController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Booking::with('car');
+        try {
+            $query = Booking::with('car');
 
-        if ($request->has('car_id') && $request->car_id != '') {
-            $query->where('car_id', $request->car_id);
+            if ($request->has('car_id') && $request->car_id != '') {
+                $query->where('car_id', $request->car_id);
+            }
+
+            if ($request->has('status') && $request->status != '') {
+                $query->where('status', $request->status);
+            }
+
+            $bookings = $query->latest()->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => $bookings,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Database tidak tersedia, menggunakan data lokal.',
+                'data' => [],
+            ], 200);
         }
-
-        if ($request->has('status') && $request->status != '') {
-            $query->where('status', $request->status);
-        }
-
-        $bookings = $query->latest()->get();
-
-        return response()->json([
-            'success' => true,
-            'data' => $bookings,
-        ]);
     }
 
     /**
