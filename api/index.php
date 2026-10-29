@@ -1,5 +1,35 @@
 <?php
 
+// Jika Vercel me-forward request aset statis ke PHP, sajikan langsung dari folder public/
+$uri = urldecode(parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH));
+$publicFile = __DIR__ . '/../public' . $uri;
+
+if ($uri !== '/' && is_file($publicFile)) {
+    $extension = strtolower(pathinfo($publicFile, PATHINFO_EXTENSION));
+    $mimes = [
+        'css'   => 'text/css; charset=utf-8',
+        'js'    => 'application/javascript; charset=utf-8',
+        'png'   => 'image/png',
+        'jpg'   => 'image/jpeg',
+        'jpeg'  => 'image/jpeg',
+        'gif'   => 'image/gif',
+        'ico'   => 'image/x-icon',
+        'svg'   => 'image/svg+xml',
+        'webp'  => 'image/webp',
+        'json'  => 'application/json',
+        'woff'  => 'font/woff',
+        'woff2' => 'font/woff2',
+        'ttf'   => 'font/ttf',
+    ];
+
+    if (isset($mimes[$extension])) {
+        header('Content-Type: ' . $mimes[$extension]);
+        header('Cache-Control: public, max-age=31536000, immutable');
+        readfile($publicFile);
+        exit;
+    }
+}
+
 // Pastikan environment Vercel dan Serverless terdeteksi
 putenv('VERCEL=1');
 $_ENV['VERCEL'] = '1';

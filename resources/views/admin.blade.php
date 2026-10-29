@@ -14,7 +14,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <!-- Custom Vanilla CSS -->
-    <link rel="stylesheet" href="{{ asset('css/style.css') }}">
+    <link rel="stylesheet" href="/css/style.css">
 </head>
 <body style="background-color: var(--clr-bg); color: var(--clr-text-main);">
 
@@ -25,7 +25,7 @@
         <div style="max-width: 26rem; width: 100%; background: #ffffff; border-radius: var(--radius-xl); padding: 2rem; border: 1px solid var(--clr-border); box-shadow: var(--shadow-xl);">
             <div style="text-align: center; margin-bottom: 1.5rem;">
                 <div style="width: 4.5rem; height: 4.5rem; background: #dc2626; border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(220, 38, 38, 0.45); overflow: hidden; margin: 0 auto 0.75rem auto;">
-                    <img src="{{ asset('logo_rpm_red.png') }}" alt="RPM Rent Car Makassar" style="width: 100%; height: 100%; object-fit: contain; transform: scale(1.35);">
+                    <img src="/logo_rpm_red.png" alt="RPM Rent Car Makassar" style="width: 100%; height: 100%; object-fit: contain; transform: scale(1.35);">
                 </div>
                 <h1 style="font-size: 1.25rem; font-weight: 800; color: var(--clr-text-main);">Portal Dashboard Owner</h1>
                 <p style="font-size: 0.75rem; color: var(--clr-text-muted); margin-top: 0.25rem;">Masuk untuk mengelola tarif libur, ketersediaan mobil, dan kontak bisnis.</p>
@@ -84,7 +84,7 @@
             <div class="sidebar-header">
                 <div class="flex items-center gap-2.5">
                     <div style="width: 2.5rem; height: 2.5rem; background: #dc2626; border-radius: 0.65rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 12px rgba(220, 38, 38, 0.45); overflow: hidden; flex-shrink: 0;">
-                        <img src="{{ asset('logo_rpm_red.png') }}" alt="RPM Rent Car" style="width: 100%; height: 100%; object-fit: contain; transform: scale(1.35);">
+                        <img src="/logo_rpm_red.png" alt="RPM Rent Car" style="width: 100%; height: 100%; object-fit: contain; transform: scale(1.35);">
                     </div>
                     <div>
                         <div style="font-size: 0.875rem; font-weight: 800; color: #ffffff;" class="brand-title">RPM <span style="color: #ef4444;">Rent Car</span></div>
@@ -945,7 +945,7 @@
     <div id="adminToastContainer" class="admin-toast-container"></div>
 
     <!-- Scripts -->
-    <script src="{{ asset('js/data.js') }}"></script>
-    <script src="{{ asset('js/admin.js') }}"></script>
+    <script src="/js/data.js"></script>
+    <script src="/js/admin.js"></script>
 </body>
 </html>

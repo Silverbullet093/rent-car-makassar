@@ -15,7 +15,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <!-- Custom Red Crimson Vanilla CSS -->
-    <link rel="stylesheet" href="{{ asset('css/style.css') }}">
+    <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
 
@@ -31,7 +31,7 @@
             <!-- BRAND LOGO -->
             <a href="#home" class="flex items-center gap-3">
                 <div style="width: 2.75rem; height: 2.75rem; background: var(--clr-primary); border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25); overflow: hidden;">
-                    <img src="{{ asset('logo_rpm_red.png') }}" alt="RPM Rent Car" style="width: 100%; height: 100%; object-fit: contain; transform: scale(1.35);">
+                    <img src="/logo_rpm_red.png" alt="RPM Rent Car" style="width: 100%; height: 100%; object-fit: contain; transform: scale(1.35);">
                 </div>
                 <div>
                     <span class="brand-title" data-custom-brand="rpm" style="font-size: 1.25rem; font-weight: 800; color: var(--clr-text-main); line-height: 1.1; display: block; font-family: 'Plus Jakarta Sans', sans-serif;">
@@ -80,7 +80,7 @@
         <div class="mobile-drawer-header">
             <div class="flex items-center gap-2.5">
                 <div style="width: 2.25rem; height: 2.25rem; background: var(--clr-primary); border-radius: 0.65rem; display: flex; align-items: center; justify-content: center; overflow: hidden;">
-                    <img src="{{ asset('logo_rpm_red.png') }}" alt="RPM" style="width: 100%; height: 100%; object-fit: contain; transform: scale(1.35);">
+                    <img src="/logo_rpm_red.png" alt="RPM" style="width: 100%; height: 100%; object-fit: contain; transform: scale(1.35);">
                 </div>
                 <div>
                     <span style="font-weight: 800; font-size: 1.05rem; color: #0f172a; display: block; line-height: 1.1;">RPM <span style="color: var(--clr-primary);">Rent Car</span></span>
@@ -865,7 +865,7 @@
                 <div class="md:col-span-5" style="display: flex; flex-direction: column; gap: 1rem;">
                     <div class="flex items-center gap-3">
                         <div style="width: 2.75rem; height: 2.75rem; background: #dc2626; border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(220, 38, 38, 0.45); overflow: hidden;">
-                            <img src="{{ asset('logo_rpm_red.png') }}" alt="RPM Rent Car" style="width: 100%; height: 100%; object-fit: contain; transform: scale(1.35);">
+                            <img src="/logo_rpm_red.png" alt="RPM Rent Car" style="width: 100%; height: 100%; object-fit: contain; transform: scale(1.35);">
                         </div>
                         <div>
                             <span class="brand-title" data-custom-brand="rpm" style="font-size: 1.25rem; font-weight: 800; color: #ffffff; line-height: 1.1; display: block; font-family: 'Plus Jakarta Sans', sans-serif;">
@@ -988,7 +988,7 @@
     </button>
 
     <!-- Application Scripts -->
-    <script src="{{ asset('js/data.js') }}"></script>
-    <script src="{{ asset('js/app.js') }}"></script>
+    <script src="/js/data.js"></script>
+    <script src="/js/app.js"></script>
 </body>
 </html>
