@@ -96,6 +96,13 @@ class BookingController extends Controller
 
         $validated['status'] = $request->input('status', 'pending');
 
+        if (empty($validated['start_time'])) {
+            $validated['start_time'] = now('Asia/Makassar')->format('H:i');
+        }
+        if (empty($validated['end_time'])) {
+            $validated['end_time'] = $validated['start_time'];
+        }
+
         if ($request->filled('ktp_image')) {
             $validated['ktp_image'] = $request->ktp_image;
         }

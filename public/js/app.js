@@ -1327,8 +1327,13 @@ async function handleBookingSubmit(e) {
     const event = eventEl ? eventEl.value : 'Wisata / Liburan';
     const startDate = document.getElementById('bookStartDate')?.value || '';
     const endDate = document.getElementById('bookEndDate')?.value || '';
-    const startTime = document.getElementById('bookStartTime')?.value || '09:00';
-    const endTime = document.getElementById('bookEndTime')?.value || '09:00';
+    // Jam peminjaman otomatis secara real-time saat pelanggan melakukan pemesanan
+    const now = new Date();
+    const currentHours = String(now.getHours()).padStart(2, '0');
+    const currentMinutes = String(now.getMinutes()).padStart(2, '0');
+    const realTimeNow = `${currentHours}:${currentMinutes}`;
+    const startTime = document.getElementById('bookStartTime')?.value || realTimeNow;
+    const endTime = document.getElementById('bookEndTime')?.value || realTimeNow;
     const pickupLoc = document.getElementById('bookPickupLocation')?.value.trim() || '';
     const driverOpt = document.querySelector('input[name="driverOption"]:checked')?.value || 'without_driver';
     const notes = (document.getElementById('bookNotes') || document.getElementById('bookCustNotes'))?.value.trim() || '';

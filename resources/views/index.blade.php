@@ -656,37 +656,7 @@
                         </div>
                     </div>
 
-                    <!-- Jam Peminjaman & Pengembalian -->
-                    <div class="grid sm:grid-cols-2 gap-3" style="margin-top: 0.5rem;">
-                        <div class="form-group">
-                            <label class="form-label">Jam Peminjaman / Ambil <span style="color: var(--clr-rose);">*</span></label>
-                            <div style="position: relative;">
-                                <input 
-                                    type="time" 
-                                    id="bookStartTime" 
-                                    value="09:00" 
-                                    required 
-                                    class="form-input" 
-                                    style="padding-left: 2.5rem;"
-                                />
-                                <i class="fa-solid fa-clock" style="position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); color: #94a3b8; pointer-events: none;"></i>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Jam Selesai / Pengembalian <span style="color: var(--clr-rose);">*</span></label>
-                            <div style="position: relative;">
-                                <input 
-                                    type="time" 
-                                    id="bookEndTime" 
-                                    value="09:00" 
-                                    required 
-                                    class="form-input" 
-                                    style="padding-left: 2.5rem;"
-                                />
-                                <i class="fa-solid fa-clock-rotate-left" style="position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); color: #94a3b8; pointer-events: none;"></i>
-                            </div>
-                        </div>
-                    </div>
+
 
                     <!-- Notifikasi Jadwal yang Sudah Dikonfirmasi -->
                     <div id="confirmedDatesNotice" class="hidden" style="background: #fff1f2; border: 1px solid #fecdd3; border-radius: var(--radius-md); padding: 0.75rem 1rem; font-size: 0.75rem; color: #9f1239;">
