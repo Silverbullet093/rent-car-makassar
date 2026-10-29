@@ -60,5 +60,5 @@ const EVENT_OPTIONS = [
     { value: "Antar Jemput Bandara", label: "✈️ Antar / Jemput Bandara" },
     { value: "Mudik / Pulang Kampung", label: "🏡 Mudik / Pulang Kampung" },
     { value: "Acara Keluarga / Hajatan", label: "👨‍👩‍👧‍👦 Acara Keluarga / Hajatan" },
-    { value: "Lainnya", label: "✨ Keperluan Lainnya" }
+    { value: "Lainnya", label: "📌 Keperluan Lainnya" }
 ];

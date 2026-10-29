@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Owner — Rent Car Makassar</title>
     
+    <!-- Plus Jakarta Sans Google Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
     <!-- Custom Vanilla CSS -->
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
 </head>
@@ -16,7 +24,9 @@
     <div id="loginSection" style="min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem; background-color: #f1f5f9;">
         <div style="max-width: 26rem; width: 100%; background: #ffffff; border-radius: var(--radius-xl); padding: 2rem; border: 1px solid var(--clr-border); box-shadow: var(--shadow-xl);">
             <div style="text-align: center; margin-bottom: 1.5rem;">
-                <img src="{{ asset('logo.png') }}" alt="Rent Car Makassar" style="width: 4rem; height: 4rem; margin: 0 auto 0.75rem auto; object-fit: contain; border-radius: var(--radius-lg); background: var(--clr-primary); padding: 4px; display: block; box-shadow: var(--shadow-md);">
+                <div style="width: 4.5rem; height: 4.5rem; background: #dc2626; border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(220, 38, 38, 0.45); overflow: hidden; margin: 0 auto 0.75rem auto;">
+                    <img src="{{ asset('logo_rpm_red.png') }}" alt="RPM Rent Car Makassar" style="width: 100%; height: 100%; object-fit: contain; transform: scale(1.35);">
+                </div>
                 <h1 style="font-size: 1.25rem; font-weight: 800; color: var(--clr-text-main);">Portal Dashboard Owner</h1>
                 <p style="font-size: 0.75rem; color: var(--clr-text-muted); margin-top: 0.25rem;">Masuk untuk mengelola tarif libur, ketersediaan mobil, dan kontak bisnis.</p>
             </div>
@@ -72,11 +82,13 @@
         <aside class="sidebar">
             <!-- Brand Header -->
             <div class="sidebar-header">
-                <div class="flex items-center gap-2">
-                    <img src="{{ asset('logo.png') }}" alt="Rent Car Makassar" style="width: 2.25rem; height: 2.25rem; object-fit: contain; border-radius: var(--radius-md); background: var(--clr-primary); padding: 2px; border: 1px solid rgba(255,255,255,0.15);">
+                <div class="flex items-center gap-2.5">
+                    <div style="width: 2.5rem; height: 2.5rem; background: #dc2626; border-radius: 0.65rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 12px rgba(220, 38, 38, 0.45); overflow: hidden; flex-shrink: 0;">
+                        <img src="{{ asset('logo_rpm_red.png') }}" alt="RPM Rent Car" style="width: 100%; height: 100%; object-fit: contain; transform: scale(1.35);">
+                    </div>
                     <div>
-                        <div style="font-size: 0.875rem; font-weight: 800; color: #ffffff;" class="brand-title">Rent Car Makassar</div>
-                        <div style="font-size: 0.65rem; color: #94a3b8;">Dashboard Owner</div>
+                        <div style="font-size: 0.875rem; font-weight: 800; color: #ffffff;" class="brand-title">RPM <span style="color: #ef4444;">Rent Car</span></div>
+                        <div style="font-size: 0.625rem; color: #94a3b8; letter-spacing: 0.08em; font-weight: 700; text-transform: uppercase;">Makassar • Owner</div>
                     </div>
                 </div>
             </div>
@@ -142,9 +154,19 @@
             
             <!-- Top Header Bar (Menetap / Fixed Sticky) -->
             <header class="admin-fixed-header">
-                <div>
-                    <h2 id="pageTitle" style="font-size: 1rem; font-weight: 800; color: var(--clr-text-main);">Ringkasan Bisnis & Armada</h2>
-                    <p id="pageSubtitle" style="font-size: 0.75rem; color: var(--clr-text-subtle);">Pantau ketersediaan armada dan status operasional hari ini.</p>
+                <div class="flex items-center gap-3">
+                    <button 
+                        id="adminSidebarToggle" 
+                        class="admin-mobile-toggle" 
+                        onclick="toggleAdminSidebar()" 
+                        aria-label="Buka Menu Sidebar"
+                    >
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <div>
+                        <h2 id="pageTitle" style="font-size: 1rem; font-weight: 800; color: var(--clr-text-main);">Ringkasan Bisnis & Armada</h2>
+                        <p id="pageSubtitle" style="font-size: 0.75rem; color: var(--clr-text-subtle);">Pantau ketersediaan armada dan status operasional hari ini.</p>
+                    </div>
                 </div>
 
                 <!-- Live Status Badge -->
@@ -915,6 +937,12 @@
             </div>
         </div>
     </div>
+
+    <!-- Mobile Sidebar Backdrop -->
+    <div id="adminSidebarBackdrop" class="admin-sidebar-backdrop hidden" onclick="toggleAdminSidebar()"></div>
+
+    <!-- Admin Floating Toast Notification Container -->
+    <div id="adminToastContainer" class="admin-toast-container"></div>
 
     <!-- Scripts -->
     <script src="{{ asset('js/data.js') }}"></script>

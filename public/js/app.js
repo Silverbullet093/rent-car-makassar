@@ -326,7 +326,7 @@ function renderCarsCatalog() {
         const activePrice = isHoliday ? car.priceHoliday : car.priceNormal;
 
         return `
-            <div class="card-unit">
+            <div class="card-unit reveal-on-scroll">
                 <div>
                     <!-- Foto & Status Tag -->
                     <div class="card-img-wrap">
@@ -384,9 +384,11 @@ function renderCarsCatalog() {
                             <span>${car.fuel}</span>
                         </div>
 
-                        <p class="line-clamp-2" style="font-size: 0.8125rem; color: var(--clr-text-muted); line-height: 1.5; margin-bottom: 0.5rem;">
-                            ${car.description}
-                        </p>
+                        ${car.description && car.description !== 'null' ? `
+                            <p class="line-clamp-2" style="font-size: 0.8125rem; color: var(--clr-text-muted); line-height: 1.5; margin-bottom: 0.5rem;">
+                                ${car.description}
+                            </p>
+                        ` : ''}
                     </div>
                 </div>
 
@@ -421,6 +423,8 @@ function renderCarsCatalog() {
             </div>
         `;
     }).join('');
+
+    initScrollReveal();
 }
 
 // Scroller Interval 5 Detik untuk Ulasan Pelanggan
@@ -1529,9 +1533,97 @@ function resetFilters() {
     else renderCarsCatalog();
 }
 
+// Mobile Menu Drawer Handlers
+function toggleMobileMenu() {
+    const drawer = document.getElementById('mobileDrawer');
+    const backdrop = document.getElementById('mobileDrawerBackdrop');
+    const barsIcon = document.getElementById('menuIconBars');
+    const closeIcon = document.getElementById('menuIconClose');
+    if (!drawer) return;
+
+    const isOpen = drawer.classList.contains('open');
+    if (isOpen) {
+        drawer.classList.remove('open');
+        if (backdrop) backdrop.classList.add('hidden');
+        if (barsIcon) barsIcon.classList.remove('hidden');
+        if (closeIcon) closeIcon.classList.add('hidden');
+        document.body.style.overflow = '';
+    } else {
+        drawer.classList.add('open');
+        if (backdrop) backdrop.classList.remove('hidden');
+        if (barsIcon) barsIcon.classList.add('hidden');
+        if (closeIcon) closeIcon.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function closeMobileMenu() {
+    const drawer = document.getElementById('mobileDrawer');
+    const backdrop = document.getElementById('mobileDrawerBackdrop');
+    const barsIcon = document.getElementById('menuIconBars');
+    const closeIcon = document.getElementById('menuIconClose');
+    if (drawer) drawer.classList.remove('open');
+    if (backdrop) backdrop.classList.add('hidden');
+    if (barsIcon) barsIcon.classList.remove('hidden');
+    if (closeIcon) closeIcon.classList.add('hidden');
+    document.body.style.overflow = '';
+}
+
+// Scroll Effects (Header Glass & Back to Top)
+function initScrollEffects() {
+    const header = document.querySelector('.header-glass');
+    const backToTopBtn = document.getElementById('backToTopBtn');
+
+    window.addEventListener('scroll', () => {
+        const scrollY = window.scrollY || window.pageYOffset;
+
+        if (header) {
+            if (scrollY > 30) {
+                header.classList.add('header-scrolled');
+            } else {
+                header.classList.remove('header-scrolled');
+            }
+        }
+
+        if (backToTopBtn) {
+            if (scrollY > 400) {
+                backToTopBtn.classList.remove('hidden');
+            } else {
+                backToTopBtn.classList.add('hidden');
+            }
+        }
+    }, { passive: true });
+}
+
+// Scroll Reveal Effect via IntersectionObserver
+function initScrollReveal() {
+    const targets = document.querySelectorAll('.reveal-on-scroll:not(.is-revealed)');
+    if (!targets.length) return;
+
+    if ('IntersectionObserver' in window) {
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('is-revealed');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, {
+            threshold: 0.08,
+            rootMargin: '0px 0px -20px 0px'
+        });
+
+        targets.forEach(target => observer.observe(target));
+    } else {
+        targets.forEach(target => target.classList.add('is-revealed'));
+    }
+}
+
 // Inisialisasi Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
     initStorage();
+    initScrollEffects();
+    initScrollReveal();
 
     const searchInput = document.getElementById('carSearchInput');
     if (searchInput) {
@@ -1582,3 +1674,6 @@ window.resetKtpPreview = resetKtpPreview;
 window.checkDateConflict = checkDateConflict;
 window.openBookingModal = openBookingModal;
 window.closeBookingModal = closeBookingModal;
+window.toggleMobileMenu = toggleMobileMenu;
+window.closeMobileMenu = closeMobileMenu;
+window.initScrollReveal = initScrollReveal;

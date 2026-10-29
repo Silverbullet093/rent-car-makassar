@@ -52,6 +52,65 @@ function formatRupiah(amount) {
     }).format(amount);
 }
 
+// Floating Toast Notification System
+function showAdminToast(title, message, type = 'success') {
+    let container = document.getElementById('adminToastContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'adminToastContainer';
+        container.className = 'admin-toast-container';
+        document.body.appendChild(container);
+    }
+
+    const toast = document.createElement('div');
+    toast.className = `admin-toast toast-${type}`;
+    
+    let iconHtml = '<i class="fa-solid fa-check"></i>';
+    if (type === 'warning') iconHtml = '<i class="fa-solid fa-triangle-exclamation"></i>';
+    if (type === 'error') iconHtml = '<i class="fa-solid fa-xmark"></i>';
+    if (type === 'info') iconHtml = '<i class="fa-solid fa-circle-info"></i>';
+
+    toast.innerHTML = `
+        <div class="admin-toast-icon">
+            ${iconHtml}
+        </div>
+        <div class="admin-toast-content">
+            <div class="admin-toast-title">${escapeHtml(title)}</div>
+            ${message ? `<div class="admin-toast-desc">${escapeHtml(message)}</div>` : ''}
+        </div>
+    `;
+
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.classList.add('toast-hide');
+        setTimeout(() => toast.remove(), 350);
+    }, 3200);
+}
+
+// Mobile Admin Sidebar Toggle
+function toggleAdminSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    const backdrop = document.getElementById('adminSidebarBackdrop');
+    if (!sidebar) return;
+
+    const isOpen = sidebar.classList.contains('mobile-open');
+    if (isOpen) {
+        sidebar.classList.remove('mobile-open');
+        if (backdrop) backdrop.classList.add('hidden');
+    } else {
+        sidebar.classList.add('mobile-open');
+        if (backdrop) backdrop.classList.remove('hidden');
+    }
+}
+
+function closeAdminSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    const backdrop = document.getElementById('adminSidebarBackdrop');
+    if (sidebar) sidebar.classList.remove('mobile-open');
+    if (backdrop) backdrop.classList.add('hidden');
+}
+
 // Inisialisasi Data
 async function initAdmin() {
     if (!localStorage.getItem('rcm_cars_v2')) {
@@ -245,6 +304,7 @@ function handleAdminLogout() {
 // Ganti Tab Halaman
 function switchTab(tabName) {
     adminState.currentTab = tabName;
+    closeAdminSidebar();
 
     // Sembunyikan semua tab pane
     document.querySelectorAll('.tab-pane').forEach(p => p.classList.add('hidden'));
@@ -1053,7 +1113,7 @@ async function saveHolidayNotes(e) {
 
     renderTopStatus();
     renderPricingTab();
-    alert('✅ Catatan tarif libur berhasil disimpan ke database!');
+    showAdminToast('Tarif Libur Disimpan', 'Catatan tarif libur berhasil disimpan ke database.', 'success');
 }
 
 // Render Form Kontak Owner
@@ -1137,7 +1197,7 @@ async function saveContactSettings(e) {
 
     renderOverviewMetrics();
     renderContactForm();
-    alert('✅ Informasi kontak & nomor WhatsApp berhasil disimpan ke database!');
+    showAdminToast('Pengaturan Disimpan', 'Informasi kontak & titik GPS berhasil diperbarui.', 'success');
 }
 
 function handleSaveContact(e) {
@@ -1596,6 +1656,14 @@ async function updateBookingStatus(id, newStatus) {
         saveBookingsData();
         renderBookingsTable();
 
+        const statusLabels = {
+            confirmed: 'Verifikasi',
+            pending: 'Menunggu Pembayaran',
+            cancelled: 'Dibatalkan'
+        };
+        const toastType = newStatus === 'confirmed' ? 'success' : (newStatus === 'cancelled' ? 'error' : 'warning');
+        showAdminToast('Status Booking Diperbarui', `Pesanan #${id} status: ${statusLabels[newStatus] || newStatus}`, toastType);
+
         try {
             await fetch(`/api/bookings/${id}/status`, {
                 method: 'PATCH',
@@ -1914,3 +1982,6 @@ window.handleAdminAddReviewSubmit = handleAdminAddReviewSubmit;
 window.handleBookingStatusChange = handleBookingStatusChange;
 window.updateBookingStatus = updateBookingStatus;
 window.formatBookingDateRange = formatBookingDateRange;
+window.showAdminToast = showAdminToast;
+window.toggleAdminSidebar = toggleAdminSidebar;
+window.closeAdminSidebar = closeAdminSidebar;

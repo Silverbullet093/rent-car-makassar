@@ -31,7 +31,7 @@
             <!-- BRAND LOGO -->
             <a href="#home" class="flex items-center gap-3">
                 <div style="width: 2.75rem; height: 2.75rem; background: var(--clr-primary); border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25); overflow: hidden;">
-                    <img src="{{ asset('LOGO RPM PUTIH.png') }}" alt="RPM Rent Car" style="width: 100%; height: 100%; object-fit: contain; transform: scale(1.35);">
+                    <img src="{{ asset('logo_rpm_red.png') }}" alt="RPM Rent Car" style="width: 100%; height: 100%; object-fit: contain; transform: scale(1.35);">
                 </div>
                 <div>
                     <span class="brand-title" data-custom-brand="rpm" style="font-size: 1.25rem; font-weight: 800; color: var(--clr-text-main); line-height: 1.1; display: block; font-family: 'Plus Jakarta Sans', sans-serif;">
@@ -43,8 +43,8 @@
                 </div>
             </a>
 
-            <!-- NAVIGATION -->
-            <nav class="flex items-center gap-1" style="display: flex;">
+            <!-- DESKTOP NAVIGATION -->
+            <nav class="nav-desktop flex items-center gap-1">
                 <a href="#home" class="nav-link">Beranda</a>
                 <a href="#katalog" class="nav-link">Armada Mobil</a>
                 <a href="#jangkauan" class="nav-link">Jangkauan</a>
@@ -55,13 +55,80 @@
 
             <!-- RIGHT ACTIONS -->
             <div class="flex items-center gap-2">
-                <a href="#katalog" class="btn btn-primary btn-sm" style="border-radius: 9999px; padding: 0.5rem 1.35rem; font-weight: 700;">
+                <a href="#katalog" class="btn btn-primary btn-sm nav-cta-desktop" style="border-radius: 9999px; padding: 0.5rem 1.35rem; font-weight: 700;">
                     <span>Pilih Unit</span>
                     <i class="fa-solid fa-arrow-right" style="font-size: 0.75rem; margin-left: 0.35rem;"></i>
                 </a>
+                
+                <!-- Hamburger Button (Mobile & Tablet) -->
+                <button 
+                    id="mobileMenuToggle" 
+                    class="mobile-menu-btn" 
+                    aria-label="Buka Menu Navigasi" 
+                    onclick="toggleMobileMenu()"
+                >
+                    <i class="fa-solid fa-bars" id="menuIconBars"></i>
+                    <i class="fa-solid fa-xmark hidden" id="menuIconClose"></i>
+                </button>
             </div>
         </div>
     </header>
+
+    <!-- MOBILE NAVIGATION DRAWER OVERLAY -->
+    <div id="mobileDrawerBackdrop" class="mobile-drawer-backdrop hidden" onclick="toggleMobileMenu()"></div>
+    <div id="mobileDrawer" class="mobile-drawer">
+        <div class="mobile-drawer-header">
+            <div class="flex items-center gap-2.5">
+                <div style="width: 2.25rem; height: 2.25rem; background: var(--clr-primary); border-radius: 0.65rem; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                    <img src="{{ asset('logo_rpm_red.png') }}" alt="RPM" style="width: 100%; height: 100%; object-fit: contain; transform: scale(1.35);">
+                </div>
+                <div>
+                    <span style="font-weight: 800; font-size: 1.05rem; color: #0f172a; display: block; line-height: 1.1;">RPM <span style="color: var(--clr-primary);">Rent Car</span></span>
+                    <span style="font-size: 0.6rem; font-weight: 700; color: #64748b; letter-spacing: 0.1em; text-transform: uppercase;">Makassar</span>
+                </div>
+            </div>
+            <button onclick="toggleMobileMenu()" class="btn-close-drawer" aria-label="Tutup Menu">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <nav class="mobile-drawer-nav">
+            <a href="#home" class="mobile-nav-item" onclick="closeMobileMenu()">
+                <i class="fa-solid fa-house"></i>
+                <span>Beranda</span>
+            </a>
+            <a href="#katalog" class="mobile-nav-item" onclick="closeMobileMenu()">
+                <i class="fa-solid fa-car-side"></i>
+                <span>Armada Mobil</span>
+            </a>
+            <a href="#jangkauan" class="mobile-nav-item" onclick="closeMobileMenu()">
+                <i class="fa-solid fa-map-location-dot"></i>
+                <span>Jangkauan Wilayah</span>
+            </a>
+            <a href="#layanan" class="mobile-nav-item" onclick="closeMobileMenu()">
+                <i class="fa-solid fa-briefcase"></i>
+                <span>Layanan Kami</span>
+            </a>
+            <a href="#reviews" class="mobile-nav-item" onclick="closeMobileMenu()">
+                <i class="fa-solid fa-comments"></i>
+                <span>Ulasan Pelanggan</span>
+            </a>
+            <a href="#kontak" class="mobile-nav-item" onclick="closeMobileMenu()">
+                <i class="fa-solid fa-phone"></i>
+                <span>Kontak &amp; Lokasi</span>
+            </a>
+        </nav>
+
+        <div class="mobile-drawer-footer">
+            <a href="https://wa.me/6281234567890?text=Halo%20RPM%20Rent%20Car,%20saya%20ingin%20konsultasi%20sewa%20mobil." target="_blank" class="btn btn-emerald btn-lg w-full flex items-center justify-center gap-2" style="border-radius: 0.85rem; font-weight: 800; font-size: 0.95rem;">
+                <i class="fa-brands fa-whatsapp" style="font-size: 1.25rem;"></i>
+                <span>Konsultasi Cepat WA</span>
+            </a>
+            <div style="text-align: center; margin-top: 1rem; font-size: 0.72rem; color: #94a3b8;">
+                Buka 24 Jam Setiap Hari • Makassar
+            </div>
+        </div>
+    </div>
 
     <main class="flex-1">
         
@@ -82,7 +149,7 @@
                 <div class="grid md:grid-cols-2 gap-8 items-center hero-main-grid" style="min-height: 380px;">
                     
                     <!-- Left Hero Text Content -->
-                    <div style="max-width: 42rem;">
+                    <div class="reveal-on-scroll" style="max-width: 42rem;">
                         <!-- Capsule Badge -->
                         <div class="hero-capsule-badge" style="display: inline-flex; align-items: center; gap: 0.6rem; padding: 0.5rem 1.25rem; border-radius: 9999px; background: #fef2f2; border: 1px solid rgba(220, 38, 38, 0.25); color: #dc2626; font-size: 0.85rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 1.25rem; box-shadow: 0 2px 8px rgba(220, 38, 38, 0.08);">
                             <i class="fa-solid fa-shield-halved"></i>
@@ -133,7 +200,7 @@
                 </div>
 
                 <!-- HORIZONTAL QUICK SPEC METRIC BAR (5 CARDS) -->
-                <div class="hero-metric-bar">
+                <div class="hero-metric-bar reveal-on-scroll">
                     <div class="metric-item">
                         <div class="metric-icon">
                             <i class="fa-solid fa-car"></i>
@@ -244,7 +311,7 @@
         <!-- ==================================================== -->
         <section id="jangkauan" class="section-dark-coverage">
             <div class="container" style="position: relative; z-index: 2;">
-                <div class="grid md:grid-cols-12 gap-8 items-center">
+                <div class="grid md:grid-cols-12 gap-8 items-center reveal-on-scroll">
                     
                     <!-- Left Text Column -->
                     <div class="md:col-span-5 text-left">
@@ -321,7 +388,7 @@
                 </div>
 
                 <!-- Cards Grid -->
-                <div class="grid md:grid-cols-3 gap-6">
+                <div class="grid md:grid-cols-3 gap-6 reveal-on-scroll">
                     
                     <!-- Card 1: Dinas & Bisnis -->
                     <div class="service-card">
@@ -394,7 +461,7 @@
                 </div>
 
                 <!-- 1 ROW REVIEWS CAROUSEL WITH LEFT & RIGHT EDGE ARROWS -->
-                <div class="reviews-carousel-outer">
+                <div class="reviews-carousel-outer reveal-on-scroll">
                     <!-- Tombol Panah Kiri di Samping Kiri Ujung Komentar -->
                     <button id="reviewsPrevBtn" class="carousel-edge-btn edge-btn-left" aria-label="Ulasan Sebelumnya" title="Sebelumnya">
                         <i class="fa-solid fa-chevron-left"></i>
@@ -828,7 +895,7 @@
                 <div class="md:col-span-5" style="display: flex; flex-direction: column; gap: 1rem;">
                     <div class="flex items-center gap-3">
                         <div style="width: 2.75rem; height: 2.75rem; background: #dc2626; border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(220, 38, 38, 0.45); overflow: hidden;">
-                            <img src="{{ asset('LOGO RPM PUTIH.png') }}" alt="RPM Rent Car" style="width: 100%; height: 100%; object-fit: contain; transform: scale(1.35);">
+                            <img src="{{ asset('logo_rpm_red.png') }}" alt="RPM Rent Car" style="width: 100%; height: 100%; object-fit: contain; transform: scale(1.35);">
                         </div>
                         <div>
                             <span class="brand-title" data-custom-brand="rpm" style="font-size: 1.25rem; font-weight: 800; color: #ffffff; line-height: 1.1; display: block; font-family: 'Plus Jakarta Sans', sans-serif;">
@@ -938,6 +1005,17 @@
             <i class="fa-brands fa-whatsapp"></i>
         </a>
     </aside>
+
+    <!-- BACK TO TOP BUTTON -->
+    <button 
+        id="backToTopBtn" 
+        class="back-to-top-btn hidden" 
+        onclick="window.scrollTo({ top: 0, behavior: 'smooth' })" 
+        title="Kembali ke atas"
+        aria-label="Kembali ke atas"
+    >
+        <i class="fa-solid fa-arrow-up"></i>
+    </button>
 
     <!-- Application Scripts -->
     <script src="{{ asset('js/data.js') }}"></script>
