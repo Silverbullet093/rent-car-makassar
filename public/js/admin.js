@@ -25,6 +25,8 @@ const DEFAULT_BOOKINGS = [
         car_name: "toyota avanza veloz",
         start_date: "2026-10-13",
         end_date: "2026-10-30",
+        start_time: "09:00",
+        end_time: "09:00",
         driver_label: "+Supir",
         with_driver: true,
         total_price: 9900000,
@@ -94,7 +96,8 @@ async function fetchAdminOwnerConfig() {
                     whatsappNumber: c.whatsapp_number || '6281234567890',
                     phone: c.phone || '0812-3456-7890',
                     email: c.email || 'kontak@garudarentcar.com',
-                    address: c.address || 'Jl. Raya Protokol No. 88, Jakarta',
+                    address: c.address || 'Jl. Perintis Kemerdekaan No. 10, Makassar, Sulawesi Selatan',
+                    mapsUrl: c.maps_url || 'https://maps.google.com/?q=Jl.+Perintis+Kemerdekaan+No.+10,+Makassar,+Sulawesi+Selatan',
                     operatingHours: c.operating_hours || 'Buka 24 Jam Setiap Hari',
                     socialMedia: {
                         instagram: c.instagram || '@garudarentcar_id',
@@ -1063,6 +1066,7 @@ function renderContactForm() {
     const phoneInput = document.getElementById('ownerPhone') || document.getElementById('ownerPhoneInput');
     const emailInput = document.getElementById('ownerEmail') || document.getElementById('ownerEmailInput');
     const addressInput = document.getElementById('ownerAddress') || document.getElementById('ownerAddressInput');
+    const mapsInput = document.getElementById('ownerMapsUrl');
     const hoursInput = document.getElementById('ownerHours');
     const igInput = document.getElementById('ownerIg');
     const fbInput = document.getElementById('ownerFb');
@@ -1072,7 +1076,8 @@ function renderContactForm() {
     if (waInput) waInput.value = cfg.whatsappNumber || '6281234567890';
     if (phoneInput) phoneInput.value = cfg.phone || '0812-3456-7890';
     if (emailInput) emailInput.value = cfg.email || 'kontak@garudarentcar.com';
-    if (addressInput) addressInput.value = cfg.address || 'Jl. Raya Protokol No. 88, Jakarta';
+    if (addressInput) addressInput.value = cfg.address || 'Jl. Perintis Kemerdekaan No. 10, Makassar, Sulawesi Selatan';
+    if (mapsInput) mapsInput.value = cfg.mapsUrl || cfg.maps_url || 'https://maps.google.com/?q=Jl.+Perintis+Kemerdekaan+No.+10,+Makassar,+Sulawesi+Selatan';
     if (hoursInput) hoursInput.value = cfg.operatingHours || 'Buka 24 Jam Setiap Hari';
     if (igInput) igInput.value = sm.instagram || cfg.instagram || '@garudarentcar_id';
     if (fbInput) fbInput.value = sm.facebook || cfg.facebook || 'Garuda Rent Car Official';
@@ -1088,6 +1093,7 @@ async function saveContactSettings(e) {
     const phone = (document.getElementById('ownerPhone') || document.getElementById('ownerPhoneInput'))?.value.trim() || '';
     const email = (document.getElementById('ownerEmail') || document.getElementById('ownerEmailInput'))?.value.trim() || '';
     const address = (document.getElementById('ownerAddress') || document.getElementById('ownerAddressInput'))?.value.trim() || '';
+    const mapsUrl = document.getElementById('ownerMapsUrl')?.value.trim() || '';
     const operatingHours = document.getElementById('ownerHours')?.value.trim() || 'Buka 24 Jam Every Day';
     const instagram = document.getElementById('ownerIg')?.value.trim() || '';
     const facebook = document.getElementById('ownerFb')?.value.trim() || '';
@@ -1100,6 +1106,7 @@ async function saveContactSettings(e) {
         phone,
         email,
         address,
+        mapsUrl,
         operatingHours,
         socialMedia: { instagram, facebook, tiktok }
     };
@@ -1117,6 +1124,7 @@ async function saveContactSettings(e) {
                 phone: phone,
                 email: email,
                 address: address,
+                maps_url: mapsUrl,
                 operating_hours: operatingHours,
                 instagram: instagram,
                 facebook: facebook,
@@ -1378,8 +1386,11 @@ async function deleteCar(carId) {
     }
 }
 
-function formatBookingDateRange(startDateStr, endDateStr) {
+function formatBookingDateRange(startDateStr, endDateStr, startTimeStr, endTimeStr) {
     if (!startDateStr || !endDateStr) return '';
+    const startTime = startTimeStr || '09:00';
+    const endTime = endTimeStr || '09:00';
+
     try {
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         const startParts = startDateStr.split('-');
@@ -1394,10 +1405,17 @@ function formatBookingDateRange(startDateStr, endDateStr) {
             const endM = months[parseInt(endParts[1], 10) - 1];
             const endY = endParts[0];
 
-            return `${startD} ${startM} ${startY} - ${endD} ${endM} ${endY}`;
+            return `
+                <div style="font-weight: 700; color: var(--clr-text-main); font-size: 0.8125rem;">
+                    ${startD} ${startM} ${startY} <span style="color: #2563eb; font-weight: 800;">(${startTime})</span>
+                </div>
+                <div style="font-size: 0.725rem; color: #64748b; margin-top: 0.2rem;">
+                    s/d ${endD} ${endM} ${endY} <span style="color: #d97706; font-weight: 800;">(${endTime})</span>
+                </div>
+            `;
         }
     } catch (e) {}
-    return `${startDateStr} - ${endDateStr}`;
+    return `<div>${startDateStr} (${startTime})</div><div style="font-size: 0.725rem; color: #64748b; margin-top: 0.2rem;">s/d ${endDateStr} (${endTime})</div>`;
 }
 
 // Fetch Bookings for Admin
@@ -1429,7 +1447,9 @@ async function fetchAdminBookings() {
                     car_name: b.car ? `${b.car.brand} ${b.car.model}` : (b.car_name || 'Toyota Avanza Veloz'),
                     start_date: b.start_date ? b.start_date.split('T')[0] : '',
                     end_date: b.end_date ? b.end_date.split('T')[0] : '',
-                    driver_label: b.with_driver ? '+Supir' : 'Tanpa Supir',
+                    start_time: b.start_time || '09:00',
+                    end_time: b.end_time || '09:00',
+                    driver_label: b.driver_label || (b.with_driver ? '+Supir' : 'Tanpa Supir'),
                     with_driver: Boolean(b.with_driver),
                     total_price: parseFloat(b.total_price || 0),
                     status: b.status || 'pending',
@@ -1471,7 +1491,19 @@ function renderBookingsTable() {
             (b.car_name && b.car_name.toLowerCase().includes(searchQuery)) ||
             (b.booking_code && b.booking_code.toLowerCase().includes(searchQuery));
         
-        const matchesStatus = filterStatus === 'all' || b.status === filterStatus;
+        let matchesStatus = true;
+        if (filterStatus !== 'all') {
+            const curStatus = (b.status || 'pending').toLowerCase();
+            if (filterStatus === 'confirmed') {
+                matchesStatus = (curStatus === 'confirmed' || curStatus === 'verifikasi' || curStatus === 'dikonfirmasi');
+            } else if (filterStatus === 'pending') {
+                matchesStatus = (curStatus === 'pending' || curStatus === 'menunggu' || curStatus === 'menunggu pembayaran');
+            } else if (filterStatus === 'cancelled') {
+                matchesStatus = (curStatus === 'cancelled' || curStatus === 'dibatalkan' || curStatus === 'dibatalakn' || curStatus === 'batal');
+            } else {
+                matchesStatus = (curStatus === filterStatus);
+            }
+        }
 
         return matchesSearch && matchesStatus;
     });
@@ -1488,22 +1520,34 @@ function renderBookingsTable() {
     }
 
     tbody.innerHTML = filtered.map(b => {
-        let statusBadge = '';
-        if (b.status === 'confirmed' || b.status === 'dikonfirmasi') {
-            statusBadge = `<span style="background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; padding: 0.25rem 0.65rem; border-radius: 9999px; font-weight: 600; font-size: 0.75rem; display: inline-block;">Dikonfirmasi</span>`;
-        } else if (b.status === 'pending' || b.status === 'menunggu') {
-            statusBadge = `<span style="background: #fffbeb; color: #d97706; border: 1px solid #fde68a; padding: 0.25rem 0.65rem; border-radius: 9999px; font-weight: 600; font-size: 0.75rem; display: inline-block;">Menunggu</span>`;
-        } else if (b.status === 'completed' || b.status === 'selesai') {
-            statusBadge = `<span style="background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; padding: 0.25rem 0.65rem; border-radius: 9999px; font-weight: 600; font-size: 0.75rem; display: inline-block;">Selesai</span>`;
-        } else if (b.status === 'cancelled' || b.status === 'dibatalkan') {
-            statusBadge = `<span style="background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; padding: 0.25rem 0.65rem; border-radius: 9999px; font-weight: 600; font-size: 0.75rem; display: inline-block;">Dibatalkan</span>`;
+        const statusVal = (b.status || 'pending').toLowerCase();
+        let selectClass = 'status-pending';
+        let isConfirmed = false;
+        let isPending = false;
+        let isCancelled = false;
+
+        if (statusVal === 'confirmed' || statusVal === 'verifikasi' || statusVal === 'dikonfirmasi') {
+            selectClass = 'status-confirmed';
+            isConfirmed = true;
+        } else if (statusVal === 'cancelled' || statusVal === 'dibatalkan' || statusVal === 'dibatalakn' || statusVal === 'batal') {
+            selectClass = 'status-cancelled';
+            isCancelled = true;
         } else {
-            statusBadge = `<span style="background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; padding: 0.25rem 0.65rem; border-radius: 9999px; font-weight: 600; font-size: 0.75rem; display: inline-block;">${escapeHtml(b.status)}</span>`;
+            selectClass = 'status-pending';
+            isPending = true;
         }
 
-        const dateDisplay = formatBookingDateRange(b.start_date, b.end_date);
+        const dateDisplay = formatBookingDateRange(b.start_date, b.end_date, b.start_time, b.end_time);
         const driverDisplay = b.driver_label || (b.with_driver ? '+Supir' : 'Tanpa Supir');
         const carDisplay = b.car_name || 'Toyota Avanza Veloz';
+
+        const statusSelectHtml = `
+            <select onchange="handleBookingStatusChange('${b.id}', this.value)" class="booking-status-select ${selectClass}">
+                <option value="confirmed" ${isConfirmed ? 'selected' : ''}>Verifikasi</option>
+                <option value="pending" ${isPending ? 'selected' : ''}>Menunggu Pembayaran</option>
+                <option value="cancelled" ${isCancelled ? 'selected' : ''}>Dibatalkan</option>
+            </select>
+        `;
 
         return `
             <tr style="border-bottom: 1px solid var(--clr-border); background: #ffffff;">
@@ -1515,8 +1559,8 @@ function renderBookingsTable() {
                 <td style="padding: 1rem 1.25rem; color: var(--clr-text-main); font-weight: 600;">
                     ${escapeHtml(carDisplay)}
                 </td>
-                <td style="padding: 1rem 1.25rem; color: var(--clr-text-main); white-space: nowrap;">
-                    ${escapeHtml(dateDisplay)}
+                <td style="padding: 1rem 1.25rem; white-space: nowrap;">
+                    ${dateDisplay}
                 </td>
                 <td style="padding: 1rem 1.25rem; color: #059669; font-weight: 600;">
                     ${escapeHtml(driverDisplay)}
@@ -1525,15 +1569,10 @@ function renderBookingsTable() {
                     ${formatRupiah(b.total_price)}
                 </td>
                 <td style="padding: 1rem 1.25rem;">
-                    ${statusBadge}
+                    ${statusSelectHtml}
                 </td>
                 <td style="padding: 1rem 1.25rem; text-align: center;">
-                    <div style="display: inline-flex; align-items: center; gap: 0.35rem;">
-                        <button onclick="updateBookingStatus('${b.id}', 'confirmed')" style="background: #10b981; color: white; border: none; padding: 0.35rem 0.65rem; border-radius: 0.375rem; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: background 0.15s;" title="Setujui/Konfirmasi Pesanan">Konfirmasi</button>
-                        <button onclick="viewBookingDocument('${b.id}')" style="background: #2563eb; color: white; border: none; padding: 0.35rem 0.65rem; border-radius: 0.375rem; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: background 0.15s; display: inline-flex; align-items: center; gap: 0.25rem;" title="Lihat Dokumen Persyaratan & KTP">📄 Lihat Dokumen</button>
-                        <button onclick="updateBookingStatus('${b.id}', 'cancelled')" style="background: #ffffff; color: #e11d48; border: 1px solid #fecdd3; padding: 0.35rem 0.65rem; border-radius: 0.375rem; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: background 0.15s;" title="Batalkan Pesanan">Batal</button>
-                        <button onclick="deleteBooking('${b.id}')" style="background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; padding: 0.35rem 0.5rem; border-radius: 0.375rem; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: background 0.15s;" title="Hapus Data Booking">✕</button>
-                    </div>
+                    <button onclick="viewBookingDocument('${b.id}')" style="background: #2563eb; color: white; border: none; padding: 0.4rem 0.85rem; border-radius: 0.375rem; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: background 0.15s; display: inline-flex; align-items: center; gap: 0.35rem;" title="Lihat Dokumen Persyaratan & KTP">📄 Lihat Dokumen</button>
                 </td>
             </tr>
         `;
@@ -1544,6 +1583,10 @@ function filterBookingsTable() {
     adminState.bookingSearchQuery = document.getElementById('adminBookingSearch')?.value || '';
     adminState.bookingFilterStatus = document.getElementById('adminBookingFilterStatus')?.value || 'all';
     renderBookingsTable();
+}
+
+async function handleBookingStatusChange(id, newStatus) {
+    await updateBookingStatus(id, newStatus);
 }
 
 async function updateBookingStatus(id, newStatus) {
@@ -1770,6 +1813,8 @@ async function handleSaveAdminBooking(e) {
     const carId = document.getElementById('abCarId').value;
     const startDate = document.getElementById('abStartDate').value;
     const endDate = document.getElementById('abEndDate').value;
+    const startTime = document.getElementById('abStartTime')?.value || '09:00';
+    const endTime = document.getElementById('abEndTime')?.value || '09:00';
     const driverOpt = document.getElementById('abDriverOption').value;
     const status = document.getElementById('abStatus').value;
     const totalPrice = parseFloat(document.getElementById('abTotalPrice').value) || 0;
@@ -1790,6 +1835,8 @@ async function handleSaveAdminBooking(e) {
         car_name: carName,
         start_date: startDate,
         end_date: endDate,
+        start_time: startTime,
+        end_time: endTime,
         driver_label: driverLabel,
         with_driver: withDriver,
         total_price: totalPrice,
@@ -1807,6 +1854,8 @@ async function handleSaveAdminBooking(e) {
                 customer_phone: phone,
                 start_date: startDate,
                 end_date: endDate,
+                start_time: startTime,
+                end_time: endTime,
                 with_driver: withDriver,
                 driver_option: driverOpt,
                 total_price: totalPrice,
@@ -1862,4 +1911,6 @@ window.handleAdminRevAvatarDragLeave = handleAdminRevAvatarDragLeave;
 window.handleAdminRevAvatarDrop = handleAdminRevAvatarDrop;
 window.removeAdminRevAvatar = removeAdminRevAvatar;
 window.handleAdminAddReviewSubmit = handleAdminAddReviewSubmit;
-
+window.handleBookingStatusChange = handleBookingStatusChange;
+window.updateBookingStatus = updateBookingStatus;
+window.formatBookingDateRange = formatBookingDateRange;

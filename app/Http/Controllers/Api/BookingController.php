@@ -53,6 +53,8 @@ class BookingController extends Controller
             'event_type' => 'nullable|string|max:100',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
+            'start_time' => 'nullable|string|max:50',
+            'end_time' => 'nullable|string|max:50',
             'with_driver' => 'nullable|boolean',
             'driver_option' => 'nullable|string',
             'total_price' => 'required|numeric',
@@ -149,6 +151,8 @@ class BookingController extends Controller
             'event_type' => 'nullable|string|max:100',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date',
+            'start_time' => 'nullable|string|max:50',
+            'end_time' => 'nullable|string|max:50',
             'with_driver' => 'nullable|boolean',
             'driver_option' => 'nullable|string',
             'total_price' => 'nullable|numeric',
@@ -175,6 +179,17 @@ class BookingController extends Controller
      */
     public function updateStatus(Request $request, string $id)
     {
+        $status = strtolower($request->input('status', ''));
+        if ($status === 'verifikasi' || $status === 'terverifikasi' || $status === 'dikonfirmasi') {
+            $status = 'confirmed';
+        } elseif ($status === 'menunggu pembayaran' || $status === 'menunggu' || $status === 'pending') {
+            $status = 'pending';
+        } elseif ($status === 'dibatalkan' || $status === 'dibatalakn' || $status === 'batal' || $status === 'cancelled') {
+            $status = 'cancelled';
+        }
+
+        $request->merge(['status' => $status]);
+
         $validated = $request->validate([
             'status' => 'required|in:pending,confirmed,completed,cancelled',
         ]);

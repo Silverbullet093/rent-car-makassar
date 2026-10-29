@@ -54,6 +54,7 @@ class OwnerConfigController extends Controller
             'phone' => 'nullable|string|max:50',
             'email' => 'nullable|email|max:255',
             'address' => 'nullable|string',
+            'maps_url' => 'nullable|string',
             'operating_hours' => 'nullable|string|max:255',
             'instagram' => 'nullable|string|max:100',
             'facebook' => 'nullable|string|max:100',

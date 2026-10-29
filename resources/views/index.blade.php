@@ -6,6 +6,14 @@
     <title>Rent Car Makassar — Rental Mobil Profesional & Terpercaya</title>
     <meta name="description" content="Layanan rental mobil lepas kunci & dengan supir di Makassar. Armada terawat, harga transparan, pemesanan langsung via WhatsApp.">
     
+    <!-- Plus Jakarta Sans Google Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
     <!-- Custom Red Crimson Vanilla CSS -->
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
 </head>
@@ -21,11 +29,17 @@
         <div class="container-fluid header-inner">
             
             <!-- BRAND LOGO -->
-            <a href="#home" class="flex items-center gap-2">
-                <img src="{{ asset('logo.png') }}" alt="Rent Car Makassar" style="width: 2.5rem; height: 2.5rem; object-fit: contain; border-radius: var(--radius-md); background: var(--clr-primary); padding: 2px; box-shadow: 0 2px 8px rgba(220, 38, 38, 0.25);">
+            <a href="#home" class="flex items-center gap-3">
+                <div style="width: 2.75rem; height: 2.75rem; background: var(--clr-primary); border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25); overflow: hidden;">
+                    <img src="{{ asset('LOGO RPM PUTIH.png') }}" alt="RPM Rent Car" style="width: 100%; height: 100%; object-fit: contain; transform: scale(1.35);">
+                </div>
                 <div>
-                    <span style="font-size: 1.15rem; font-weight: 800; color: var(--clr-text-main);" class="brand-title">Rent Car Makassar</span>
-                    <span style="font-size: 0.7rem; color: var(--clr-primary); font-weight: 700; margin-left: 0.5rem; padding-left: 0.5rem; border-left: 1px solid var(--clr-border);">Makassar</span>
+                    <span class="brand-title" data-custom-brand="rpm" style="font-size: 1.25rem; font-weight: 800; color: var(--clr-text-main); line-height: 1.1; display: block; font-family: 'Plus Jakarta Sans', sans-serif;">
+                        RPM <span style="color: var(--clr-primary);">Rent Car</span>
+                    </span>
+                    <span style="font-size: 0.65rem; font-weight: 800; color: #64748b; letter-spacing: 0.15em; text-transform: uppercase; display: block; margin-top: 2px;">
+                        MAKASSAR
+                    </span>
                 </div>
             </a>
 
@@ -41,14 +55,9 @@
 
             <!-- RIGHT ACTIONS -->
             <div class="flex items-center gap-2">
-                <a href="{{ url('/admin') }}" class="btn btn-outline btn-sm">
-                    <svg style="width: 0.875rem; height: 0.875rem;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                    <span>Portal Owner</span>
-                </a>
-
-                <a href="#katalog" class="btn btn-primary btn-sm">
+                <a href="#katalog" class="btn btn-primary btn-sm" style="border-radius: 9999px; padding: 0.5rem 1.35rem; font-weight: 700;">
                     <span>Pilih Unit</span>
-                    <svg style="width: 0.875rem; height: 0.875rem;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                    <i class="fa-solid fa-arrow-right" style="font-size: 0.75rem; margin-left: 0.35rem;"></i>
                 </a>
             </div>
         </div>
@@ -59,89 +68,115 @@
         <!-- ==================================================== -->
         <!-- HERO SECTION (FULL-BLEED STUDIO CAR DISPLAY)         -->
         <!-- ==================================================== -->
-        <section id="home" class="hero-fullscreen-laptop" style="position: relative; padding: 4.5rem 0 3rem 0; background: linear-gradient(90deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 45%, rgba(255,255,255,0.2) 75%), url('{{ asset('hero_full_banner.jpg') }}') no-repeat center right / cover; min-height: 520px; border-bottom: 1px solid var(--clr-border);">
-            <div class="container-fluid">
-                <div class="grid md:grid-cols-2 gap-8 items-center hero-main-grid" style="min-height: 360px;">
+        <!-- ==================================================== -->
+        <!-- HERO SECTION (FULL-BLEED STUDIO CAR DISPLAY)         -->
+        <!-- ==================================================== -->
+        <section id="home" class="hero-fullscreen-laptop" style="position: relative; padding: 4.5rem 0 3rem 0; background-color: #ffffff; border-bottom: 1px solid var(--clr-border); overflow: hidden;">
+            
+            <!-- Background Car Graphic (White Alphard) with Gradient Fade -->
+            <div class="hero-alphard-bg">
+                <div class="hero-alphard-overlay"></div>
+            </div>
+
+            <div class="container-fluid" style="position: relative; z-index: 2;">
+                <div class="grid md:grid-cols-2 gap-8 items-center hero-main-grid" style="min-height: 380px;">
                     
                     <!-- Left Hero Text Content -->
-                    <div>
-                        <div style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0.85rem; border-radius: var(--radius-full); background: rgba(220, 38, 38, 0.08); color: var(--clr-primary); font-size: 0.75rem; font-weight: 800; margin-bottom: 1.25rem; border: 1px solid var(--clr-primary-border); backdrop-filter: blur(8px);">
-                            <span style="width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--clr-primary);"></span>
-                            <span>Rental Mobil Resmi Wilayah Makassar</span>
+                    <div style="max-width: 42rem;">
+                        <!-- Capsule Badge -->
+                        <div class="hero-capsule-badge" style="display: inline-flex; align-items: center; gap: 0.6rem; padding: 0.5rem 1.25rem; border-radius: 9999px; background: #fef2f2; border: 1px solid rgba(220, 38, 38, 0.25); color: #dc2626; font-size: 0.85rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 1.25rem; box-shadow: 0 2px 8px rgba(220, 38, 38, 0.08);">
+                            <i class="fa-solid fa-shield-halved"></i>
+                            <span>RENTAL MOBIL RESMI MAKASSAR &amp; SULAWESI</span>
                         </div>
 
-                        <h1 style="font-size: 2.85rem; font-weight: 800; color: var(--clr-text-main); line-height: 1.18; letter-spacing: -0.025em; margin-bottom: 1.25rem;">
+                        <!-- Main Heading -->
+                        <h1 class="hero-main-title" style="font-size: clamp(2.85rem, 4.8vw, 4rem); font-weight: 800; color: #0f172a; line-height: 1.15; letter-spacing: -0.03em; margin-bottom: 1.35rem; font-family: 'Plus Jakarta Sans', sans-serif;">
                             Sewa Mobil Nyaman. <br>
                             <span style="color: var(--clr-primary);">Di Mana Pun Perjalanan Anda.</span>
                         </h1>
 
-                        <p class="brand-desc" style="font-size: 1.025rem; color: #475569; line-height: 1.6; margin-bottom: 2rem; max-width: 35rem; font-weight: 500;">
-                            Penyedia jasa rental mobil profesional melayani sewa <strong>Lepas Kunci</strong> (berkendara sendiri) maupun <strong>Dengan Supir</strong> berpengalaman untuk keperluan wisata, dinas bisnis, pernikahan, mudik, dan perjalanan keluarga.
+                        <!-- Description -->
+                        <p class="brand-desc hero-description" style="font-size: 1.2rem; color: #475569; line-height: 1.75; margin-bottom: 2rem; max-width: 40rem; font-weight: 400; font-family: 'Plus Jakarta Sans', sans-serif;">
+                            RPM Rent Car Makassar menyediakan armada prima dengan layanan supir berpengalaman &amp; opsi lepas kunci untuk keperluan wisata, dinas bisnis, pernikahan, dan perjalanan keluarga Anda.
                         </p>
 
                         <!-- Call to Action Buttons -->
-                        <div class="flex items-center gap-3" style="margin-bottom: 1.5rem; flex-wrap: wrap;">
-                            <a href="#katalog" class="btn btn-primary btn-lg">
+                        <div class="flex items-center gap-3" style="margin-bottom: 1.75rem; flex-wrap: wrap;">
+                            <a href="#katalog" class="btn btn-primary btn-lg" style="border-radius: 0.875rem; font-weight: 700; padding: 0.95rem 1.85rem; font-size: 1rem; box-shadow: 0 10px 20px -3px rgba(220, 38, 38, 0.35); display: inline-flex; align-items: center; gap: 0.6rem;">
+                                <i class="fa-solid fa-car"></i>
                                 <span>Eksplor Armada Mobil</span>
-                                <svg style="width: 1rem; height: 1rem;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
                             </a>
-                            <a href="#kontak" class="btn btn-outline btn-lg" style="background: rgba(255,255,255,0.85); backdrop-filter: blur(8px);">
-                                Hubungi Owner WA
+                            <a href="https://wa.me/6281234567890?text=Halo%20RPM%20Rent%20Car,%20saya%20ingin%20berkonsultasi%20mengenai%20sewa%20mobil." target="_blank" class="btn btn-outline btn-lg hero-wa-link" style="border-radius: 0.875rem; font-weight: 700; padding: 0.95rem 1.85rem; font-size: 1rem; background: #ffffff; border: 2px solid #e2e8f0; color: #1e293b; display: inline-flex; align-items: center; gap: 0.6rem;">
+                                <i class="fa-brands fa-whatsapp" style="color: #10b981; font-size: 1.25rem;"></i>
+                                <span>Hubungi Admin WA</span>
                             </a>
+                        </div>
+
+                        <!-- Trust Badges Row -->
+                        <div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
+                            <span class="trust-badge-pill" style="font-size: 0.85rem; font-weight: 600; padding: 0.45rem 0.95rem;">
+                                <i class="fa-solid fa-circle-check" style="color: #10b981;"></i> Unit Bersih &amp; Steril
+                            </span>
+                            <span class="trust-badge-pill" style="font-size: 0.85rem; font-weight: 600; padding: 0.45rem 0.95rem;">
+                                <i class="fa-solid fa-circle-check" style="color: #10b981;"></i> Harga Transparan
+                            </span>
+                            <span class="trust-badge-pill" style="font-size: 0.85rem; font-weight: 600; padding: 0.45rem 0.95rem;">
+                                <i class="fa-solid fa-circle-check" style="color: #10b981;"></i> Driver Berpengalaman
+                            </span>
                         </div>
                     </div>
 
                     <!-- Right Hero Area with Studio Background -->
-                    <div style="position: relative; min-height: 300px; display: flex; align-items: flex-end; justify-content: flex-end;">
+                    <div style="position: relative; min-height: 300px;">
                     </div>
 
                 </div>
 
-                <!-- HORIZONTAL QUICK SPEC METRIC BAR -->
+                <!-- HORIZONTAL QUICK SPEC METRIC BAR (5 CARDS) -->
                 <div class="hero-metric-bar">
                     <div class="metric-item">
-                        <div class="metric-icon" style="color: var(--clr-primary);">
-                            <svg style="width: 1.25rem; height: 1.25rem;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.5 2.8C1.4 11.3 1 12.1 1 13v3c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>
+                        <div class="metric-icon">
+                            <i class="fa-solid fa-car"></i>
                         </div>
                         <div>
-                            <div class="metric-title">10+ Unit</div>
-                            <div class="metric-sub">Armada Prima & Steril</div>
+                            <div class="metric-title">50+ Unit</div>
+                            <div class="metric-sub">Armada Prima</div>
                         </div>
                     </div>
                     <div class="metric-item">
-                        <div class="metric-icon" style="color: var(--clr-primary);">
-                            <svg style="width: 1.25rem; height: 1.25rem;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        <div class="metric-icon">
+                            <i class="fa-solid fa-map-location-dot"></i>
                         </div>
                         <div>
                             <div class="metric-title">Makassar</div>
-                            <div class="metric-sub">Cakupan Wilayah Makassar</div>
+                            <div class="metric-sub">Sulawesi &amp; Nasional</div>
                         </div>
                     </div>
                     <div class="metric-item">
-                        <div class="metric-icon" style="color: var(--clr-primary);">
-                            <svg style="width: 1.25rem; height: 1.25rem;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 2-2 2m-1.5 1.5L14 9.5M8 15a5 5 0 1 1 7.07-7.07l1.43-1.43a1 1 0 0 1 1.41 0l.71.71a1 1 0 0 1 0 1.41L17.2 10.1A5 5 0 0 1 8 15z"/></svg>
+                        <div class="metric-icon">
+                            <i class="fa-solid fa-key"></i>
                         </div>
                         <div>
                             <div class="metric-title">Lepas Kunci</div>
-                            <div class="metric-sub">Opsi Berkendara Mandiri</div>
+                            <div class="metric-sub">Bisa Setir Mandiri</div>
                         </div>
                     </div>
                     <div class="metric-item">
-                        <div class="metric-icon" style="color: var(--clr-primary);">
-                            <svg style="width: 1.25rem; height: 1.25rem;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        <div class="metric-icon">
+                            <i class="fa-solid fa-user-tie"></i>
                         </div>
                         <div>
                             <div class="metric-title">Dengan Supir</div>
-                            <div class="metric-sub">Driver Ramah & Berpengalaman</div>
+                            <div class="metric-sub">Driver Profesional</div>
                         </div>
                     </div>
                     <div class="metric-item">
-                        <div class="metric-icon" style="color: var(--clr-primary);">
-                            <svg style="width: 1.25rem; height: 1.25rem;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                        <div class="metric-icon">
+                            <i class="fa-brands fa-whatsapp"></i>
                         </div>
                         <div>
-                            <div class="metric-title">Fast WA Order</div>
-                            <div class="metric-sub">Konfirmasi Instan 24 Jam</div>
+                            <div class="metric-title">Fast Order</div>
+                            <div class="metric-sub">Konfirmasi 24 Jam</div>
                         </div>
                     </div>
                 </div>
@@ -205,76 +240,60 @@
         </section>
 
         <!-- ==================================================== -->
-        <!-- CAKUPAN WILAYAH INDONESIA & PILIHAN SEWA              -->
+        <!-- CAKUPAN NASIONAL & WILAYAH OPERASIONAL               -->
         <!-- ==================================================== -->
-        <section id="jangkauan" style="padding: 4.5rem 0; background: #ffffff; border-top: 1px solid var(--clr-border);">
-            <div class="container">
-                <div class="grid md:grid-cols-2 gap-8 items-center">
+        <section id="jangkauan" class="section-dark-coverage">
+            <div class="container" style="position: relative; z-index: 2;">
+                <div class="grid md:grid-cols-12 gap-8 items-center">
                     
-                    <div>
-                        <span style="font-size: 0.75rem; font-weight: 800; color: var(--clr-primary); text-transform: uppercase; letter-spacing: 0.08em;">Cakupan Layanan</span>
-                        <h2 style="font-size: 1.85rem; font-weight: 800; color: var(--clr-text-main); margin-top: 0.25rem; margin-bottom: 1rem;">
-                            Melayani Sewa Mobil Wilayah Makassar
+                    <!-- Left Text Column -->
+                    <div class="md:col-span-5 text-left">
+                        <div style="display: inline-block; padding: 0.35rem 0.85rem; border-radius: 0.5rem; background: #221718; border: 1px solid rgba(239, 68, 68, 0.35); color: #ef4444; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 1.25rem;">
+                            CAKUPAN NASIONAL
+                        </div>
+                        <h2 style="font-size: 2.25rem; font-weight: 800; color: #ffffff; line-height: 1.25; letter-spacing: -0.025em; margin-bottom: 1.25rem; font-family: 'Plus Jakarta Sans', sans-serif;">
+                            Melayani Perjalanan Di <br>Seluruh Wilayah Indonesia
                         </h2>
-                        <p style="font-size: 0.875rem; color: var(--clr-text-muted); line-height: 1.6; margin-bottom: 1.5rem;">
-                            Kami hadir melayani kebutuhan transportasi terbaik di Kota Makassar dan sekitarnya (Maros, Gowa, Bandara Sultan Hasanuddin, dan destinasi Sulawesi Selatan).
+                        <p style="font-size: 0.925rem; color: #94a3b8; line-height: 1.65; margin-bottom: 1.75rem;">
+                            Dari Sabang sampai Merauke, RPM Rent Car siap menemani mobilitas Anda. Didukung jaringan mitra luas di kota-kota besar seperti Makassar, Jakarta, Surabaya, Bali, Medan, Balikpapan, dan puluhan kota lainnya.
                         </p>
-
-                        <div class="flex flex-col gap-3">
-                            <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.85rem; border-radius: var(--radius-md); background: #f8fafc; border: 1px solid var(--clr-border);">
-                                <div style="color: var(--clr-primary); flex-shrink: 0;">
-                                    <svg style="width: 1.25rem; height: 1.25rem;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 2-2 2m-1.5 1.5L14 9.5M8 15a5 5 0 1 1 7.07-7.07l1.43-1.43a1 1 0 0 1 1.41 0l.71.71a1 1 0 0 1 0 1.41L17.2 10.1A5 5 0 0 1 8 15z"/></svg>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.875rem;">
+                            <div style="background: #161f33; padding: 1.15rem; border-radius: 1rem; border: 1px solid #1e293b;">
+                                <div style="display: flex; align-items: center; gap: 0.5rem; color: #ef4444; font-weight: 800; font-size: 1.05rem; margin-bottom: 0.25rem;">
+                                    <i class="fa-solid fa-city"></i> 34+ Provinsi
                                 </div>
-                                <div>
-                                    <div style="font-weight: 800; color: var(--clr-text-main); font-size: 0.875rem;">Opsi 1: Sewa Lepas Kunci</div>
-                                    <div style="font-size: 0.75rem; color: var(--clr-text-muted);">Kebebasan berkendara mandiri dengan privasi penuh bagi perjalanan Anda.</div>
-                                </div>
+                                <p style="font-size: 0.75rem; color: #94a3b8; margin: 0; line-height: 1.4;">Antar jemput bandara &amp; hotel terdekat.</p>
                             </div>
-
-                            <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.85rem; border-radius: var(--radius-md); background: #f8fafc; border: 1px solid var(--clr-border);">
-                                <div style="color: var(--clr-primary); flex-shrink: 0;">
-                                    <svg style="width: 1.25rem; height: 1.25rem;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            <div style="background: #161f33; padding: 1.15rem; border-radius: 1rem; border: 1px solid #1e293b;">
+                                <div style="display: flex; align-items: center; gap: 0.5rem; color: #ef4444; font-weight: 800; font-size: 1.05rem; margin-bottom: 0.25rem;">
+                                    <i class="fa-solid fa-headset"></i> 24/7 Layanan
                                 </div>
-                                <div>
-                                    <div style="font-weight: 800; color: var(--clr-text-main); font-size: 0.875rem;">Opsi 2: Sewa Dengan Supir</div>
-                                    <div style="font-size: 0.75rem; color: var(--clr-text-muted);">Nikmati perjalanan santai dengan pengemudi ramah dan paham rute lokasi.</div>
-                                </div>
+                                <p style="font-size: 0.75rem; color: #94a3b8; margin: 0; line-height: 1.4;">Bantuan darurat di jalan kapanpun.</p>
                             </div>
                         </div>
                     </div>
 
-                    <div>
-                        <div class="grid sm:grid-cols-2 gap-4">
-                            <div style="padding: 1.5rem; border-radius: var(--radius-xl); background: #f8fafc; border: 1px solid var(--clr-border);">
-                                <div style="color: var(--clr-primary); margin-bottom: 0.5rem;">
-                                    <svg style="width: 1.75rem; height: 1.75rem;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
-                                </div>
-                                <h3 style="font-size: 1rem; font-weight: 800; color: var(--clr-text-main); margin-bottom: 0.25rem;">Wisata & Liburan</h3>
-                                <p style="font-size: 0.75rem; color: var(--clr-text-muted); line-height: 1.5;">Perjalanan keliling tempat wisata favorit bersama keluarga dan rombongan.</p>
+                    <!-- Right Card Column -->
+                    <div class="md:col-span-7">
+                        <div style="background: #131b2e; padding: 2rem; border-radius: 1.5rem; border: 1px solid #1e293b; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
+                            <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem; color: #f8fafc;">
+                                <i class="fa-solid fa-location-dot" style="color: #ef4444;"></i>
+                                <span>Wilayah Utama Operasional</span>
+                            </h3>
+                            <div class="cities-grid">
+                                <div class="city-box">Jabodetabek</div>
+                                <div class="city-box">Surabaya &amp; Malang</div>
+                                <div class="city-box">Bali &amp; Lombok</div>
+                                <div class="city-box">Medan &amp; Sumatera</div>
+                                <div class="city-box active-city">Makassar &amp; Sulawesi</div>
+                                <div class="city-box">Kalimantan &amp; Lainnya</div>
                             </div>
-
-                            <div style="padding: 1.5rem; border-radius: var(--radius-xl); background: #f8fafc; border: 1px solid var(--clr-border);">
-                                <div style="color: var(--clr-primary); margin-bottom: 0.5rem;">
-                                    <svg style="width: 1.75rem; height: 1.75rem;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
-                                </div>
-                                <h3 style="font-size: 1rem; font-weight: 800; color: var(--clr-text-main); margin-bottom: 0.25rem;">Dinas Kantor & Bisnis</h3>
-                                <p style="font-size: 0.75rem; color: var(--clr-text-muted); line-height: 1.5;">Layanan profesional tepat waktu untuk kunjungan kerja dan pertemuan eksekutif.</p>
-                            </div>
-
-                            <div style="padding: 1.5rem; border-radius: var(--radius-xl); background: #f8fafc; border: 1px solid var(--clr-border);">
-                                <div style="color: var(--clr-primary); margin-bottom: 0.5rem;">
-                                    <svg style="width: 1.75rem; height: 1.75rem;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
-                                </div>
-                                <h3 style="font-size: 1rem; font-weight: 800; color: var(--clr-text-main); margin-bottom: 0.25rem;">Pernikahan / Wedding</h3>
-                                <p style="font-size: 0.75rem; color: var(--clr-text-muted); line-height: 1.5;">Mobil pengantin VIP mewah dan iring-iringan keluarga di hari istimewa.</p>
-                            </div>
-
-                            <div style="padding: 1.5rem; border-radius: var(--radius-xl); background: #f8fafc; border: 1px solid var(--clr-border);">
-                                <div style="color: var(--clr-primary); margin-bottom: 0.5rem;">
-                                    <svg style="width: 1.75rem; height: 1.75rem;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.7 5.2c.3.4.8.5 1.3.3l.5-.3c.4-.2.6-.6.5-1.1z"/></svg>
-                                </div>
-                                <h3 style="font-size: 1rem; font-weight: 800; color: var(--clr-text-main); margin-bottom: 0.25rem;">Antar Jemput Bandara</h3>
-                                <p style="font-size: 0.75rem; color: var(--clr-text-muted); line-height: 1.5;">Penjemputan tepat waktu dari bandara langsung menuju hotel atau lokasi tujuan.</p>
+                            <div style="padding-top: 1rem; border-top: 1px solid rgba(30, 41, 59, 0.8); text-align: center;">
+                                <p style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 0.85rem;">Butuh sewa di kota lain di luar daftar di atas?</p>
+                                <a href="https://wa.me/6281234567890?text=Halo%20RPM%20Rent%20Car,%20saya%20ingin%20menanyakan%20ketersediaan%20unit%20di%20kota..." target="_blank" class="city-wa-cta">
+                                    <i class="fa-brands fa-whatsapp" style="font-size: 1.1rem;"></i>
+                                    <span>TANYAKAN KETERSEDIAAN KOTA</span>
+                                </a>
                             </div>
                         </div>
                     </div>
@@ -284,35 +303,113 @@
         </section>
 
         <!-- ==================================================== -->
-        <!-- TESTIMONI & REVIEWS PELANGGAN SECTION               -->
+        <!-- LAYANAN KAMI SECTION                                -->
+        <!-- ==================================================== -->
+        <section id="layanan" style="padding: 5rem 0; background: #ffffff; border-top: 1px solid var(--clr-border);">
+            <div class="container">
+                <!-- Section Header -->
+                <div style="text-align: center; max-width: 48rem; margin: 0 auto 3.5rem auto;">
+                    <div style="display: inline-block; padding: 0.35rem 1rem; border-radius: 9999px; background: #fef2f2; border: 1px solid rgba(220, 38, 38, 0.2); color: #dc2626; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 0.85rem;">
+                        LAYANAN KAMI
+                    </div>
+                    <h2 style="font-size: 2.25rem; font-weight: 800; color: #0f172a; letter-spacing: -0.025em; margin-bottom: 0.75rem; font-family: 'Plus Jakarta Sans', sans-serif;">
+                        Solusi Transportasi Profesional
+                    </h2>
+                    <p style="font-size: 0.95rem; color: #64748b; line-height: 1.6; margin: 0;">
+                        Pilihan paket fleksibel untuk keperluan pribadi, korporat, hingga acara penting Anda.
+                    </p>
+                </div>
+
+                <!-- Cards Grid -->
+                <div class="grid md:grid-cols-3 gap-6">
+                    
+                    <!-- Card 1: Dinas & Bisnis -->
+                    <div class="service-card">
+                        <div class="service-icon-box">
+                            <i class="fa-solid fa-briefcase"></i>
+                        </div>
+                        <h3 style="font-size: 1.2rem; font-weight: 800; color: #0f172a; margin-bottom: 0.65rem;">
+                            Dinas &amp; Bisnis
+                        </h3>
+                        <p style="font-size: 0.875rem; color: #64748b; line-height: 1.65; margin: 0;">
+                            Antar jemput klien VIP, tamu instansi, dan mobilitas operasional kantor dengan faktur resmi &amp; supir berseragam rapi.
+                        </p>
+                    </div>
+
+                    <!-- Card 2: Wisata & Liburan -->
+                    <div class="service-card">
+                        <div class="service-icon-box">
+                            <i class="fa-solid fa-umbrella-beach"></i>
+                        </div>
+                        <h3 style="font-size: 1.2rem; font-weight: 800; color: #0f172a; margin-bottom: 0.65rem;">
+                            Wisata &amp; Liburan
+                        </h3>
+                        <p style="font-size: 0.875rem; color: #64748b; line-height: 1.65; margin: 0;">
+                            Jelajahi destinasi eksotis Makassar, Toraja, Bira, dan sekitarnya bersama supir lokal berpengalaman &amp; ramah.
+                        </p>
+                    </div>
+
+                    <!-- Card 3: Wedding & VIP Car -->
+                    <div class="service-card">
+                        <div class="service-icon-box">
+                            <i class="fa-solid fa-ring"></i>
+                        </div>
+                        <h3 style="font-size: 1.2rem; font-weight: 800; color: #0f172a; margin-bottom: 0.65rem;">
+                            Wedding &amp; VIP Car
+                        </h3>
+                        <p style="font-size: 0.875rem; color: #64748b; line-height: 1.65; margin: 0;">
+                            Mobil pengantin mewah seperti Alphard Gen 4 dan Land Cruiser berhias pita istimewa untuk momen terindah Anda.
+                        </p>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================================================== -->
+        <!-- TESTIMONI & REVIEWS PELANGGAN SECTION (1 ROW SCROLLER) -->
         <!-- ==================================================== -->
         <section id="reviews" style="padding: 4.5rem 0; background: #ffffff; border-top: 1px solid var(--clr-border);">
             <div class="container">
                 
                 <!-- Section Header -->
-                <div style="display: flex; flex-direction: column; md:flex-row; align-items: center; justify-content: space-between; gap: 1.5rem; margin-bottom: 3rem; text-align: center;">
-                    <div style="margin: 0 auto; max-width: 36rem;">
+                <div style="display: flex; flex-direction: column; md:flex-row; align-items: center; justify-content: space-between; gap: 1.5rem; margin-bottom: 2rem;">
+                    <div style="text-align: left; max-width: 38rem;">
                         <span style="color: #22c55e; font-weight: 800; font-size: 0.8125rem; letter-spacing: 0.1em; text-transform: uppercase; display: block; margin-bottom: 0.5rem;">
                             WHAT DRIVERS SAY
                         </span>
-                        <h2 style="font-size: 2.25rem; font-weight: 800; color: var(--clr-text-main); margin-bottom: 0.75rem; letter-spacing: -0.02em;">
+                        <h2 style="font-size: 2.25rem; font-weight: 800; color: var(--clr-text-main); margin-bottom: 0.5rem; letter-spacing: -0.02em;">
                             Real Stories. Real Drivers.
                         </h2>
-                        <p style="font-size: 0.9375rem; color: var(--clr-text-muted); line-height: 1.6;">
-                            Ulasan & pengalaman jujur dari pelanggan kami. Kepuasan dan kenyamanan Anda adalah prioritas utama kami.
+                        <p style="font-size: 0.9375rem; color: var(--clr-text-muted); line-height: 1.6; margin: 0;">
+                            Ulasan &amp; pengalaman jujur pelanggan kami. Kepuasan dan kenyamanan Anda adalah prioritas utama kami.
                         </p>
                     </div>
-                    <div style="margin-top: 1rem;">
-                        <button onclick="openReviewModal()" class="btn btn-emerald btn-lg" style="box-shadow: 0 10px 25px -5px rgba(34, 197, 94, 0.4); display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 800;">
+                    <div>
+                        <button onclick="openReviewModal()" class="btn btn-emerald btn-lg" style="box-shadow: 0 10px 25px -5px rgba(34, 197, 94, 0.4); display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 800; padding: 0.75rem 1.35rem; font-size: 0.9rem;">
                             <svg style="width: 1rem; height: 1rem;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
                             <span>Tulis Ulasan Anda</span>
                         </button>
                     </div>
                 </div>
 
-                <!-- Container Grid Cards Review -->
-                <div id="reviewsContainer" class="grid md:grid-cols-3 gap-6">
-                    <!-- Dynamic review cards rendered by JS -->
+                <!-- 1 ROW REVIEWS CAROUSEL WITH LEFT & RIGHT EDGE ARROWS -->
+                <div class="reviews-carousel-outer">
+                    <!-- Tombol Panah Kiri di Samping Kiri Ujung Komentar -->
+                    <button id="reviewsPrevBtn" class="carousel-edge-btn edge-btn-left" aria-label="Ulasan Sebelumnya" title="Sebelumnya">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </button>
+
+                    <div class="horizontal-slider-wrapper">
+                        <div id="reviewsContainer" class="reviews-slider-track">
+                            <!-- Dynamic review cards rendered by JS in 1 single row -->
+                        </div>
+                    </div>
+
+                    <!-- Tombol Panah Kanan di Samping Kanan Ujung Komentar -->
+                    <button id="reviewsNextBtn" class="carousel-edge-btn edge-btn-right" aria-label="Ulasan Berikutnya" title="Berikutnya">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </button>
                 </div>
 
             </div>
@@ -421,13 +518,106 @@
 
                     <!-- Waktu Pemakaian -->
                     <div class="grid sm:grid-cols-2 gap-3">
-                        <div class="form-group">
+                        <div class="form-group" style="position: relative;">
                             <label class="form-label">Waktu Pemakaian (Tanggal Mulai) <span style="color: var(--clr-rose);">*</span></label>
-                            <input type="date" id="bookStartDate" required class="form-input" />
+                            <div style="position: relative;">
+                                <input 
+                                    type="text" 
+                                    id="bookStartDate" 
+                                    readonly 
+                                    onclick="toggleBookingCalendar('start')" 
+                                    placeholder="Pilih Tanggal Mulai" 
+                                    required 
+                                    class="form-input" 
+                                    style="padding-left: 2.5rem; cursor: pointer;"
+                                />
+                                <i class="fa-solid fa-calendar-day" style="position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); color: #94a3b8; pointer-events: none;"></i>
+                            </div>
+
+                            <!-- Dropdown Kalender Kustom Start -->
+                            <div id="calendar-start" class="hidden custom-calendar-popup">
+                                <div class="cal-header">
+                                    <button type="button" onclick="changeBookingMonth(-1, 'start')" class="cal-nav-btn"><i class="fa-solid fa-chevron-left"></i></button>
+                                    <span id="cal-month-year-start" class="cal-month-title"></span>
+                                    <button type="button" onclick="changeBookingMonth(1, 'start')" class="cal-nav-btn"><i class="fa-solid fa-chevron-right"></i></button>
+                                </div>
+                                <div class="cal-weekdays">
+                                    <span>Min</span><span>Sen</span><span>Sel</span><span>Rab</span><span>Kam</span><span>Jum</span><span>Sab</span>
+                                </div>
+                                <div id="cal-days-start" class="cal-days-grid"></div>
+                                <div class="cal-footer">
+                                    <span class="cal-legend-item"><span class="cal-dot cal-dot-booked"></span> Dibooking</span>
+                                    <span class="cal-legend-item"><span class="cal-dot cal-dot-finish"></span> Selesai Peminjaman</span>
+                                    <button type="button" onclick="closeBookingCalendars()" class="cal-close-btn">Tutup</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group" style="position: relative;">
+                            <label class="form-label">Waktu Pemakaian (Tanggal Selesai) <span style="color: var(--clr-rose);">*</span></label>
+                            <div style="position: relative;">
+                                <input 
+                                    type="text" 
+                                    id="bookEndDate" 
+                                    readonly 
+                                    onclick="toggleBookingCalendar('end')" 
+                                    placeholder="Pilih Tanggal Selesai" 
+                                    required 
+                                    class="form-input" 
+                                    style="padding-left: 2.5rem; cursor: pointer;"
+                                />
+                                <i class="fa-solid fa-calendar-check" style="position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); color: #94a3b8; pointer-events: none;"></i>
+                            </div>
+
+                            <!-- Dropdown Kalender Kustom End -->
+                            <div id="calendar-end" class="hidden custom-calendar-popup">
+                                <div class="cal-header">
+                                    <button type="button" onclick="changeBookingMonth(-1, 'end')" class="cal-nav-btn"><i class="fa-solid fa-chevron-left"></i></button>
+                                    <span id="cal-month-year-end" class="cal-month-title"></span>
+                                    <button type="button" onclick="changeBookingMonth(1, 'end')" class="cal-nav-btn"><i class="fa-solid fa-chevron-right"></i></button>
+                                </div>
+                                <div class="cal-weekdays">
+                                    <span>Min</span><span>Sen</span><span>Sel</span><span>Rab</span><span>Kam</span><span>Jum</span><span>Sab</span>
+                                </div>
+                                <div id="cal-days-end" class="cal-days-grid"></div>
+                                <div class="cal-footer">
+                                    <span class="cal-legend-item"><span class="cal-dot cal-dot-booked"></span> Dibooking</span>
+                                    <span class="cal-legend-item"><span class="cal-dot cal-dot-finish"></span> Selesai Peminjaman</span>
+                                    <button type="button" onclick="closeBookingCalendars()" class="cal-close-btn">Tutup</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Jam Peminjaman & Pengembalian -->
+                    <div class="grid sm:grid-cols-2 gap-3" style="margin-top: 0.5rem;">
+                        <div class="form-group">
+                            <label class="form-label">Jam Peminjaman / Ambil <span style="color: var(--clr-rose);">*</span></label>
+                            <div style="position: relative;">
+                                <input 
+                                    type="time" 
+                                    id="bookStartTime" 
+                                    value="09:00" 
+                                    required 
+                                    class="form-input" 
+                                    style="padding-left: 2.5rem;"
+                                />
+                                <i class="fa-solid fa-clock" style="position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); color: #94a3b8; pointer-events: none;"></i>
+                            </div>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Waktu Pemakaian (Tanggal Selesai) <span style="color: var(--clr-rose);">*</span></label>
-                            <input type="date" id="bookEndDate" required class="form-input" />
+                            <label class="form-label">Jam Selesai / Pengembalian <span style="color: var(--clr-rose);">*</span></label>
+                            <div style="position: relative;">
+                                <input 
+                                    type="time" 
+                                    id="bookEndTime" 
+                                    value="09:00" 
+                                    required 
+                                    class="form-input" 
+                                    style="padding-left: 2.5rem;"
+                                />
+                                <i class="fa-solid fa-clock-rotate-left" style="position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); color: #94a3b8; pointer-events: none;"></i>
+                            </div>
                         </div>
                     </div>
 
@@ -627,74 +817,127 @@
         </div>
     </div>
 
-    <!-- FOOTER & KONTAK OWNER -->
-    <footer id="kontak" style="background: #ffffff; border-top: 1px solid var(--clr-border); padding-top: 3.5rem; padding-bottom: 2rem; font-size: 0.8125rem; color: var(--clr-text-muted);">
-        <div class="container">
-            <div class="grid md:grid-cols-12 gap-8" style="padding-bottom: 2.5rem; border-bottom: 1px solid #f1f5f9;">
+    <!-- ==================================================== -->
+    <!-- FOOTER & KONTAK OWNER (HITAM & MERAH - SAMA SEPERTI MELAYANI) -->
+    <!-- ==================================================== -->
+    <footer id="kontak" class="footer-dark-coverage">
+        <div class="container" style="position: relative; z-index: 2;">
+            <div class="grid md:grid-cols-12 gap-8" style="padding-bottom: 2.75rem; border-bottom: 1px solid #1e293b;">
                 
                 <!-- Profil Perusahaan -->
-                <div class="md:col-span-5" style="display: flex; flex-direction: column; gap: 0.75rem;">
-                    <div class="flex items-center gap-2">
-                        <img src="{{ asset('logo.png') }}" alt="Rent Car Makassar" style="width: 2.25rem; height: 2.25rem; object-fit: contain; border-radius: var(--radius-md); background: var(--clr-primary); padding: 2px;">
-                        <span style="font-weight: 800; color: var(--clr-text-main); font-size: 1.1rem;" class="brand-title">Rent Car Makassar</span>
+                <div class="md:col-span-5" style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div class="flex items-center gap-3">
+                        <div style="width: 2.75rem; height: 2.75rem; background: #dc2626; border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(220, 38, 38, 0.45); overflow: hidden;">
+                            <img src="{{ asset('LOGO RPM PUTIH.png') }}" alt="RPM Rent Car" style="width: 100%; height: 100%; object-fit: contain; transform: scale(1.35);">
+                        </div>
+                        <div>
+                            <span class="brand-title" data-custom-brand="rpm" style="font-size: 1.25rem; font-weight: 800; color: #ffffff; line-height: 1.1; display: block; font-family: 'Plus Jakarta Sans', sans-serif;">
+                                RPM <span style="color: #ef4444;">Rent Car</span>
+                            </span>
+                            <span style="font-size: 0.65rem; font-weight: 800; color: #ef4444; letter-spacing: 0.15em; text-transform: uppercase; display: block; margin-top: 2px;">
+                                MAKASSAR
+                            </span>
+                        </div>
                     </div>
-                    <p class="brand-tagline" style="line-height: 1.6; max-width: 26rem;">
+                    <p class="brand-tagline" style="color: #94a3b8; font-size: 0.875rem; line-height: 1.65; max-width: 26rem; margin: 0;">
                         Layanan Sewa Mobil Terpercaya di Makassar. Melayani lepas kunci dan dengan supir berpengalaman untuk kenyamanan perjalanan Anda.
                     </p>
-                    <div style="display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.8125rem;">
-                        <div class="flex items-center gap-2">
-                            <svg style="width: 1rem; height: 1rem; color: var(--clr-primary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                            <span class="owner-address">Jl. Urip Sumoharjo No. 88, Makassar</span>
+                    <div style="display: flex; flex-direction: column; gap: 0.65rem; font-size: 0.8125rem;">
+                        <div class="flex items-center gap-2.5">
+                            <i class="fa-solid fa-location-dot" style="color: #ef4444; font-size: 0.95rem; width: 1.1rem; text-align: center;"></i>
+                            <a href="https://maps.google.com/?q=Jl.+Perintis+Kemerdekaan+No.+10,+Makassar,+Sulawesi+Selatan" target="_blank" class="owner-gps-link" style="color: #cbd5e1; text-decoration: none; transition: color 0.2s ease;">
+                                <span class="owner-address">Jl. Perintis Kemerdekaan No. 10, Makassar, Sulawesi Selatan</span>
+                            </a>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <svg style="width: 1rem; height: 1rem; color: var(--clr-primary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                            <span class="owner-hours">Buka 24 Jam Setiap Hari</span>
+                        <div class="flex items-center gap-2.5">
+                            <i class="fa-solid fa-clock" style="color: #ef4444; font-size: 0.95rem; width: 1.1rem; text-align: center;"></i>
+                            <span class="owner-hours" style="color: #cbd5e1;">Buka 24 Jam Setiap Hari</span>
+                        </div>
+                        
+                        <!-- Tombol Buka Petunjuk Arah GPS (Google Maps) -->
+                        <div style="padding-top: 0.25rem;">
+                            <a 
+                                id="ownerGpsBtn" 
+                                href="https://maps.google.com/?q=Jl.+Perintis+Kemerdekaan+No.+10,+Makassar,+Sulawesi+Selatan" 
+                                target="_blank" 
+                                class="owner-gps-link footer-gps-btn"
+                                style="display: inline-flex; align-items: center; gap: 0.5rem; background: #221718; color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.4); padding: 0.45rem 0.9rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 700; text-decoration: none; transition: all 0.2s ease;"
+                            >
+                                <i class="fa-solid fa-location-crosshairs" style="color: #ef4444; font-size: 0.85rem;"></i>
+                                <span>Buka Lokasi GPS (Google Maps)</span>
+                                <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 0.65rem; opacity: 0.8;"></i>
+                            </a>
                         </div>
                     </div>
                 </div>
 
                 <!-- Kontak Owner -->
-                <div class="md:col-span-4" style="display: flex; flex-direction: column; gap: 0.5rem;">
-                    <div style="font-weight: 800; color: var(--clr-text-main); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Kontak Resmi</div>
-                    <div>WhatsApp Admin: <a href="#" target="_blank" class="owner-whatsapp" style="font-weight: 800; color: var(--clr-primary);">+6281234567890</a></div>
-                    <div>Telepon Kantor: <a href="#" class="owner-phone" style="font-weight: 700; color: var(--clr-text-main);">0812-3456-7890</a></div>
-                    <div>Email Resmi: <a href="#" class="owner-email" style="font-weight: 700; color: var(--clr-text-main);">kontak@garudarentcar.com</a></div>
+                <div class="md:col-span-4" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    <div style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.75rem; border-radius: 0.5rem; background: #221718; border: 1px solid rgba(239, 68, 68, 0.35); color: #ef4444; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; width: fit-content;">
+                        <i class="fa-solid fa-headset"></i> KONTAK RESMI
+                    </div>
+                    <div style="color: #94a3b8; font-size: 0.8125rem;">
+                        <span>WhatsApp Admin:</span><br>
+                        <a href="https://wa.me/6281234567890" target="_blank" class="owner-whatsapp footer-red-link" style="font-weight: 800; color: #ef4444; font-size: 1.05rem; display: inline-flex; align-items: center; gap: 0.35rem; margin-top: 0.2rem;">
+                            <i class="fa-brands fa-whatsapp" style="font-size: 1.15rem;"></i> +6281234567890
+                        </a>
+                    </div>
+                    <div style="color: #94a3b8; font-size: 0.8125rem;">
+                        <span>Telepon Kantor:</span>
+                        <a href="tel:081234567890" class="owner-phone footer-light-link" style="font-weight: 700; color: #f8fafc; margin-left: 0.35rem;">0812-3456-7890</a>
+                    </div>
+                    <div style="color: #94a3b8; font-size: 0.8125rem;">
+                        <span>Email Resmi:</span>
+                        <a href="mailto:kontak@garudarentcar.com" class="owner-email footer-light-link" style="font-weight: 700; color: #f8fafc; margin-left: 0.35rem;">kontak@garudarentcar.com</a>
+                    </div>
                 </div>
 
                 <!-- Media Sosial & Portal Owner -->
-                <div class="md:col-span-3" style="display: flex; flex-direction: column; gap: 0.75rem;">
-                    <div style="font-weight: 800; color: var(--clr-text-main); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Media Sosial</div>
-                    <div class="flex items-center gap-2" style="flex-wrap: wrap;">
-                        <a id="footerIg" href="#" target="_blank" class="btn btn-outline btn-sm">Instagram</a>
-                        <a id="footerFb" href="#" target="_blank" class="btn btn-outline btn-sm">Facebook</a>
-                        <a id="footerTiktok" href="#" target="_blank" class="btn btn-outline btn-sm">TikTok</a>
+                <div class="md:col-span-3" style="display: flex; flex-direction: column; gap: 0.85rem;">
+                    <div style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.75rem; border-radius: 0.5rem; background: #221718; border: 1px solid rgba(239, 68, 68, 0.35); color: #ef4444; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; width: fit-content;">
+                        <i class="fa-solid fa-share-nodes"></i> MEDIA SOSIAL
                     </div>
-                    <div style="padding-top: 0.5rem;">
-                        <a href="{{ url('/admin') }}" style="color: var(--clr-primary); font-weight: 700; text-decoration: underline; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 0.35rem;">
-                            <svg style="width: 0.875rem; height: 0.875rem;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                            <span>Portal Dashboard Owner (Atur Harga Libur)</span>
+                    <div class="flex items-center gap-2" style="flex-wrap: wrap;">
+                        <a id="footerIg" href="#" target="_blank" class="footer-social-pill">
+                            <i class="fa-brands fa-instagram" style="color: #ef4444;"></i>
+                            <span class="medsos-text">Instagram</span>
+                        </a>
+                        <a id="footerFb" href="#" target="_blank" class="footer-social-pill">
+                            <i class="fa-brands fa-facebook" style="color: #ef4444;"></i>
+                            <span class="medsos-text">Facebook</span>
+                        </a>
+                        <a id="footerTiktok" href="#" target="_blank" class="footer-social-pill">
+                            <i class="fa-brands fa-tiktok" style="color: #ef4444;"></i>
+                            <span class="medsos-text">TikTok</span>
                         </a>
                     </div>
                 </div>
 
             </div>
 
-            <div style="padding-top: 1.5rem; display: flex; flex-direction: row; align-items: center; justify-content: space-between; color: var(--clr-text-subtle); font-size: 0.75rem;">
-                <div>&copy; 2026 <span class="brand-title">Rent Car Makassar</span>. All rights reserved.</div>
-                <div>Cakupan Layanan Wilayah Makassar</div>
+            <!-- Footer Bottom Bar -->
+            <div style="padding-top: 1.5rem; display: flex; flex-direction: row; align-items: center; justify-content: space-between; color: #64748b; font-size: 0.75rem; flex-wrap: wrap; gap: 0.75rem;">
+                <div>&copy; 2026 <span class="brand-title" style="color: #cbd5e1; font-weight: 700;">Rent Car Makassar</span>. All rights reserved.</div>
+                <div style="display: flex; align-items: center; gap: 0.5rem; color: #94a3b8;">
+                    <span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #ef4444; box-shadow: 0 0 8px #ef4444;"></span>
+                    <span>Cakupan Layanan Wilayah Makassar &amp; Seluruh Indonesia</span>
+                </div>
             </div>
         </div>
     </footer>
 
-    <!-- FLOATING WHATSAPP BUTTON -->
-    <a 
-        href="#" 
-        target="_blank" 
-        class="owner-whatsapp floating-wa-clean"
-        title="Chat WhatsApp dengan Owner">
-        <svg style="width: 1.1rem; height: 1.1rem; fill: currentColor;" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/></svg>
-        <span>Chat Owner WA</span>
-    </a>
+    <!-- FLOATING WHATSAPP BUTTON (LOGO ONLY) -->
+    <aside aria-label="Kontak Cepat WhatsApp" style="position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9999;">
+        <a 
+            href="https://wa.me/6281234567890?text=Halo%20RPM%20Rent%20Car%20Makassar,%20saya%20ingin%20bertanya%20mengenai%20rental%20mobil." 
+            target="_blank" 
+            class="floating-wa-clean wa-icon-only"
+            id="floatingWaBtn"
+            title="Chat WhatsApp dengan Admin"
+            aria-label="Chat WhatsApp Admin">
+            <i class="fa-brands fa-whatsapp"></i>
+        </a>
+    </aside>
 
     <!-- Application Scripts -->
     <script src="{{ asset('js/data.js') }}"></script>

@@ -17,6 +17,8 @@ class Booking extends Model
         'event_type',
         'start_date',
         'end_date',
+        'start_time',
+        'end_time',
         'with_driver',
         'total_price',
         'status',

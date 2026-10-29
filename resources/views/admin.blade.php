@@ -55,7 +55,7 @@
                 </button>
 
                 <div style="padding-top: 0.75rem; text-align: center; border-top: 1px solid #f1f5f9; margin-top: 0.5rem;">
-                    <a href="{{ url('/') }}" style="font-size: 0.75rem; color: var(--clr-text-muted); font-weight: 600;">
+                    <a href="{{ url('/rcm-makassar') }}" style="font-size: 0.75rem; color: var(--clr-text-muted); font-weight: 600;">
                         ← Kembali ke Halaman Utama Website
                     </a>
                 </div>
@@ -118,7 +118,7 @@
             <!-- Bottom Action: View Live Site & Logout -->
             <div style="padding: 1rem; border-top: 1px solid #1e293b; display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.75rem;">
                 <a 
-                    href="{{ url('/') }}" 
+                    href="{{ url('/rcm-makassar') }}" 
                     target="_blank" 
                     style="display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.75rem; border-radius: var(--radius-md); background: rgba(255, 255, 255, 0.05); color: #cbd5e1; font-weight: 600;">
                     <span class="flex items-center gap-2">
@@ -137,11 +137,11 @@
             </div>
         </aside>
 
-        <!-- MAIN AREA KONTEN DASHBOARD -->
-        <div class="flex-1 flex flex-col" style="min-width: 0;">
+        <!-- MAIN AREA KONTEN DASHBOARD (SCROLLABLE INDEPENDENT DARI HEADER & SIDEBAR) -->
+        <div class="flex-1 flex flex-col" style="min-width: 0; height: 100vh; max-height: 100vh; overflow: hidden;">
             
-            <!-- Top Header Bar -->
-            <header style="height: 4rem; background: #ffffff; border-bottom: 1px solid var(--clr-border); padding: 0 1.5rem; display: flex; align-items: center; justify-content: space-between;">
+            <!-- Top Header Bar (Menetap / Fixed Sticky) -->
+            <header class="admin-fixed-header">
                 <div>
                     <h2 id="pageTitle" style="font-size: 1rem; font-weight: 800; color: var(--clr-text-main);">Ringkasan Bisnis & Armada</h2>
                     <p id="pageSubtitle" style="font-size: 0.75rem; color: var(--clr-text-subtle);">Pantau ketersediaan armada dan status operasional hari ini.</p>
@@ -311,9 +311,8 @@
                             <span style="font-size: 0.75rem; color: var(--clr-text-muted); font-weight: 600;">Filter Status:</span>
                             <select id="adminBookingFilterStatus" onchange="filterBookingsTable()" class="form-select" style="font-size: 0.8125rem; width: auto; padding-right: 2rem;">
                                 <option value="all">Semua Status</option>
-                                <option value="confirmed">Dikonfirmasi</option>
-                                <option value="pending">Menunggu</option>
-                                <option value="completed">Selesai</option>
+                                <option value="confirmed">Verifikasi</option>
+                                <option value="pending">Menunggu Pembayaran</option>
                                 <option value="cancelled">Dibatalkan</option>
                             </select>
                         </div>
@@ -331,7 +330,7 @@
                                         <th style="padding: 0.875rem 1.25rem;">LOKAL/SUPIR</th>
                                         <th style="padding: 0.875rem 1.25rem;">TOTAL BIAYA</th>
                                         <th style="padding: 0.875rem 1.25rem;">STATUS</th>
-                                        <th style="padding: 0.875rem 1.25rem; text-align: center;">AKSI VERIFIKASI</th>
+                                        <th style="padding: 0.875rem 1.25rem; text-align: center;">AKSI</th>
                                     </tr>
                                 </thead>
                                 <tbody id="adminBookingsTableBody">
@@ -510,6 +509,11 @@
                             <div class="form-group" style="margin-bottom: 0;">
                                 <label class="form-label">Alamat Kantor / Pool Mobil</label>
                                 <input type="text" id="ownerAddress" class="form-input">
+                            </div>
+
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label class="form-label">Tautan Google Maps / Titik Lokasi GPS</label>
+                                <input type="text" id="ownerMapsUrl" placeholder="https://maps.google.com/?q=..." class="form-input">
                             </div>
 
                             <div class="form-group" style="margin-bottom: 0;">
@@ -782,6 +786,17 @@
 
                     <div class="grid sm:grid-cols-2 gap-4">
                         <div class="form-group" style="margin-bottom: 0;">
+                            <label class="form-label">Jam Ambil / Mulai <span style="color: var(--clr-rose);">*</span></label>
+                            <input type="time" id="abStartTime" value="09:00" required class="form-input">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label class="form-label">Jam Kembali / Selesai <span style="color: var(--clr-rose);">*</span></label>
+                            <input type="time" id="abEndTime" value="09:00" required class="form-input">
+                        </div>
+                    </div>
+
+                    <div class="grid sm:grid-cols-2 gap-4">
+                        <div class="form-group" style="margin-bottom: 0;">
                             <label class="form-label">Layanan Supir</label>
                             <select id="abDriverOption" class="form-select" onchange="calculateAdminBookingPrice()">
                                 <option value="with_driver" selected>+Supir</option>
@@ -792,9 +807,8 @@
                         <div class="form-group" style="margin-bottom: 0;">
                             <label class="form-label">Status Awalan</label>
                             <select id="abStatus" class="form-select">
-                                <option value="confirmed" selected>Dikonfirmasi</option>
-                                <option value="pending">Menunggu</option>
-                                <option value="completed">Selesai</option>
+                                <option value="confirmed" selected>Verifikasi</option>
+                                <option value="pending">Menunggu Pembayaran</option>
                                 <option value="cancelled">Dibatalkan</option>
                             </select>
                         </div>

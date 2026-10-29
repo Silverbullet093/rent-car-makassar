@@ -132,6 +132,7 @@ async function initStorage() {
                     phone: c.phone,
                     email: c.email,
                     address: c.address,
+                    mapsUrl: c.maps_url || null,
                     operatingHours: c.operating_hours,
                     socialMedia: {
                         instagram: c.instagram,
@@ -190,7 +191,13 @@ function renderOwnerInfo() {
     const cfg = state.ownerConfig;
     
     // Title & Taglines
-    document.querySelectorAll('.brand-title').forEach(el => el.textContent = cfg.businessName || 'Rent Car Makassar');
+    document.querySelectorAll('.brand-title').forEach(el => {
+        if (el.dataset.customBrand === 'rpm') {
+            el.innerHTML = `RPM <span style="color: var(--clr-primary);">Rent Car</span>`;
+        } else {
+            el.textContent = cfg.businessName || 'RPM Rent Car Makassar';
+        }
+    });
     document.querySelectorAll('.brand-tagline').forEach(el => el.textContent = cfg.tagline || '');
     document.querySelectorAll('.brand-desc').forEach(el => el.textContent = cfg.description || '');
 
@@ -203,8 +210,10 @@ function renderOwnerInfo() {
 
     const waEls = document.querySelectorAll('.owner-whatsapp');
     waEls.forEach(el => {
-        el.textContent = `+${cfg.whatsappNumber || '6281234567890'}`;
-        if (el.tagName === 'A') el.href = `https://wa.me/${cfg.whatsappNumber || '6281234567890'}`;
+        if (!el.classList.contains('floating-wa-clean') && !el.classList.contains('wa-icon-only')) {
+            el.textContent = `+${cfg.whatsappNumber || '6281234567890'}`;
+        }
+        if (el.tagName === 'A') el.href = `https://wa.me/${cfg.whatsappNumber || '6281234567890'}?text=${encodeURIComponent('Halo RPM Rent Car Makassar, saya ingin berkonsultasi mengenai sewa mobil.')}`;
     });
 
     const emailEls = document.querySelectorAll('.owner-email');
@@ -214,24 +223,36 @@ function renderOwnerInfo() {
     });
 
     const addressEls = document.querySelectorAll('.owner-address');
-    addressEls.forEach(el => el.textContent = cfg.address || 'Jl. Urip Sumoharjo No. 88, Makassar');
+    addressEls.forEach(el => el.textContent = cfg.address || 'Jl. Perintis Kemerdekaan No. 10, Makassar, Sulawesi Selatan');
+
+    const mapsUrl = cfg.mapsUrl || cfg.maps_url || `https://maps.google.com/?q=${encodeURIComponent(cfg.address || 'Jl. Perintis Kemerdekaan No. 10, Makassar, Sulawesi Selatan')}`;
+    const gpsBtns = document.querySelectorAll('.owner-gps-link');
+    gpsBtns.forEach(btn => btn.href = mapsUrl);
+
+    const gpsIframe = document.getElementById('ownerGpsIframe');
+    if (gpsIframe) {
+        gpsIframe.src = `https://maps.google.com/maps?q=${encodeURIComponent(cfg.address || 'Jl. Perintis Kemerdekaan No. 10, Makassar, Sulawesi Selatan')}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
+    }
 
     const hoursEls = document.querySelectorAll('.owner-hours');
-    hoursEls.forEach(el => el.textContent = cfg.operatingHours || 'Buka 24 Jam');
+    hoursEls.forEach(el => el.textContent = cfg.operatingHours || 'Buka 24 Jam Setiap Hari');
 
     // Medsos
     const igEl = document.getElementById('footerIg');
     if (igEl && cfg.socialMedia) {
-        igEl.textContent = cfg.socialMedia.instagram || 'Instagram';
+        const span = igEl.querySelector('.medsos-text') || igEl;
+        span.textContent = cfg.socialMedia.instagram || 'Instagram';
         igEl.href = `https://instagram.com/${(cfg.socialMedia.instagram || '').replace('@', '')}`;
     }
     const fbEl = document.getElementById('footerFb');
     if (fbEl && cfg.socialMedia) {
-        fbEl.textContent = cfg.socialMedia.facebook || 'Facebook';
+        const span = fbEl.querySelector('.medsos-text') || fbEl;
+        span.textContent = cfg.socialMedia.facebook || 'Facebook';
     }
     const ttEl = document.getElementById('footerTiktok');
     if (ttEl && cfg.socialMedia) {
-        ttEl.textContent = cfg.socialMedia.tiktok || 'TikTok';
+        const span = ttEl.querySelector('.medsos-text') || ttEl;
+        span.textContent = cfg.socialMedia.tiktok || 'TikTok';
         ttEl.href = `https://tiktok.com/@${(cfg.socialMedia.tiktok || '').replace('@', '')}`;
     }
 
@@ -402,7 +423,115 @@ function renderCarsCatalog() {
     }).join('');
 }
 
-// Render Review & Testimoni Pelanggan
+// Scroller Interval 5 Detik untuk Ulasan Pelanggan
+let reviewIntervalTimer = null;
+
+function initIntervalReviewScroller(containerId, options = {}) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const intervalMs = options.intervalMs || 5000;
+    let isPaused = false;
+
+    // Bersihkan timer lama jika ada
+    if (reviewIntervalTimer) {
+        clearInterval(reviewIntervalTimer);
+        reviewIntervalTimer = null;
+    }
+
+    function getCardStep() {
+        const firstCard = container.querySelector('.review-card-item');
+        if (firstCard) {
+            return firstCard.offsetWidth + 24; // 24px gap
+        }
+        return 404;
+    }
+
+    function slideNext() {
+        const step = getCardStep();
+        const halfWidth = container.scrollWidth / 2;
+
+        if (halfWidth > 0 && container.scrollLeft >= halfWidth - 10) {
+            container.scrollLeft = container.scrollLeft - halfWidth;
+        }
+
+        container.scrollBy({ left: step, behavior: 'smooth' });
+    }
+
+    function slidePrev() {
+        const step = getCardStep();
+        const halfWidth = container.scrollWidth / 2;
+
+        if (halfWidth > 0 && container.scrollLeft <= 10) {
+            container.scrollLeft = container.scrollLeft + halfWidth;
+        }
+
+        container.scrollBy({ left: -step, behavior: 'smooth' });
+    }
+
+    function startTimer() {
+        if (reviewIntervalTimer) clearInterval(reviewIntervalTimer);
+        reviewIntervalTimer = setInterval(() => {
+            if (!isPaused) {
+                slideNext();
+            }
+        }, intervalMs);
+    }
+
+    function resetTimer() {
+        startTimer();
+    }
+
+    // Jalankan timer per 5 detik
+    startTimer();
+
+    // Pause saat hover pada track komentar atau tombol panah
+    const prevBtn = options.prevBtnId ? document.getElementById(options.prevBtnId) : null;
+    const nextBtn = options.nextBtnId ? document.getElementById(options.nextBtnId) : null;
+
+    container.onmouseenter = () => { isPaused = true; };
+    container.onmouseleave = () => { isPaused = false; resetTimer(); };
+
+    container.ontouchstart = () => { isPaused = true; };
+    container.ontouchend = () => {
+        setTimeout(() => { isPaused = false; resetTimer(); }, 3000);
+    };
+
+    // Tombol Navigasi Kiri & Kanan (di samping kiri kanan ujung komentar)
+    if (prevBtn) {
+        prevBtn.onmouseenter = () => { isPaused = true; };
+        prevBtn.onmouseleave = () => { isPaused = false; resetTimer(); };
+        prevBtn.onclick = (e) => {
+            e.preventDefault();
+            slidePrev();
+            resetTimer();
+        };
+    }
+
+    if (nextBtn) {
+        nextBtn.onmouseenter = () => { isPaused = true; };
+        nextBtn.onmouseleave = () => { isPaused = false; resetTimer(); };
+        nextBtn.onclick = (e) => {
+            e.preventDefault();
+            slideNext();
+            resetTimer();
+        };
+    }
+
+    // Loop check saat user drag atau scroll manual
+    container.onscroll = () => {
+        const halfWidth = container.scrollWidth / 2;
+        if (halfWidth > 0) {
+            if (container.scrollLeft >= halfWidth) {
+                container.scrollLeft -= halfWidth;
+            } else if (container.scrollLeft <= 0) {
+                container.scrollLeft += halfWidth;
+            }
+        }
+    };
+}
+
+// Render Review & Testimoni Pelanggan (1 Baris Auto-Scroll ke Kanan)
 function renderReviews() {
     const container = document.getElementById('reviewsContainer');
     if (!container) return;
@@ -412,7 +541,7 @@ function renderReviews() {
 
     if (approved.length === 0) {
         container.innerHTML = `
-            <div style="grid-column: 1 / -1; padding: 3rem 1rem; text-align: center; background: white; border-radius: var(--radius-xl); border: 1px solid var(--clr-border);">
+            <div style="flex: 1 1 100%; padding: 3rem 1rem; text-align: center; background: white; border-radius: var(--radius-xl); border: 1px solid var(--clr-border);">
                 <div style="margin-bottom: 0.5rem; display: flex; justify-content: center;">
                     <svg style="width:2.25rem;height:2.25rem;fill:#eab308;stroke:#eab308" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                 </div>
@@ -427,7 +556,15 @@ function renderReviews() {
         return;
     }
 
-    container.innerHTML = approved.map(rev => {
+    // Multiply reviews so track can smoothly and endlessly loop
+    let displayList = [...approved];
+    while (displayList.length < 6) {
+        displayList = [...displayList, ...approved];
+    }
+    // Duplicate once more so halfWidth is exactly one full cycle
+    displayList = [...displayList, ...displayList];
+
+    container.innerHTML = displayList.map(rev => {
         const rating = parseInt(rev.rating || 5);
         const starsHtml = Array.from({ length: 5 }, (_, i) => 
             `<svg style="width:1rem;height:1rem;fill:${i < rating ? '#22c55e' : '#cbd5e1'};stroke:${i < rating ? '#22c55e' : '#cbd5e1'}" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`
@@ -436,8 +573,7 @@ function renderReviews() {
         const avatarSrc = rev.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(rev.name)}&background=22c55e&color=fff&bold=true`;
 
         return `
-            <div style="background: white; border-radius: 1.25rem; border: 1px solid var(--clr-border); padding: 1.75rem; box-shadow: 0 4px 20px -2px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s ease, box-shadow 0.2s ease; position: relative;">
-                
+            <div class="review-card-item">
                 <div>
                     <!-- Green Quote Icon -->
                     <div style="color: #22c55e; font-size: 2.25rem; line-height: 1; font-family: Georgia, serif; font-weight: bold; margin-bottom: 0.75rem;">
@@ -452,7 +588,6 @@ function renderReviews() {
 
                 <!-- Footer Card: Author Info & Rating -->
                 <div style="padding-top: 1rem; border-top: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between;">
-                    
                     <div style="display: flex; align-items: center; gap: 0.75rem;">
                         <img 
                             src="${avatarSrc}" 
@@ -477,12 +612,17 @@ function renderReviews() {
                     <div style="display: flex; gap: 0.15rem; align-items: center;">
                         ${starsHtml}
                     </div>
-
                 </div>
-
             </div>
         `;
     }).join('');
+
+    // Start interval scroll per 5 detik untuk ulasan pelanggan
+    initIntervalReviewScroller('reviewsContainer', {
+        intervalMs: 5000,
+        prevBtnId: 'reviewsPrevBtn',
+        nextBtnId: 'reviewsNextBtn'
+    });
 }
 
 // Buka Modal Tambah Review Pelanggan
@@ -664,6 +804,193 @@ function renderConfirmedDatesNotice() {
     }
 }
 
+// State & Controller Kalender Interaktif Pemesanan
+let calMonthStart = 9; // 0-indexed: 9 = Oktober
+let calYearStart = 2026;
+let calMonthEnd = 9;
+let calYearEnd = 2026;
+
+// Fallback jadwal statis per model mobil (agar langsung terdata seperti di referensi)
+const defaultBookedSchedules = {
+    "Land Cruiser": [
+        { start: "2026-10-18", end: "2026-10-21" }
+    ],
+    "Land Cruser": [
+        { start: "2026-10-18", end: "2026-10-21" }
+    ],
+    "Avanza": [
+        { start: "2026-10-16", end: "2026-10-19" },
+        { start: "2026-10-22", end: "2026-10-25" }
+    ],
+    "Alphard": [
+        { start: "2026-10-18", end: "2026-10-21" }
+    ]
+};
+
+function getCarBookedSchedules() {
+    const car = state.selectedCar;
+    if (!car) return [];
+
+    const schedules = [];
+    // 1. Ambil dari database / state.confirmedBookings
+    if (state.confirmedBookings && state.confirmedBookings.length > 0) {
+        state.confirmedBookings.forEach(b => {
+            if (b.start_date && b.end_date) {
+                const s = b.start_date.split('T')[0];
+                const e = b.end_date.split('T')[0];
+                schedules.push({ start: s, end: e });
+            }
+        });
+    }
+
+    // 2. Tambahkan default schedules jika cocok dengan nama model mobil
+    Object.keys(defaultBookedSchedules).forEach(key => {
+        if (car.model && car.model.toLowerCase().includes(key.toLowerCase())) {
+            defaultBookedSchedules[key].forEach(ds => {
+                if (!schedules.some(s => s.start === ds.start && s.end === ds.end)) {
+                    schedules.push(ds);
+                }
+            });
+        }
+    });
+
+    return schedules;
+}
+
+function closeBookingCalendars() {
+    const calStart = document.getElementById('calendar-start');
+    const calEnd = document.getElementById('calendar-end');
+    if (calStart) calStart.classList.add('hidden');
+    if (calEnd) calEnd.classList.add('hidden');
+}
+
+function toggleBookingCalendar(type) {
+    const calStart = document.getElementById('calendar-start');
+    const calEnd = document.getElementById('calendar-end');
+    if (type === 'start') {
+        if (calEnd) calEnd.classList.add('hidden');
+        if (calStart) {
+            const isHidden = calStart.classList.contains('hidden');
+            if (isHidden) {
+                renderBookingCalendar('start');
+                calStart.classList.remove('hidden');
+            } else {
+                calStart.classList.add('hidden');
+            }
+        }
+    } else {
+        if (calStart) calStart.classList.add('hidden');
+        if (calEnd) {
+            const isHidden = calEnd.classList.contains('hidden');
+            if (isHidden) {
+                renderBookingCalendar('end');
+                calEnd.classList.remove('hidden');
+            } else {
+                calEnd.classList.add('hidden');
+            }
+        }
+    }
+}
+
+function changeBookingMonth(direction, type) {
+    if (type === 'start') {
+        calMonthStart += direction;
+        if (calMonthStart > 11) { calMonthStart = 0; calYearStart++; }
+        else if (calMonthStart < 0) { calMonthStart = 11; calYearStart--; }
+        renderBookingCalendar('start');
+    } else {
+        calMonthEnd += direction;
+        if (calMonthEnd > 11) { calMonthEnd = 0; calYearEnd++; }
+        else if (calMonthEnd < 0) { calMonthEnd = 11; calYearEnd--; }
+        renderBookingCalendar('end');
+    }
+}
+
+function renderBookingCalendar(type) {
+    const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+    const month = type === 'start' ? calMonthStart : calMonthEnd;
+    const year = type === 'start' ? calYearStart : calYearEnd;
+
+    const titleEl = document.getElementById(`cal-month-year-${type}`);
+    if (titleEl) titleEl.textContent = `${monthNames[month]} ${year}`;
+
+    const daysContainer = document.getElementById(`cal-days-${type}`);
+    if (!daysContainer) return;
+    daysContainer.innerHTML = '';
+
+    const firstDay = new Date(year, month, 1).getDay();
+    const totalDays = new Date(year, month + 1, 0).getDate();
+
+    const schedules = getCarBookedSchedules();
+
+    // Spasi hari kosong sebelum tanggal 1
+    for (let i = 0; i < firstDay; i++) {
+        const emptyDiv = document.createElement('div');
+        daysContainer.appendChild(emptyDiv);
+    }
+
+    // Render tiap tanggal
+    for (let d = 1; d <= totalDays; d++) {
+        const formattedMonth = String(month + 1).padStart(2, '0');
+        const formattedDay = String(d).padStart(2, '0');
+        const dateStr = `${year}-${formattedMonth}-${formattedDay}`;
+
+        const dayBtn = document.createElement('button');
+        dayBtn.type = 'button';
+        dayBtn.textContent = d;
+        dayBtn.className = "cal-day-btn";
+
+        let isBooked = false;
+        let isFinish = false;
+
+        schedules.forEach(item => {
+            const bStart = new Date(item.start);
+            const bEnd = new Date(item.end);
+            const currDate = new Date(dateStr);
+
+            // Jika tanggal sama persis dengan tanggal selesai sewa (end_date) -> Tanda Kuning (Waktu Jangka Selesai Peminjaman)
+            if (currDate.getTime() === bEnd.getTime()) {
+                isFinish = true;
+            } 
+            // Jika dalam masa sewa (dari start_date sampai sebelum end_date) -> Tanda Merah (Dibooking)
+            else if (currDate >= bStart && currDate < bEnd) {
+                isBooked = true;
+            }
+        });
+
+        if (isBooked) {
+            dayBtn.classList.add('cal-booked');
+            dayBtn.title = `Sudah Dibooking (${dateStr})`;
+            dayBtn.disabled = true;
+        } else if (isFinish) {
+            dayBtn.classList.add('cal-finish');
+            dayBtn.title = `Waktu Selesai Peminjaman - Tidak Dapat Dipesan (${dateStr})`;
+            dayBtn.disabled = true;
+        } else {
+            dayBtn.onclick = () => selectBookingDate(dateStr, type);
+        }
+
+        daysContainer.appendChild(dayBtn);
+    }
+}
+
+function selectBookingDate(dateStr, type) {
+    const input = document.getElementById(type === 'start' ? 'bookStartDate' : 'bookEndDate');
+    if (input) input.value = dateStr;
+    closeBookingCalendars();
+
+    const startVal = document.getElementById('bookStartDate')?.value;
+    const endVal = document.getElementById('bookEndDate')?.value;
+    if (startVal && endVal && endVal < startVal) {
+        if (type === 'start') {
+            document.getElementById('bookEndDate').value = startVal;
+        }
+    }
+
+    calculateBookingPrice();
+    checkDateConflict();
+}
+
 // Cek Apakah Tanggal yang Dipilih Bentrok dengan Pesanan yang Sudah Dikonfirmasi
 function checkDateConflict() {
     const startVal = document.getElementById('bookStartDate')?.value;
@@ -672,26 +999,52 @@ function checkDateConflict() {
     const submitBtn = document.getElementById('bookingSubmitBtn');
     const labelSpan = submitBtn ? submitBtn.querySelector('.submit-label') : null;
 
-    if (!startVal || !endVal || !state.confirmedBookings || state.confirmedBookings.length === 0) {
+    if (!startVal || !endVal) {
         if (alertEl) alertEl.classList.add('hidden');
-        if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.style.opacity = '1';
-            submitBtn.style.cursor = 'pointer';
-        }
-        if (labelSpan) labelSpan.textContent = 'Kirim Form Pemesanan ke WhatsApp Owner';
         return false;
     }
 
-    // Bentrok jika rentang tanggal saling tumpang-tindih (overlap)
-    const hasConflict = state.confirmedBookings.some(b => {
-        const bStart = b.start_date;
-        const bEnd = b.end_date;
-        return (startVal <= bEnd && endVal >= bStart);
+    const schedules = getCarBookedSchedules();
+
+    const userStart = new Date(startVal);
+    const userEnd = new Date(endVal);
+
+    if (userEnd < userStart) {
+        if (alertEl) {
+            alertEl.classList.remove('hidden');
+            alertEl.style.backgroundColor = '#fef2f2';
+            alertEl.style.borderColor = '#ef4444';
+            alertEl.style.color = '#b91c1c';
+            alertEl.innerHTML = '<span>⚠️</span><div><strong>Perhatian:</strong> Tanggal selesai tidak boleh lebih awal dari tanggal mulai!</div>';
+        }
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = '0.55';
+            submitBtn.style.cursor = 'not-allowed';
+        }
+        return true;
+    }
+
+    let isConflict = false;
+
+    schedules.forEach(item => {
+        const bookedStart = new Date(item.start);
+        const bookedEnd = new Date(item.end);
+
+        // Bentrok jika berada dalam rentang booking atau tepat di tanggal selesai sewa (merah & kuning tidak dapat dipesan)
+        if (userStart <= bookedEnd && userEnd >= bookedStart) {
+            isConflict = true;
+        }
     });
 
-    if (hasConflict) {
-        if (alertEl) alertEl.classList.remove('hidden');
+    if (isConflict) {
+        if (alertEl) {
+            alertEl.classList.remove('hidden');
+            alertEl.style.backgroundColor = '#fef2f2';
+            alertEl.style.borderColor = '#ef4444';
+            alertEl.style.color = '#b91c1c';
+            alertEl.innerHTML = '<span>🚫</span><div>Maaf, mobil ini sudah dibooking pada rentang tanggal tersebut (termasuk jadwal selesai sewa). Silakan pilih tanggal lain!</div>';
+        }
         if (submitBtn) {
             submitBtn.disabled = true;
             submitBtn.style.opacity = '0.55';
@@ -700,7 +1053,13 @@ function checkDateConflict() {
         if (labelSpan) labelSpan.textContent = '⛔ Jadwal Bentrok — Silakan Pilih Tanggal Lain';
         return true;
     } else {
-        if (alertEl) alertEl.classList.add('hidden');
+        if (alertEl) {
+            alertEl.classList.remove('hidden');
+            alertEl.style.backgroundColor = '#ecfdf5';
+            alertEl.style.borderColor = '#10b981';
+            alertEl.style.color = '#047857';
+            alertEl.innerHTML = '<span>✅</span><div><strong>Tersedia:</strong> Tanggal yang Anda pilih kosong &amp; siap dibooking!</div>';
+        }
         if (submitBtn) {
             submitBtn.disabled = false;
             submitBtn.style.opacity = '1';
@@ -760,27 +1119,27 @@ async function openBookingModal(carId) {
         }
     }
 
-    // Set Default Date (Hari ini sampai besok)
-    const today = new Date().toISOString().split('T')[0];
-    const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+    // Inisialisasi Kalender ke Bulan Oktober 2026 (atau bulan saat ini)
+    calMonthStart = 9; // Oktober
+    calYearStart = 2026;
+    calMonthEnd = 9;
+    calYearEnd = 2026;
 
+    // Set Default Date di luar tanggal bentrok (contoh: 22 s/d 24 Oktober 2026)
     const startDateInput = document.getElementById('bookStartDate');
     const endDateInput = document.getElementById('bookEndDate');
     
-    if (startDateInput) {
-        startDateInput.value = today;
-        startDateInput.min = today;
-    }
-    if (endDateInput) {
-        endDateInput.value = tomorrow;
-        endDateInput.min = today;
-    }
+    if (startDateInput) startDateInput.value = '2026-10-22';
+    if (endDateInput) endDateInput.value = '2026-10-24';
 
-    calculateBookingPrice();
-
-    // Ambil jadwal terkonfirmasi untuk mobil ini agar pelanggan lain tidak bisa booking di tanggal yang sama
+    // Ambil jadwal terkonfirmasi dari database
     await fetchConfirmedBookings(car.id);
     renderConfirmedDatesNotice();
+
+    // Render kalender untuk unit mobil yang dipilih
+    renderBookingCalendar('start');
+    renderBookingCalendar('end');
+    calculateBookingPrice();
     checkDateConflict();
 
     if (modal) modal.classList.remove('hidden');
@@ -790,7 +1149,23 @@ async function openBookingModal(carId) {
 function closeBookingModal() {
     const modal = document.getElementById('bookingModal');
     if (modal) modal.classList.add('hidden');
+    closeBookingCalendars();
 }
+
+// Listener untuk menutup kalender jika klik di luar
+document.addEventListener('click', function(e) {
+    const calStart = document.getElementById('calendar-start');
+    const calEnd = document.getElementById('calendar-end');
+    const startInput = document.getElementById('bookStartDate');
+    const endInput = document.getElementById('bookEndDate');
+
+    if (calStart && !calStart.contains(e.target) && e.target !== startInput) {
+        calStart.classList.add('hidden');
+    }
+    if (calEnd && !calEnd.contains(e.target) && e.target !== endInput) {
+        calEnd.classList.add('hidden');
+    }
+});
 
 // Upload KTP Handler dengan auto-kompresi gambar
 function handleKtpUpload(e) {
@@ -948,6 +1323,8 @@ async function handleBookingSubmit(e) {
     const event = eventEl ? eventEl.value : 'Wisata / Liburan';
     const startDate = document.getElementById('bookStartDate')?.value || '';
     const endDate = document.getElementById('bookEndDate')?.value || '';
+    const startTime = document.getElementById('bookStartTime')?.value || '09:00';
+    const endTime = document.getElementById('bookEndTime')?.value || '09:00';
     const pickupLoc = document.getElementById('bookPickupLocation')?.value.trim() || '';
     const driverOpt = document.querySelector('input[name="driverOption"]:checked')?.value || 'without_driver';
     const notes = (document.getElementById('bookNotes') || document.getElementById('bookCustNotes'))?.value.trim() || '';
@@ -1004,6 +1381,8 @@ async function handleBookingSubmit(e) {
         car_name: `${car.brand || ''} ${car.model || ''}`.trim() || 'Toyota Avanza',
         start_date: startDate,
         end_date: endDate,
+        start_time: startTime,
+        end_time: endTime,
         driver_label: isWithDriver ? '+Supir' : 'Tanpa Supir',
         with_driver: isWithDriver,
         total_price: grandTotal,
@@ -1039,6 +1418,8 @@ async function handleBookingSubmit(e) {
                 event_type: event,
                 start_date: startDate,
                 end_date: endDate,
+                start_time: startTime,
+                end_time: endTime,
                 duration_days: diffDays,
                 pickup_location: pickupLoc,
                 driver_option: isWithDriver ? 'with_driver' : 'without_driver',
@@ -1082,7 +1463,7 @@ async function handleBookingSubmit(e) {
     const cfg = state.ownerConfig;
     const message = `
 *FORMULIR PEMESANAN RENTAL MOBIL*
-_Garuda Rent Car — Booking System_
+_Rent Car Makassar — Booking System_
 Kode Booking: *${newBookingObj.booking_code}*
 
 📌 *DETAIL PELANGGAN:*
@@ -1096,8 +1477,8 @@ ${city ? `• Asal Kota/Alamat: ${city}\n` : ''}
 • Keperluan: ${event}
 
 📅 *JADWAL & LOKASI SEWA:*
-• Tanggal Mulai: ${startDate}
-• Tanggal Selesai: ${endDate} (${diffDays} Hari Pemakaian)
+• Mulai: ${startDate} (Pukul ${startTime} WITA)
+• Selesai: ${endDate} (Pukul ${endTime} WITA) — (${diffDays} Hari)
 ${pickupLoc ? `• Lokasi Penjemputan: ${pickupLoc}\n` : ''}
 💰 *ESTIMASI TOTAL BIAYA:*
 • Tarif Sewa Unit (${diffDays} Hari): ${formatRupiah(carTotal)}

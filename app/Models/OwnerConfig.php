@@ -17,6 +17,7 @@ class OwnerConfig extends Model
         'phone',
         'email',
         'address',
+        'maps_url',
         'operating_hours',
         'instagram',
         'facebook',

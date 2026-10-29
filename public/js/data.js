@@ -6,7 +6,8 @@ const DEFAULT_OWNER_CONFIG = {
     whatsappNumber: "6281234567890", // Ganti dengan nomor WhatsApp owner (awali dengan 62)
     phone: "0812-3456-7890",
     email: "kontak@garudarentcar.com",
-    address: "Jl. Urip Sumoharjo No. 88, Kota Makassar, Sulawesi Selatan",
+    address: "Jl. Perintis Kemerdekaan No. 10, Makassar, Sulawesi Selatan",
+    mapsUrl: "https://maps.google.com/?q=Jl.+Perintis+Kemerdekaan+No.+10,+Makassar,+Sulawesi+Selatan",
     operatingHours: "Buka 24 Jam Setiap Hari",
     socialMedia: {
         instagram: "@garudarentcar_id",
