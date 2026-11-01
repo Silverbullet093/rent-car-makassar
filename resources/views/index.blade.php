@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
@@ -19,7 +19,10 @@
     <!-- Mobile Responsive Patch -->
     <link rel="stylesheet" href="/css/responsive-mobile.css">
 </head>
-<body>
+<body style="overflow-x: hidden;">
+
+    <!-- TOP SCROLL PROGRESS BAR (EFEK INDIKATOR BACA/SCROLL MODERN) -->
+    <div id="scrollProgressBar"></div>
 
     <!-- ANNOUNCEMENT BANNER: TARIF LIBUR / PEAK SEASON (JIKA AKTIF) -->
     <div id="holidayAlertBanner" class="hidden" style="background-color: var(--clr-primary); color: white; font-size: 0.75rem; padding: 0.5rem 1rem; text-align: center; font-weight: 700;">
@@ -152,8 +155,8 @@
                     
                     <!-- Left Hero Text Content -->
                     <div class="reveal-on-scroll" style="max-width: 42rem;">
-                        <!-- Capsule Badge -->
-                        <div class="hero-capsule-badge" style="display: inline-flex; align-items: center; gap: 0.6rem; padding: 0.5rem 1.25rem; border-radius: 9999px; background: #fef2f2; border: 1px solid rgba(220, 38, 38, 0.25); color: #dc2626; font-size: 0.85rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 1.25rem; box-shadow: 0 2px 8px rgba(220, 38, 38, 0.08);">
+                        <!-- Capsule Badge with Shimmering Gradient -->
+                        <div class="hero-capsule-badge gradient-shimmer-badge" style="display: inline-flex; align-items: center; gap: 0.6rem; padding: 0.5rem 1.25rem; border-radius: 9999px; color: #dc2626; font-size: 0.85rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 1.25rem; box-shadow: 0 4px 14px rgba(220, 38, 38, 0.1);">
                             <i class="fa-solid fa-shield-halved"></i>
                             <span>RENTAL MOBIL RESMI MAKASSAR &amp; SULAWESI</span>
                         </div>
@@ -457,7 +460,7 @@
                     <div>
                         <button onclick="openReviewModal()" class="btn btn-emerald btn-lg" style="box-shadow: 0 10px 25px -5px rgba(34, 197, 94, 0.4); display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 800; padding: 0.75rem 1.35rem; font-size: 0.9rem;">
                             <svg style="width: 1rem; height: 1rem;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                            <span>Tulis Ulasan Anda</span>
+                            <span>Tulis Ulasan & Story</span>
                         </button>
                     </div>
                 </div>
@@ -827,12 +830,28 @@
                         <textarea id="reviewComment" required rows="4" placeholder="Ceritakan pengalaman Anda menyewa mobil di tempat kami..." class="form-textarea"></textarea>
                     </div>
 
-                    <!-- Upload Foto / Avatar -->
+                    <!-- Upload Foto Avatar / Profil -->
                     <div class="form-group">
-                        <label class="form-label">Upload Foto / Avatar (Opsional)</label>
-                        <input type="file" id="reviewAvatarInput" accept="image/*" class="form-input" style="padding: 0.5rem;">
+                        <label class="form-label">Foto Profil / Avatar Anda (Opsional)</label>
+                        <input type="file" id="reviewAvatarInput" accept="image/*" class="form-input" style="padding: 0.5rem;" onchange="handleReviewAvatarUpload(event)">
                         <div style="margin-top: 0.5rem; display: flex; align-items: center; gap: 0.75rem;">
                             <img id="reviewAvatarPreview" class="hidden" style="width: 3.5rem; height: 3.5rem; border-radius: 50%; object-fit: cover; border: 2px solid #22c55e;" />
+                        </div>
+                    </div>
+
+                    <!-- Upload Foto / Video Story Pengalaman Sewa Mobil (FITUR STORY IG) -->
+                    <div class="form-group" style="padding: 1rem; background: #fff1f2; border: 1.5px dashed #f43f5e; border-radius: var(--radius-md);">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
+                            <span style="font-size: 1.1rem;">📸</span>
+                            <label class="form-label" style="font-weight: 800; color: #be123c; margin-bottom: 0;">Upload Story Review (Foto / Video Pengalaman)</label>
+                        </div>
+                        <p style="font-size: 0.72rem; color: #881337; margin-bottom: 0.5rem;">
+                            Foto atau video Anda bersama mobil saat liburan/dinas akan tampil di lingkaran <strong>Story Ulasan ala Instagram</strong>! (Maks 15MB, Format JPG/PNG/MP4/WebM).
+                        </p>
+                        <input type="file" id="reviewMediaInput" accept="image/*,video/*" class="form-input" style="padding: 0.5rem; background: #ffffff;" onchange="handleReviewMediaUpload(event)">
+                        <div id="reviewMediaPreviewBox" class="hidden" style="margin-top: 0.75rem; border-radius: var(--radius-md); overflow: hidden; max-height: 180px; background: #0f172a; display: flex; align-items: center; justify-content: center; position: relative;">
+                            <img id="reviewMediaImgPreview" class="hidden" style="max-height: 180px; width: 100%; object-fit: cover;" />
+                            <video id="reviewMediaVidPreview" class="hidden" controls style="max-height: 180px; width: 100%;"></video>
                         </div>
                     </div>
 
@@ -853,6 +872,55 @@
                 </form>
             </div>
 
+        </div>
+    </div>
+
+    <!-- ==================================================== -->
+    <!-- MODAL POPUP STORY & ULASAN DETAIL (ALA IG STORY)     -->
+    <!-- ==================================================== -->
+    <div id="storyViewerModal" class="story-viewer-modal hidden" onclick="if(event.target === this) closeStoryViewer()">
+        <div class="story-viewer-content" onclick="event.stopPropagation()">
+            <!-- Progress Bars -->
+            <div id="storyProgressContainer" class="story-progress-bar-container"></div>
+
+            <!-- Header Info -->
+            <div class="story-header-bar">
+                <div class="story-header-user">
+                    <img id="storyViewerAvatar" src="" class="story-header-avatar" alt="User">
+                    <div class="story-header-info">
+                        <div id="storyViewerName" class="story-header-name"></div>
+                        <div id="storyViewerSub" class="story-header-sub"></div>
+                    </div>
+                </div>
+                <button onclick="closeStoryViewer()" class="story-close-btn" aria-label="Tutup Story">
+                    ✕
+                </button>
+            </div>
+
+            <!-- Tap Navigations (Left = Previous, Right = Next) -->
+            <div class="story-nav-tap left" onclick="prevStory()"></div>
+            <div class="story-nav-tap right" onclick="nextStory()"></div>
+
+            <!-- Media Container -->
+            <div class="story-media-container">
+                <!-- If Image -->
+                <img id="storyViewerImg" class="hidden" alt="Story Image">
+                <!-- If Video -->
+                <video id="storyViewerVid" class="hidden" playsinline autoplay muted></video>
+                <!-- If Text Only / Fallback Background -->
+                <div id="storyViewerTextBg" class="hidden" style="width: 100%; height: 100%; background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); display: flex; align-items: center; justify-content: center; padding: 2rem;">
+                    <div style="color: rgba(255,255,255,0.08); font-size: 8rem; font-family: Georgia, serif; position: absolute;">“</div>
+                </div>
+            </div>
+
+            <!-- Bottom Caption & Full Review Overlay -->
+            <div class="story-caption-overlay">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <div id="storyViewerStars" class="story-caption-rating"></div>
+                    <span id="storyViewerDate" style="font-size: 0.7rem; color: rgba(255,255,255,0.75);"></span>
+                </div>
+                <p id="storyViewerComment" class="story-caption-text" style="max-height: 180px; overflow-y: auto; scrollbar-width: none;"></p>
+            </div>
         </div>
     </div>
 

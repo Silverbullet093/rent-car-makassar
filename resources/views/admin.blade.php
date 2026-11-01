@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
@@ -84,12 +84,12 @@
         <aside class="sidebar">
             <!-- Brand Header -->
             <div class="sidebar-header">
-                <div class="flex items-center gap-2.5">
-                    <div style="width: 2.5rem; height: 2.5rem; background: #dc2626; border-radius: 0.65rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 12px rgba(220, 38, 38, 0.45); overflow: hidden; flex-shrink: 0;">
+                <div class="flex items-center" style="gap: 1.15rem;">
+                    <div style="width: 2.65rem; height: 2.65rem; background: #dc2626; border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(220, 38, 38, 0.45); overflow: hidden; flex-shrink: 0;">
                         <img src="/logo_rpm_red.png" alt="RPM Rent Car" style="width: 100%; height: 100%; object-fit: contain; transform: scale(1.35);">
                     </div>
-                    <div>
-                        <div style="font-size: 0.875rem; font-weight: 800; color: #ffffff;" class="brand-title">RPM <span style="color: #ef4444;">Rent Car</span></div>
+                    <div style="display: flex; flex-direction: column; gap: 0.15rem;">
+                        <div style="font-size: 0.95rem; font-weight: 800; color: #ffffff; letter-spacing: -0.01em;" class="brand-title">RPM <span style="color: #ef4444; font-weight: 800; margin-left: 0.25rem;">Rent Car</span></div>
                         <div style="font-size: 0.625rem; color: #94a3b8; letter-spacing: 0.08em; font-weight: 700; text-transform: uppercase;">Makassar • Owner</div>
                     </div>
                 </div>
@@ -210,30 +210,139 @@
                         </button>
                     </div>
 
-                    <!-- 4 Kartu Metrik Utama -->
+                    <!-- 4 Kartu Metrik Utama Bisnis & Omzet -->
                     <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div style="background: #ffffff; padding: 1.25rem; border-radius: var(--radius-lg); border: 1px solid var(--clr-border); box-shadow: var(--shadow-xs);">
-                            <div style="font-size: 0.75rem; font-weight: 600; color: var(--clr-text-subtle);">Total Armada Mobil</div>
-                            <div style="font-size: 1.75rem; font-weight: 800; color: var(--clr-text-main); margin-top: 0.35rem;" id="statTotalCars">6</div>
-                            <div style="font-size: 0.7rem; color: var(--clr-text-muted); margin-top: 0.2rem;">Terdaftar dalam katalog</div>
+                        <!-- Total Pendapatan Bulan Ini -->
+                        <div style="background: #ffffff; padding: 1.25rem; border-radius: var(--radius-lg); border: 1px solid var(--clr-border); box-shadow: var(--shadow-xs); position: relative; overflow: hidden;">
+                            <div style="display: flex; align-items: center; justify-content: space-between;">
+                                <div style="font-size: 0.75rem; font-weight: 700; color: var(--clr-text-subtle);">Pendapatan Bulan Ini</div>
+                                <span id="statRevenueGrowthBadge" style="font-size: 0.675rem; font-weight: 800; padding: 0.15rem 0.45rem; border-radius: 999px; background: #ecfdf5; color: #047857;">
+                                    +0%
+                                </span>
+                            </div>
+                            <div style="font-size: 1.6rem; font-weight: 800; color: #dc2626; margin-top: 0.35rem;" id="statTotalRevenue">Rp 0</div>
+                            <div style="font-size: 0.7rem; color: var(--clr-text-muted); margin-top: 0.2rem;" id="statRevenueComparisonText">Dibandingkan bulan lalu</div>
+                            <div style="position: absolute; right: -0.5rem; bottom: -0.5rem; font-size: 3.5rem; opacity: 0.05; pointer-events: none; color: #dc2626;">
+                                <i class="fa-solid fa-rupiah-sign"></i>
+                            </div>
                         </div>
 
+                        <!-- Unit Ready -->
                         <div style="background: #ffffff; padding: 1.25rem; border-radius: var(--radius-lg); border: 1px solid var(--clr-border); box-shadow: var(--shadow-xs);">
-                            <div style="font-size: 0.75rem; font-weight: 600; color: var(--clr-emerald);">Unit Ready (Tersedia)</div>
-                            <div style="font-size: 1.75rem; font-weight: 800; color: var(--clr-emerald); margin-top: 0.35rem;" id="statReadyCars">4</div>
-                            <div style="font-size: 0.7rem; color: var(--clr-text-muted); margin-top: 0.2rem;">Siap disewa langsung</div>
+                            <div style="display: flex; align-items: center; justify-content: space-between;">
+                                <div style="font-size: 0.75rem; font-weight: 700; color: var(--clr-emerald);">Unit Ready (Tersedia)</div>
+                                <span style="font-size: 0.675rem; font-weight: 800; padding: 0.15rem 0.45rem; border-radius: 999px; background: #ecfdf5; color: #047857;">
+                                    Siap Sewa
+                                </span>
+                            </div>
+                            <div style="font-size: 1.6rem; font-weight: 800; color: var(--clr-emerald); margin-top: 0.35rem;" id="statReadyCars">0 Unit</div>
+                            <div style="font-size: 0.7rem; color: var(--clr-text-muted); margin-top: 0.2rem;">Dari <span id="statTotalCars">0</span> total armada katalog</div>
                         </div>
 
+                        <!-- Sedang Digunakan -->
                         <div style="background: #ffffff; padding: 1.25rem; border-radius: var(--radius-lg); border: 1px solid var(--clr-border); box-shadow: var(--shadow-xs);">
-                            <div style="font-size: 0.75rem; font-weight: 600; color: #d97706;">Sedang Digunakan</div>
-                            <div style="font-size: 1.75rem; font-weight: 800; color: #d97706; margin-top: 0.35rem;" id="statInUseCars">2</div>
-                            <div style="font-size: 0.7rem; color: var(--clr-text-muted); margin-top: 0.2rem;">Sedang disewa pelanggan</div>
+                            <div style="display: flex; align-items: center; justify-content: space-between;">
+                                <div style="font-size: 0.75rem; font-weight: 700; color: #d97706;">Sedang Disewa (In Use)</div>
+                                <span style="font-size: 0.675rem; font-weight: 800; padding: 0.15rem 0.45rem; border-radius: 999px; background: #fffbeb; color: #b45309;">
+                                    Jalan
+                                </span>
+                            </div>
+                            <div style="font-size: 1.6rem; font-weight: 800; color: #d97706; margin-top: 0.35rem;" id="statInUseCars">0 Unit</div>
+                            <div style="font-size: 0.7rem; color: var(--clr-text-muted); margin-top: 0.2rem;">Sedang operasional sewa</div>
                         </div>
 
+                        <!-- Total Transaksi Booking -->
                         <div style="background: #ffffff; padding: 1.25rem; border-radius: var(--radius-lg); border: 1px solid var(--clr-border); box-shadow: var(--shadow-xs);">
-                            <div style="font-size: 0.75rem; font-weight: 600; color: var(--clr-text-subtle);">Tujuan WhatsApp</div>
-                            <div style="font-size: 1rem; font-weight: 800; color: var(--clr-text-main); margin-top: 0.5rem; font-family: monospace;" class="truncate" id="statWaNumber">6281234567890</div>
-                            <div style="font-size: 0.7rem; color: var(--clr-text-muted); margin-top: 0.2rem;">Nomor penerima pesanan</div>
+                            <div style="display: flex; align-items: center; justify-content: space-between;">
+                                <div style="font-size: 0.75rem; font-weight: 700; color: #2563eb;">Total Order Masuk</div>
+                                <span style="font-size: 0.675rem; font-weight: 800; padding: 0.15rem 0.45rem; border-radius: 999px; background: #eff6ff; color: #1d4ed8;" id="statYearGrowthBadge">
+                                    Tahun Ini
+                                </span>
+                            </div>
+                            <div style="font-size: 1.6rem; font-weight: 800; color: #2563eb; margin-top: 0.35rem;" id="statTotalBookingsCount">0 Order</div>
+                            <div style="font-size: 0.7rem; color: var(--clr-text-muted); margin-top: 0.2rem;" id="statTotalSalesAllTime">Total omzet terdata</div>
+                        </div>
+                    </div>
+
+                    <!-- ======================================================== -->
+                    <!-- GRAFIK PENDAPATAN & ANALISIS TREN (MINGGU / BULAN / TAHUN) -->
+                    <!-- ======================================================== -->
+                    <div style="background: #ffffff; border-radius: var(--radius-lg); border: 1px solid var(--clr-border); padding: 1.5rem; box-shadow: var(--shadow-xs);">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3" style="margin-bottom: 1.25rem; padding-bottom: 1rem; border-bottom: 1px solid #f1f5f9;">
+                            <div>
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <span style="display: inline-flex; width: 2rem; height: 2rem; border-radius: 0.5rem; background: #fef2f2; color: #dc2626; align-items: center; justify-content: center; font-size: 1rem;">
+                                        <i class="fa-solid fa-chart-column"></i>
+                                    </span>
+                                    <h3 style="font-size: 1rem; font-weight: 800; color: var(--clr-text-main);">Grafik & Tren Analisis Pendapatan</h3>
+                                </div>
+                                <p style="font-size: 0.75rem; color: var(--clr-text-subtle); margin-top: 0.25rem;">
+                                    Lihat perbandingan pendapatan dan grafik kenaikan/penurunan omzet rental secara visual.
+                                </p>
+                            </div>
+
+                            <!-- Filter Rentang Waktu (Mingguan, Bulanan, Tahunan) -->
+                            <div style="display: flex; align-items: center; background: #f1f5f9; padding: 0.25rem; border-radius: 999px; gap: 0.25rem; border: 1px solid #e2e8f0;">
+                                <button onclick="setRevenueChartTimeframe('week', this)" id="btnTimeframeWeek" class="revenue-tf-btn active" style="border: none; padding: 0.4rem 0.85rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s; background: #dc2626; color: #ffffff;">
+                                    Per Minggu
+                                </button>
+                                <button onclick="setRevenueChartTimeframe('month', this)" id="btnTimeframeMonth" class="revenue-tf-btn" style="border: none; padding: 0.4rem 0.85rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s; background: transparent; color: #64748b;">
+                                    Per Bulan
+                                </button>
+                                <button onclick="setRevenueChartTimeframe('year', this)" id="btnTimeframeYear" class="revenue-tf-btn" style="border: none; padding: 0.4rem 0.85rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s; background: transparent; color: #64748b;">
+                                    Per Tahun
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Ringkasan Perbandingan Naik / Turun -->
+                        <div class="grid sm:grid-cols-3 gap-3" style="margin-bottom: 1.5rem;">
+                            <!-- Perbandingan Bulan Ini vs Bulan Lalu -->
+                            <div style="padding: 0.85rem 1rem; border-radius: var(--radius-md); background: #f8fafc; border: 1px solid var(--clr-border);">
+                                <div style="font-size: 0.7rem; color: #64748b; font-weight: 600;">Perbandingan Bulanan (MoM)</div>
+                                <div style="display: flex; align-items: baseline; gap: 0.5rem; margin-top: 0.2rem;">
+                                    <span style="font-size: 1.15rem; font-weight: 800; color: var(--clr-text-main);" id="cmpMonthCurrent">Rp 0</span>
+                                    <span id="cmpMonthDiffBadge" style="font-size: 0.75rem; font-weight: 800;">+0%</span>
+                                </div>
+                                <div style="font-size: 0.65rem; color: #94a3b8; margin-top: 0.2rem;" id="cmpMonthSub">Bln ini vs bln lalu (Rp 0)</div>
+                            </div>
+
+                            <!-- Perbandingan Tahun Ini vs Tahun Lalu -->
+                            <div style="padding: 0.85rem 1rem; border-radius: var(--radius-md); background: #f8fafc; border: 1px solid var(--clr-border);">
+                                <div style="font-size: 0.7rem; color: #64748b; font-weight: 600;">Perbandingan Tahunan (YoY)</div>
+                                <div style="display: flex; align-items: baseline; gap: 0.5rem; margin-top: 0.2rem;">
+                                    <span style="font-size: 1.15rem; font-weight: 800; color: var(--clr-text-main);" id="cmpYearCurrent">Rp 0</span>
+                                    <span id="cmpYearDiffBadge" style="font-size: 0.75rem; font-weight: 800;">+0%</span>
+                                </div>
+                                <div style="font-size: 0.65rem; color: #94a3b8; margin-top: 0.2rem;" id="cmpYearSub">Thn ini vs thn lalu (Rp 0)</div>
+                            </div>
+
+                            <!-- Rata-rata per Rental -->
+                            <div style="padding: 0.85rem 1rem; border-radius: var(--radius-md); background: #f8fafc; border: 1px solid var(--clr-border);">
+                                <div style="font-size: 0.7rem; color: #64748b; font-weight: 600;">Rata-rata Nilai Sewa / Transaksi</div>
+                                <div style="display: flex; align-items: baseline; gap: 0.5rem; margin-top: 0.2rem;">
+                                    <span style="font-size: 1.15rem; font-weight: 800; color: #059669;" id="cmpAvgOrder">Rp 0</span>
+                                </div>
+                                <div style="font-size: 0.65rem; color: #94a3b8; margin-top: 0.2rem;">Rerata omzet per pesanan rental</div>
+                            </div>
+                        </div>
+
+                        <!-- Canvas / SVG Visual Interactive Bar & Area Chart Container -->
+                        <div style="background: #ffffff; border: 1px solid #f1f5f9; border-radius: var(--radius-md); padding: 1.25rem 1rem 0.5rem 1rem;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+                                <div style="font-size: 0.8rem; font-weight: 800; color: var(--clr-text-main);" id="chartViewTitle">Grafik Pendapatan 7 Hari Terakhir (Mingguan)</div>
+                                <div style="display: flex; align-items: center; gap: 1rem; font-size: 0.7rem; color: #64748b;">
+                                    <span style="display: inline-flex; align-items: center; gap: 0.35rem;">
+                                        <span style="width: 0.65rem; height: 0.65rem; background: #dc2626; border-radius: 2px;"></span>
+                                        <span>Pendapatan Selesai</span>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Dynamic SVG Bar / Line Chart -->
+                            <div id="revenueChartContainer" style="width: 100%; min-height: 220px; position: relative;">
+                                <!-- Populated dynamically by renderRevenueAnalytics() in admin.js -->
+                            </div>
                         </div>
                     </div>
 
@@ -406,6 +515,7 @@
                                         <th style="padding: 0.85rem 1rem;">Pelanggan & Unit</th>
                                         <th style="padding: 0.85rem 1rem;">Rating</th>
                                         <th style="padding: 0.85rem 1rem;">Ulasan / Testimoni</th>
+                                        <th style="padding: 0.85rem 1rem; text-align: center;">Media Story</th>
                                         <th style="padding: 0.85rem 1rem;">Status</th>
                                         <th style="padding: 0.85rem 1rem; text-align: right;">Aksi Verifikasi & Publish</th>
                                     </tr>
@@ -475,20 +585,21 @@
                             <h4 style="font-size: 0.75rem; font-weight: 800; color: var(--clr-text-main); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem;">Tabel Perbandingan Tarif Normal vs Tarif Libur</h4>
                             <div class="table-container">
                                 <div style="overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 0 0 var(--radius-lg) var(--radius-lg);">
-                        <table class="data-table" style="min-width: 640px;">
-                                    <thead>
-                                        <tr>
-                                            <th>Unit Mobil</th>
-                                            <th>Tarif Normal (Per Hari)</th>
-                                            <th style="color: var(--clr-rose);">Tarif Libur (Per Hari)</th>
-                                            <th>Selisih Kenaikan</th>
-                                            <th style="text-align: right;">Aksi</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="pricingComparisonTable">
-                                        <!-- Rendered by JS -->
-                                    </tbody>
-                                </table>
+                                    <table class="data-table" style="min-width: 640px;">
+                                        <thead>
+                                            <tr>
+                                                <th>Unit Mobil</th>
+                                                <th>Tarif Normal (Per Hari)</th>
+                                                <th style="color: var(--clr-rose);">Tarif Libur (Per Hari)</th>
+                                                <th>Selisih Kenaikan</th>
+                                                <th style="text-align: right;">Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="pricingComparisonTable">
+                                            <!-- Rendered by JS -->
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -500,13 +611,13 @@
                 <!-- ==================================================== -->
                 <div id="tab-content-contact" class="tab-pane hidden flex flex-col gap-6">
                     
-                    <div style="background: #ffffff; border-radius: var(--radius-lg); border: 1px solid var(--clr-border); padding: 1.5rem; box-shadow: var(--shadow-xs); max-width: 42rem;">
+                    <div style="background: #ffffff; border-radius: var(--radius-xl); border: 1px solid var(--clr-border); padding: 1.75rem 2rem; box-shadow: var(--shadow-sm); width: 100%; box-sizing: border-box;">
                         <div style="margin-bottom: 1.25rem;">
-                            <h3 style="font-size: 0.875rem; font-weight: 800; color: var(--clr-text-main);">Informasi Kontak & Tujuan Pemesanan WhatsApp</h3>
+                            <h3 style="font-size: 1rem; font-weight: 800; color: var(--clr-text-main);">Informasi Kontak & Tujuan Pemesanan WhatsApp</h3>
                             <p style="font-size: 0.75rem; color: var(--clr-text-subtle); margin-top: 0.25rem;">Ubah nomor WhatsApp tujuan ke mana pesan pemesanan pelanggan akan otomatis terkirim.</p>
                         </div>
 
-                        <div style="padding: 0.875rem; background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-md); font-size: 0.75rem; color: #1e3a8a; margin-bottom: 1.25rem; line-height: 1.5;">
+                        <div style="padding: 0.875rem 1rem; background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-md); font-size: 0.75rem; color: #1e3a8a; margin-bottom: 1.5rem; line-height: 1.5;">
                             💡 <strong>Penting:</strong> Masukkan nomor WhatsApp diawali dengan kode negara <strong>62</strong> tanpa tanda plus (+) atau spasi. Contoh: <strong>6281234567890</strong>.
                         </div>
 
@@ -548,7 +659,7 @@
                                 <input type="text" id="ownerHours" class="form-input">
                             </div>
 
-                            <div style="padding-top: 0.75rem; border-top: 1px solid #f1f5f9;">
+                            <div style="padding-top: 1rem; border-top: 1px solid #f1f5f9; margin-top: 0.5rem;">
                                 <h4 style="font-weight: 700; color: var(--clr-text-main); font-size: 0.8125rem; margin-bottom: 0.75rem;">Tautan Media Sosial</h4>
                                 <div class="grid sm:grid-cols-3 gap-3">
                                     <div class="form-group" style="margin-bottom: 0;">
@@ -741,22 +852,48 @@
 
                     <!-- Upload Foto Pelanggan / Avatar -->
                     <div class="form-group">
-                        <label class="form-label">Foto / Avatar Pelanggan (Opsional)</label>
+                        <label class="form-label">Foto Profil / Avatar Pelanggan (Opsional)</label>
                         <div id="adminRevAvatarDropZone" ondragover="handleAdminRevAvatarDragOver(event)" ondragleave="handleAdminRevAvatarDragLeave(event)" ondrop="handleAdminRevAvatarDrop(event)" style="display: flex; flex-direction: column; gap: 0.5rem; background: #f8fafc; border: 2px dashed var(--clr-border); padding: 0.85rem; border-radius: var(--radius-md); transition: all 0.2s ease;">
                             <input type="file" id="adminRevAvatarFile" accept="image/*" class="form-input" style="padding: 0.35rem 0.5rem; font-size: 0.75rem; background: white;" onchange="handleAdminRevAvatarFile(event)">
-                            <span style="font-size: 0.75rem; color: #64748b; text-align: center; font-weight: 500;">💡 Klik <b>Choose File</b> atau <b>Tarik & Lepas (Drag & Drop)</b> foto pelanggan</span>
+                            <span style="font-size: 0.75rem; color: #64748b; text-align: center; font-weight: 500;">💡 Klik <b>Choose File</b> atau <b>Tarik & Lepas</b> foto avatar</span>
                             <input type="hidden" id="adminRevAvatar">
                             <div id="adminRevAvatarPreviewBox" style="margin-top: 0.25rem; display: none; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.6rem 0.75rem; background: #ffffff; border-radius: var(--radius-md); border: 1px solid var(--clr-border);">
                                 <div style="display: flex; align-items: center; gap: 0.75rem;">
                                     <img id="adminRevAvatarPreview" src="" alt="Preview Foto Pelanggan" style="width: 3.25rem; height: 3.25rem; border-radius: 50%; object-fit: cover; border: 2px solid #22c55e;">
                                     <div>
-                                        <div style="font-size: 0.8rem; font-weight: 700; color: #166534;">Foto Berhasil Dipilih</div>
-                                        <div style="font-size: 0.7rem; color: var(--clr-text-muted);">Foto akan tampil di review website</div>
+                                        <div style="font-size: 0.8rem; font-weight: 700; color: #166534;">Foto Avatar Terpilih</div>
+                                        <div style="font-size: 0.7rem; color: var(--clr-text-muted);">Tampil di lingkaran profil ulasan</div>
                                     </div>
                                 </div>
                                 <button type="button" onclick="removeAdminRevAvatar()" class="btn btn-outline btn-sm" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; color: var(--clr-rose); border-color: #fecdd3;" title="Hapus Foto">
                                     Hapus
                                 </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Upload Foto / Video Story Pengalaman (Story IG) -->
+                    <div class="form-group" style="padding: 1rem; background: #fff1f2; border: 1.5px dashed #fecdd3; border-radius: var(--radius-lg);">
+                        <label class="form-label" style="display: flex; align-items: center; gap: 0.5rem; color: #9f1239; font-weight: 800; font-size: 0.875rem;">
+                            <span>📸</span>
+                            <span>Upload Media Story (Foto / Video Review Pelanggan)</span>
+                        </label>
+                        <p style="font-size: 0.72rem; color: #881337; margin-bottom: 0.5rem;">
+                            Foto atau video liburan/dinas pelanggan akan tampil di lingkaran <strong>Story Ulasan ala Instagram</strong> di halaman pelanggan! (Format JPG/PNG/MP4/WebM, Maks 15MB).
+                        </p>
+                        <input type="file" id="adminRevMediaFile" accept="image/*,video/*" class="form-input" style="padding: 0.45rem; background: #ffffff;" onchange="handleAdminRevMediaFile(event)">
+                        <input type="hidden" id="adminRevMedia">
+                        <input type="hidden" id="adminRevMediaType" value="image">
+
+                        <!-- Preview Media Story -->
+                        <div id="adminRevMediaPreviewBox" style="margin-top: 0.75rem; display: none; flex-direction: column; gap: 0.5rem; padding: 0.75rem; background: #ffffff; border-radius: var(--radius-md); border: 1px solid #fecdd3;">
+                            <div style="display: flex; align-items: center; justify-content: space-between;">
+                                <span style="font-size: 0.75rem; font-weight: 700; color: #9f1239;">✅ Media Story Siap Dipublikasi</span>
+                                <button type="button" onclick="removeAdminRevMedia()" class="btn btn-outline btn-sm" style="padding: 0.2rem 0.5rem; font-size: 0.7rem; color: var(--clr-rose); border-color: #fecdd3;">Hapus Media</button>
+                            </div>
+                            <div style="max-height: 180px; overflow: hidden; border-radius: var(--radius-md); background: #0f172a; display: flex; align-items: center; justify-content: center;">
+                                <img id="adminRevMediaImgPreview" src="" alt="Story Preview" style="max-height: 180px; width: 100%; object-fit: contain; display: none;">
+                                <video id="adminRevMediaVidPreview" src="" controls style="max-height: 180px; width: 100%; display: none;"></video>
                             </div>
                         </div>
                     </div>

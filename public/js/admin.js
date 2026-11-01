@@ -15,21 +15,109 @@ let adminState = {
     isLoggedIn: false
 };
 
+// Helper generator sample bookings untuk berbagai rentang waktu real-time
+function getRelativeDateStr(offsetDays = 0) {
+    const d = new Date();
+    d.setDate(d.getDate() + offsetDays);
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 const DEFAULT_BOOKINGS = [
     {
         id: "1",
         booking_code: "RCM-89A12B",
         car_id: "1",
-        customer_name: "Irfan",
+        customer_name: "Irfan Pratama",
         customer_phone: "082196984912",
-        car_name: "toyota avanza veloz",
-        start_date: "2026-10-13",
-        end_date: "2026-10-30",
+        car_name: "Toyota Avanza Veloz",
+        start_date: getRelativeDateStr(-2),
+        end_date: getRelativeDateStr(1),
         start_time: "09:00",
-        end_time: "09:00",
+        end_time: "18:00",
         driver_label: "+Supir",
         with_driver: true,
-        total_price: 9900000,
+        total_price: 1800000,
+        status: "confirmed"
+    },
+    {
+        id: "2",
+        booking_code: "RCM-VIP99C",
+        car_id: "2",
+        customer_name: "H. Andi Muhammad",
+        customer_phone: "08114455889",
+        car_name: "Toyota Alphard Gen 4",
+        start_date: getRelativeDateStr(-4),
+        end_date: getRelativeDateStr(-1),
+        start_time: "08:00",
+        end_time: "20:00",
+        driver_label: "+Supir",
+        with_driver: true,
+        total_price: 8100000,
+        status: "confirmed"
+    },
+    {
+        id: "3",
+        booking_code: "RCM-44D12F",
+        car_id: "4",
+        customer_name: "Siti Rahmawati",
+        customer_phone: "085299887766",
+        car_name: "Toyota Fortuner GR",
+        start_date: getRelativeDateStr(-10),
+        end_date: getRelativeDateStr(-7),
+        start_time: "10:00",
+        end_time: "10:00",
+        driver_label: "Lepas Kunci",
+        with_driver: false,
+        total_price: 3900000,
+        status: "confirmed"
+    },
+    {
+        id: "4",
+        booking_code: "RCM-77K88Z",
+        car_id: "3",
+        customer_name: "Budi Santoso",
+        customer_phone: "081233445566",
+        car_name: "Toyota Alphard Gen 3",
+        start_date: getRelativeDateStr(-25),
+        end_date: getRelativeDateStr(-22),
+        start_time: "09:00",
+        end_time: "17:00",
+        driver_label: "+Supir",
+        with_driver: true,
+        total_price: 6600000,
+        status: "confirmed"
+    },
+    {
+        id: "5",
+        booking_code: "RCM-55M22P",
+        car_id: "5",
+        customer_name: "Dr. Hendra Wijaya",
+        customer_phone: "081988776655",
+        car_name: "Innova Zenix Hybrid",
+        start_date: getRelativeDateStr(-45),
+        end_date: getRelativeDateStr(-41),
+        start_time: "08:00",
+        end_time: "18:00",
+        driver_label: "+Supir",
+        with_driver: true,
+        total_price: 4400000,
+        status: "confirmed"
+    },
+    {
+        id: "6",
+        booking_code: "RCM-33B11L",
+        car_id: "1",
+        customer_name: "Rian Fauzi",
+        customer_phone: "082199881122",
+        car_name: "Toyota Avanza",
+        start_date: getRelativeDateStr(-80),
+        end_date: getRelativeDateStr(-78),
+        start_time: "09:00",
+        end_time: "19:00",
+        driver_label: "Lepas Kunci",
+        with_driver: false,
+        total_price: 1200000,
         status: "confirmed"
     }
 ];
@@ -413,7 +501,26 @@ function renderTopStatus() {
     }
 }
 
-// Render 4 Kartu Metrik di Overview
+let currentRevenueTimeframe = 'week';
+
+// Switch Timeframe (Minggu, Bulan, Tahun)
+function setRevenueChartTimeframe(tf, btnEl) {
+    currentRevenueTimeframe = tf;
+
+    document.querySelectorAll('.revenue-tf-btn').forEach(btn => {
+        btn.style.background = 'transparent';
+        btn.style.color = '#64748b';
+    });
+
+    if (btnEl) {
+        btnEl.style.background = '#dc2626';
+        btnEl.style.color = '#ffffff';
+    }
+
+    renderRevenueAnalytics();
+}
+
+// Render Pendapatan, Metrik, Analisis Naik/Turun & Grafik
 function renderOverviewMetrics() {
     const total = adminState.cars.length;
     const ready = adminState.cars.filter(c => c.status === 'ready').length;
@@ -422,12 +529,210 @@ function renderOverviewMetrics() {
     const totalEl = document.getElementById('statTotalCars');
     const readyEl = document.getElementById('statReadyCars');
     const inUseEl = document.getElementById('statInUseCars');
-    const waEl = document.getElementById('statWaNumber');
 
     if (totalEl) totalEl.textContent = total;
-    if (readyEl) readyEl.textContent = ready;
-    if (inUseEl) inUseEl.textContent = inUse;
-    if (waEl) waEl.textContent = `+${adminState.ownerConfig.whatsappNumber || '6281234567890'}`;
+    if (readyEl) readyEl.textContent = `${ready} Unit`;
+    if (inUseEl) inUseEl.textContent = `${inUse} Unit`;
+
+    renderRevenueAnalytics();
+}
+
+// Hitung & Render Statistik Analisis Pendapatan
+function renderRevenueAnalytics() {
+    const bookings = adminState.bookings || [];
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth(); // 0-indexed
+
+    // 1. Hitung Pendapatan Berdasarkan Waktu
+    let totalAllTime = 0;
+    let thisMonthRevenue = 0;
+    let lastMonthRevenue = 0;
+    let thisYearRevenue = 0;
+    let lastYearRevenue = 0;
+
+    bookings.forEach(b => {
+        const price = parseFloat(b.total_price) || 0;
+        totalAllTime += price;
+
+        if (b.start_date) {
+            const bDate = new Date(b.start_date);
+            const bYear = bDate.getFullYear();
+            const bMonth = bDate.getMonth();
+
+            // Cek Tahun Ini vs Tahun Lalu
+            if (bYear === currentYear) {
+                thisYearRevenue += price;
+            } else if (bYear === currentYear - 1) {
+                lastYearRevenue += price;
+            }
+
+            // Cek Bulan Ini vs Bulan Lalu
+            if (bYear === currentYear && bMonth === currentMonth) {
+                thisMonthRevenue += price;
+            } else {
+                // Bulan lalu (handle crossing year, misal Januari vs Desember tahun lalu)
+                const isLastMonth = (currentMonth === 0 && bYear === currentYear - 1 && bMonth === 11) ||
+                                    (bYear === currentYear && bMonth === currentMonth - 1);
+                if (isLastMonth) {
+                    lastMonthRevenue += price;
+                }
+            }
+        }
+    });
+
+    // 2. Tampilkan di Kartu Metrik Utama
+    const totalRevEl = document.getElementById('statTotalRevenue');
+    if (totalRevEl) totalRevEl.textContent = formatRupiah(thisMonthRevenue);
+
+    const totalCountEl = document.getElementById('statTotalBookingsCount');
+    if (totalCountEl) totalCountEl.textContent = `${bookings.length} Order`;
+
+    const totalSalesAllEl = document.getElementById('statTotalSalesAllTime');
+    if (totalSalesAllEl) totalSalesAllEl.textContent = `Total: ${formatRupiah(totalAllTime)}`;
+
+    // 3. Hitung Persentase Naik/Turun MoM (Month over Month)
+    let momGrowth = 0;
+    let isMomUp = true;
+    if (lastMonthRevenue > 0) {
+        momGrowth = ((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100;
+        isMomUp = momGrowth >= 0;
+    } else if (thisMonthRevenue > 0) {
+        momGrowth = 100;
+        isMomUp = true;
+    }
+
+    const growthBadge = document.getElementById('statRevenueGrowthBadge');
+    if (growthBadge) {
+        growthBadge.textContent = `${isMomUp ? '▲ +' : '▼ -'}${Math.abs(momGrowth).toFixed(1)}%`;
+        growthBadge.style.background = isMomUp ? '#ecfdf5' : '#fef2f2';
+        growthBadge.style.color = isMomUp ? '#047857' : '#b91c1c';
+    }
+
+    // 4. Hitung Persentase Naik/Turun YoY (Year over Year)
+    let yoyGrowth = 0;
+    let isYoyUp = true;
+    if (lastYearRevenue > 0) {
+        yoyGrowth = ((thisYearRevenue - lastYearRevenue) / lastYearRevenue) * 100;
+        isYoyUp = yoyGrowth >= 0;
+    } else if (thisYearRevenue > 0) {
+        yoyGrowth = 100;
+        isYoyUp = true;
+    }
+
+    // Update Baris Perbandingan MoM & YoY
+    const cmpMonthCurrent = document.getElementById('cmpMonthCurrent');
+    const cmpMonthDiffBadge = document.getElementById('cmpMonthDiffBadge');
+    const cmpMonthSub = document.getElementById('cmpMonthSub');
+    if (cmpMonthCurrent) cmpMonthCurrent.textContent = formatRupiah(thisMonthRevenue);
+    if (cmpMonthDiffBadge) {
+        cmpMonthDiffBadge.textContent = `${isMomUp ? '▲ +' : '▼ -'}${Math.abs(momGrowth).toFixed(1)}%`;
+        cmpMonthDiffBadge.style.color = isMomUp ? '#047857' : '#dc2626';
+    }
+    if (cmpMonthSub) cmpMonthSub.textContent = `vs bln lalu (${formatRupiah(lastMonthRevenue)})`;
+
+    const cmpYearCurrent = document.getElementById('cmpYearCurrent');
+    const cmpYearDiffBadge = document.getElementById('cmpYearDiffBadge');
+    const cmpYearSub = document.getElementById('cmpYearSub');
+    if (cmpYearCurrent) cmpYearCurrent.textContent = formatRupiah(thisYearRevenue);
+    if (cmpYearDiffBadge) {
+        cmpYearDiffBadge.textContent = `${isYoyUp ? '▲ +' : '▼ -'}${Math.abs(yoyGrowth).toFixed(1)}%`;
+        cmpYearDiffBadge.style.color = isYoyUp ? '#047857' : '#dc2626';
+    }
+    if (cmpYearSub) cmpYearSub.textContent = `vs thn lalu (${formatRupiah(lastYearRevenue)})`;
+
+    // Rata-rata per order
+    const avgOrder = bookings.length > 0 ? (totalAllTime / bookings.length) : 0;
+    const avgOrderEl = document.getElementById('cmpAvgOrder');
+    if (avgOrderEl) avgOrderEl.textContent = formatRupiah(avgOrder);
+
+    // 5. Render Grafik Interaktif (Minggu / Bulan / Tahun)
+    renderDynamicRevenueChart(bookings, currentRevenueTimeframe);
+}
+
+// Visualisasi Grafik Bar / Area Dinamis Berdasarkan Timeframe
+function renderDynamicRevenueChart(bookings, timeframe) {
+    const container = document.getElementById('revenueChartContainer');
+    const titleEl = document.getElementById('chartViewTitle');
+    if (!container) return;
+
+    const now = new Date();
+    let dataPoints = [];
+
+    if (timeframe === 'week') {
+        if (titleEl) titleEl.textContent = 'Grafik Pendapatan 7 Hari Terakhir (Mingguan)';
+        // 7 Hari terakhir
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date(now);
+            d.setDate(now.getDate() - i);
+            const dateStr = d.toISOString().split('T')[0];
+            const label = d.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric' });
+
+            const dayTotal = bookings
+                .filter(b => b.start_date && b.start_date.split('T')[0] === dateStr)
+                .reduce((sum, b) => sum + (parseFloat(b.total_price) || 0), 0);
+
+            dataPoints.push({ label, amount: dayTotal, rawDate: dateStr });
+        }
+    } else if (timeframe === 'month') {
+        if (titleEl) titleEl.textContent = `Grafik Pendapatan 12 Bulan (${now.getFullYear()})`;
+        // 12 Bulan di tahun berjalan
+        const monthShorts = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+        for (let m = 0; m < 12; m++) {
+            const monthTotal = bookings
+                .filter(b => {
+                    if (!b.start_date) return false;
+                    const bd = new Date(b.start_date);
+                    return bd.getFullYear() === now.getFullYear() && bd.getMonth() === m;
+                })
+                .reduce((sum, b) => sum + (parseFloat(b.total_price) || 0), 0);
+
+            dataPoints.push({ label: monthShorts[m], amount: monthTotal });
+        }
+    } else if (timeframe === 'year') {
+        if (titleEl) titleEl.textContent = 'Grafik Perbandingan Pendapatan 5 Tahun Terakhir';
+        // 5 Tahun terakhir (e.g. 2022 s/d 2026)
+        const curY = now.getFullYear();
+        for (let y = curY - 4; y <= curY; y++) {
+            const yearTotal = bookings
+                .filter(b => {
+                    if (!b.start_date) return false;
+                    return new Date(b.start_date).getFullYear() === y;
+                })
+                .reduce((sum, b) => sum + (parseFloat(b.total_price) || 0), 0);
+
+            dataPoints.push({ label: String(y), amount: yearTotal });
+        }
+    }
+
+    // Tentukan Nilai Tertinggi untuk Normalisasi Tinggi Bar
+    const maxVal = Math.max(...dataPoints.map(d => d.amount), 5000000);
+
+    // Bangun HTML Bar Chart Responsif
+    let chartHtml = `
+        <div style="display: flex; align-items: flex-end; justify-content: space-between; height: 180px; gap: 0.5rem; padding: 1rem 0.5rem 0.5rem 0.5rem; border-bottom: 2px solid #e2e8f0;">
+    `;
+
+    dataPoints.forEach(point => {
+        const heightPct = Math.max(Math.round((point.amount / maxVal) * 100), 4);
+        const isCurrentPoint = point.amount > 0;
+        const formattedAmt = formatRupiah(point.amount);
+
+        chartHtml += `
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; position: relative; min-width: 0;" class="chart-col-hover" title="${point.label}: ${formattedAmt}">
+                <div style="font-size: 0.65rem; font-weight: 800; color: #dc2626; margin-bottom: 0.25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;">
+                    ${point.amount > 0 ? (point.amount >= 1000000 ? (point.amount/1000000).toFixed(1) + 'jt' : (point.amount/1000) + 'k') : ''}
+                </div>
+                <div style="width: 100%; max-width: 2.5rem; height: ${heightPct}%; background: ${isCurrentPoint ? 'linear-gradient(180deg, #ef4444 0%, #dc2626 100%)' : '#e2e8f0'}; border-radius: 6px 6px 0 0; transition: height 0.4s ease, background 0.2s; box-shadow: ${isCurrentPoint ? '0 4px 10px rgba(220, 38, 38, 0.25)' : 'none'}; cursor: pointer;"></div>
+                <div style="font-size: 0.7rem; font-weight: 700; color: #64748b; margin-top: 0.45rem; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;">
+                    ${point.label}
+                </div>
+            </div>
+        `;
+    });
+
+    chartHtml += `</div>`;
+    container.innerHTML = chartHtml;
 }
 
 // Render List Cepat Mobil di Tab Overview
@@ -613,6 +918,25 @@ function renderReviewsTable() {
 
         const avatarSrc = rev.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(rev.name)}&background=22c55e&color=fff&bold=true`;
 
+        let mediaPreviewHtml = '<span style="color: #94a3b8; font-size: 0.72rem; font-style: italic;">Tidak ada media</span>';
+        if (rev.media) {
+            if (rev.media_type === 'video') {
+                mediaPreviewHtml = `
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 0.25rem;">
+                        <video src="${rev.media}" style="width: 2.75rem; height: 2.75rem; border-radius: 0.5rem; object-fit: cover; border: 1.5px solid #dc2626;"></video>
+                        <span style="font-size: 0.625rem; font-weight: 700; color: #dc2626; background: #fef2f2; padding: 0.1rem 0.35rem; border-radius: 4px;">🎬 Video</span>
+                    </div>
+                `;
+            } else {
+                mediaPreviewHtml = `
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 0.25rem;">
+                        <img src="${rev.media}" alt="Story" style="width: 2.75rem; height: 2.75rem; border-radius: 0.5rem; object-fit: cover; border: 1.5px solid #dc2626;">
+                        <span style="font-size: 0.625rem; font-weight: 700; color: #dc2626; background: #fef2f2; padding: 0.1rem 0.35rem; border-radius: 4px;">📸 Foto</span>
+                    </div>
+                `;
+            }
+        }
+
         return `
             <tr style="border-bottom: 1px solid var(--clr-border);">
                 <td style="padding: 1rem;">
@@ -631,6 +955,9 @@ function renderReviewsTable() {
                 </td>
                 <td style="padding: 1rem; font-size: 0.8125rem; color: var(--clr-text-muted); max-width: 24rem; line-height: 1.5;">
                     "${rev.comment}"
+                </td>
+                <td style="padding: 1rem; text-align: center;">
+                    ${mediaPreviewHtml}
                 </td>
                 <td style="padding: 1rem;">
                     ${statusBadge}
@@ -766,6 +1093,16 @@ function openAdminAddReviewModal() {
 
     const previewBox = document.getElementById('adminRevAvatarPreviewBox');
     if (previewBox) previewBox.style.display = 'none';
+
+    // Reset Media Story
+    const mediaEl = document.getElementById('adminRevMedia');
+    if (mediaEl) mediaEl.value = '';
+    const mediaTypeEl = document.getElementById('adminRevMediaType');
+    if (mediaTypeEl) mediaTypeEl.value = 'image';
+    const mediaFileInput = document.getElementById('adminRevMediaFile');
+    if (mediaFileInput) mediaFileInput.value = '';
+    const mediaPreviewBox = document.getElementById('adminRevMediaPreviewBox');
+    if (mediaPreviewBox) mediaPreviewBox.style.display = 'none';
 }
 
 // Modal Admin Edit Review
@@ -800,6 +1137,92 @@ function openAdminEditReviewModal(reviewId) {
     } else {
         if (previewBox) previewBox.style.display = 'none';
     }
+
+    // Media Story Edit Population
+    const mediaEl = document.getElementById('adminRevMedia');
+    const mediaTypeEl = document.getElementById('adminRevMediaType');
+    const mediaFileInput = document.getElementById('adminRevMediaFile');
+    if (mediaFileInput) mediaFileInput.value = '';
+
+    const mediaPreviewBox = document.getElementById('adminRevMediaPreviewBox');
+    const imgPreview = document.getElementById('adminRevMediaImgPreview');
+    const vidPreview = document.getElementById('adminRevMediaVidPreview');
+
+    if (mediaEl) mediaEl.value = rev.media || '';
+    if (mediaTypeEl) mediaTypeEl.value = rev.media_type || 'image';
+
+    if (rev.media) {
+        if (mediaPreviewBox) mediaPreviewBox.style.display = 'flex';
+        if (rev.media_type === 'video') {
+            if (vidPreview) {
+                vidPreview.src = rev.media;
+                vidPreview.style.display = 'block';
+            }
+            if (imgPreview) imgPreview.style.display = 'none';
+        } else {
+            if (imgPreview) {
+                imgPreview.src = rev.media;
+                imgPreview.style.display = 'block';
+            }
+            if (vidPreview) vidPreview.style.display = 'none';
+        }
+    } else {
+        if (mediaPreviewBox) mediaPreviewBox.style.display = 'none';
+    }
+}
+
+// Media Story Upload Handler (Foto / Video)
+function handleAdminRevMediaFile(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 15 * 1024 * 1024) {
+        alert("Ukuran file media story maksimal 15MB.");
+        e.target.value = '';
+        return;
+    }
+
+    const isVideo = file.type.startsWith('video/');
+    const reader = new FileReader();
+
+    reader.onload = function(evt) {
+        const base64 = evt.target.result;
+        const mediaInput = document.getElementById('adminRevMedia');
+        const mediaTypeInput = document.getElementById('adminRevMediaType');
+        const previewBox = document.getElementById('adminRevMediaPreviewBox');
+        const imgPreview = document.getElementById('adminRevMediaImgPreview');
+        const vidPreview = document.getElementById('adminRevMediaVidPreview');
+
+        if (mediaInput) mediaInput.value = base64;
+        if (mediaTypeInput) mediaTypeInput.value = isVideo ? 'video' : 'image';
+
+        if (previewBox) previewBox.style.display = 'flex';
+
+        if (isVideo) {
+            if (vidPreview) {
+                vidPreview.src = base64;
+                vidPreview.style.display = 'block';
+            }
+            if (imgPreview) imgPreview.style.display = 'none';
+        } else {
+            if (imgPreview) {
+                imgPreview.src = base64;
+                imgPreview.style.display = 'block';
+            }
+            if (vidPreview) vidPreview.style.display = 'none';
+        }
+    };
+
+    reader.readAsDataURL(file);
+}
+
+function removeAdminRevMedia() {
+    const mediaInput = document.getElementById('adminRevMedia');
+    if (mediaInput) mediaInput.value = '';
+    const mediaFileInput = document.getElementById('adminRevMediaFile');
+    if (mediaFileInput) mediaFileInput.value = '';
+    const previewBox = document.getElementById('adminRevMediaPreviewBox');
+    if (previewBox) previewBox.style.display = 'none';
 }
 
 function closeAdminAddReviewModal() {
@@ -890,6 +1313,9 @@ async function handleAdminAddReviewSubmit(e) {
     const comment = document.getElementById('adminRevComment').value.trim();
     const avatarVal = document.getElementById('adminRevAvatar').value.trim();
     const fileInput = document.getElementById('adminRevAvatarFile');
+    const mediaVal = document.getElementById('adminRevMedia') ? document.getElementById('adminRevMedia').value : '';
+    const mediaTypeVal = document.getElementById('adminRevMediaType') ? document.getElementById('adminRevMediaType').value : 'image';
+    const mediaFileInput = document.getElementById('adminRevMediaFile');
 
     if (!name || !comment) {
         alert("Nama dan ulasan wajib diisi.");
@@ -908,6 +1334,14 @@ async function handleAdminAddReviewSubmit(e) {
         formData.append('avatar', avatarVal);
     } else if (!id) {
         formData.append('avatar', `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=22c55e&color=fff&bold=true`);
+    }
+
+    if (mediaFileInput && mediaFileInput.files && mediaFileInput.files[0]) {
+        formData.append('media_file', mediaFileInput.files[0]);
+        formData.append('media_type', mediaTypeVal);
+    } else if (mediaVal) {
+        formData.append('media', mediaVal);
+        formData.append('media_type', mediaTypeVal);
     }
 
     const submitBtn = document.getElementById('adminRevSubmitBtn');
@@ -966,11 +1400,13 @@ async function handleAdminAddReviewSubmit(e) {
                     rating,
                     car_name: carName,
                     comment,
-                    avatar: avatarVal || adminState.reviews[idx].avatar
+                    avatar: avatarVal || adminState.reviews[idx].avatar,
+                    media: mediaVal || adminState.reviews[idx].media,
+                    media_type: mediaTypeVal || adminState.reviews[idx].media_type || 'image'
                 };
             }
         }
-        alert("Ulasan berhasil diperbarui.");
+        alert("Ulasan & Media Story berhasil diperbarui.");
     } else {
         if (!savedRev) {
             savedRev = {
@@ -981,11 +1417,13 @@ async function handleAdminAddReviewSubmit(e) {
                 comment,
                 status: 'approved',
                 avatar: avatarVal || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=22c55e&color=fff&bold=true`,
+                media: mediaVal || null,
+                media_type: mediaTypeVal || 'image',
                 created_at: new Date().toISOString()
             };
         }
         adminState.reviews.unshift(savedRev);
-        alert("Ulasan berhasil ditambahkan dan dipublikasikan.");
+        alert("Ulasan & Media Story berhasil ditambahkan dan dipublikasikan.");
     }
 
     saveReviewsData();

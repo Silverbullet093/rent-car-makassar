@@ -429,6 +429,7 @@ function renderCarsCatalog() {
     }).join('');
 
     initScrollReveal();
+    setTimeout(initCardTiltEffects, 200);
 }
 
 // Scroller Interval 5 Detik untuk Ulasan Pelanggan
@@ -539,7 +540,13 @@ function initIntervalReviewScroller(containerId, options = {}) {
     };
 }
 
-// Render Review & Testimoni Pelanggan (1 Baris Auto-Scroll ke Kanan)
+// Global state untuk Instagram Story Viewer
+let currentStoriesList = [];
+let currentStoryIndex = 0;
+let storyTimer = null;
+let storyProgressInterval = null;
+
+// Render Review & Testimoni Pelanggan
 function renderReviews() {
     const container = document.getElementById('reviewsContainer');
     if (!container) return;
@@ -564,6 +571,9 @@ function renderReviews() {
         return;
     }
 
+    // Siapkan daftar stories dari approved list
+    currentStoriesList = [...approved];
+
     // Multiply reviews so track can smoothly and endlessly loop
     let displayList = [...approved];
     while (displayList.length < 6) {
@@ -572,24 +582,30 @@ function renderReviews() {
     // Duplicate once more so halfWidth is exactly one full cycle
     displayList = [...displayList, ...displayList];
 
-    container.innerHTML = displayList.map(rev => {
+    container.innerHTML = displayList.map((rev, idx) => {
         const rating = parseInt(rev.rating || 5);
         const starsHtml = Array.from({ length: 5 }, (_, i) =>
             `<svg style="width:1rem;height:1rem;fill:${i < rating ? '#22c55e' : '#cbd5e1'};stroke:${i < rating ? '#22c55e' : '#cbd5e1'}" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`
         ).join('');
 
         const avatarSrc = rev.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(rev.name)}&background=22c55e&color=fff&bold=true`;
+        const hasMedia = rev.media && rev.media.length > 0;
 
         return `
-            <div class="review-card-item">
+            <div class="review-card-item" onclick="openStoryByReviewId('${rev.id}')" title="Klik komentar untuk membuka Story & Ulasan lengkap">
                 <div>
-                    <!-- Green Quote Icon -->
-                    <div style="color: #22c55e; font-size: 2.25rem; line-height: 1; font-family: Georgia, serif; font-weight: bold; margin-bottom: 0.75rem;">
-                        “
+                    <!-- Header Bar: Green Quote Icon & Media/Story Badge -->
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <div style="color: #22c55e; font-size: 2.25rem; line-height: 1; font-family: Georgia, serif; font-weight: bold;">
+                            “
+                        </div>
+                        <span style="font-size: 0.65rem; background: ${hasMedia ? 'linear-gradient(45deg, #f09433, #dc2743)' : '#f1f5f9'}; color: ${hasMedia ? '#ffffff' : '#64748b'}; font-weight: 800; padding: 0.25rem 0.65rem; border-radius: 9999px; display: inline-flex; align-items: center; gap: 0.35rem; box-shadow: ${hasMedia ? '0 2px 8px rgba(220, 38, 38, 0.25)' : 'none'};">
+                            <span>${hasMedia ? '▶ Buka Story' : '🔍 Lihat Pop-up'}</span>
+                        </span>
                     </div>
 
-                    <!-- Review Text -->
-                    <p style="font-size: 0.9375rem; color: var(--clr-text-muted); line-height: 1.6; margin-bottom: 1.5rem; font-style: normal;">
+                    <!-- Review Text (Potong rapi jika panjang) -->
+                    <p style="font-size: 0.9375rem; color: var(--clr-text-muted); line-height: 1.6; margin-bottom: 1.25rem; font-style: normal; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;">
                         ${rev.comment}
                     </p>
                 </div>
@@ -597,12 +613,17 @@ function renderReviews() {
                 <!-- Footer Card: Author Info & Rating -->
                 <div style="padding-top: 1rem; border-top: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between;">
                     <div style="display: flex; align-items: center; gap: 0.75rem;">
-                        <img
-                            src="${avatarSrc}"
-                            alt="${rev.name}"
-                            onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(rev.name)}&background=22c55e&color=fff'"
-                            style="width: 2.75rem; height: 2.75rem; border-radius: 50%; object-fit: cover; border: 2px solid #e2e8f0;"
-                        />
+                        <div style="position: relative;">
+                            <img
+                                src="${avatarSrc}"
+                                alt="${rev.name}"
+                                onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(rev.name)}&background=22c55e&color=fff'"
+                                style="width: 2.75rem; height: 2.75rem; border-radius: 50%; object-fit: cover; border: 2.5px solid ${hasMedia ? '#f43f5e' : '#e2e8f0'};"
+                            />
+                            ${hasMedia ? `
+                                <span style="position: absolute; bottom: -2px; right: -2px; width: 0.85rem; height: 0.85rem; border-radius: 50%; background: #dc2626; border: 1.5px solid #fff; display: flex; align-items: center; justify-content: center; font-size: 0.45rem; color: #fff;">▶</span>
+                            ` : ''}
+                        </div>
                         <div>
                             <div style="font-size: 0.9rem; font-weight: 800; color: var(--clr-text-main);">
                                 ${rev.name}
@@ -633,13 +654,219 @@ function renderReviews() {
     });
 }
 
+// Buka Story Viewer langsung saat komentar di-klik (berdasarkan ID ulasan)
+function openStoryByReviewId(reviewId) {
+    const approved = state.reviews.filter(r => r.status === 'approved' || !r.status);
+    currentStoriesList = approved;
+
+    const targetIdx = currentStoriesList.findIndex(r => r.id.toString() === reviewId.toString());
+    openStoryViewer(targetIdx !== -1 ? targetIdx : 0);
+}
+
+// Render Baris Lingkaran Instagram Stories
+function renderStoriesStrip() {
+    const track = document.getElementById('storiesTrack');
+    if (!track) return;
+
+    // Ambil semua ulasan approved yang memiliki media foto/video
+    const approved = state.reviews.filter(r => (r.status === 'approved' || !r.status) && r.media);
+    currentStoriesList = approved;
+
+    let html = `
+        <!-- Story Tambah Baru -->
+        <div class="story-item" onclick="openReviewModal()">
+            <div class="story-ring story-ring-add">
+                <div style="width: 100%; height: 100%; border-radius: 50%; background: #f8fafc; display: flex; align-items: center; justify-content: center; color: #dc2626; font-size: 1.35rem; font-weight: bold;">
+                    +
+                </div>
+            </div>
+            <span class="story-name">Story Anda</span>
+            <span class="story-car-badge" style="color: #dc2626;">+ Tambah</span>
+        </div>
+    `;
+
+    if (approved.length === 0) {
+        // Mock default demo stories agar selalu ada tampilan hidup
+        const demoStories = [
+            { id: 'demo1', name: 'Alex Pratama', car_name: 'Zenix Hybrid', avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80', media: 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=1080&q=80', comment: 'Perjalanan Makassar - Bira lancar jaya! Unit Zenix super irit & adem.', rating: 5 },
+            { id: 'demo2', name: 'Sofia Lestari', car_name: 'Alphard Gen 4', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80', media: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1080&q=80', comment: 'Kabin sangat kedap, nyaman sekali untuk jemput tamu kenegaraan.', rating: 5 },
+            { id: 'demo3', name: 'Daniel K.', car_name: 'Fortuner GR', avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=150&q=80', media: 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=1080&q=80', comment: 'Rombongan pernikahan puas dengan unit Fortuner GR yang kinclong.', rating: 5 }
+        ];
+        currentStoriesList = demoStories;
+    }
+
+    currentStoriesList.forEach((story, idx) => {
+        const avatarSrc = story.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(story.name)}&background=dc2626&color=fff&bold=true`;
+        html += `
+            <div class="story-item" onclick="openStoryViewer(${idx})">
+                <div class="story-ring">
+                    <img src="${avatarSrc}" class="story-avatar-inner" alt="${story.name}" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(story.name)}&background=dc2626&color=fff'">
+                </div>
+                <span class="story-name">${story.name}</span>
+                <span class="story-car-badge">${story.car_name || 'Unit Rental'}</span>
+            </div>
+        `;
+    });
+
+    track.innerHTML = html;
+}
+
+// ==========================================
+// INSTAGRAM STORY VIEWER (FULLSCREEN VIEWER)
+// ==========================================
+function openStoryViewer(index) {
+    if (!currentStoriesList || currentStoriesList.length === 0) return;
+    currentStoryIndex = Math.max(0, Math.min(index, currentStoriesList.length - 1));
+
+    const modal = document.getElementById('storyViewerModal');
+    if (modal) modal.classList.remove('hidden');
+
+    buildStoryProgressBars();
+    displayStorySlide(currentStoryIndex);
+}
+
+function closeStoryViewer() {
+    const modal = document.getElementById('storyViewerModal');
+    if (modal) modal.classList.add('hidden');
+
+    if (storyTimer) clearTimeout(storyTimer);
+    if (storyProgressInterval) clearInterval(storyProgressInterval);
+
+    const vid = document.getElementById('storyViewerVid');
+    if (vid) {
+        vid.pause();
+        vid.src = '';
+    }
+}
+
+function buildStoryProgressBars() {
+    const container = document.getElementById('storyProgressContainer');
+    if (!container) return;
+
+    container.innerHTML = currentStoriesList.map((_, i) => `
+        <div class="story-progress-segment">
+            <div id="storyProgressFill_${i}" class="story-progress-fill"></div>
+        </div>
+    `).join('');
+}
+
+function displayStorySlide(index) {
+    if (storyTimer) clearTimeout(storyTimer);
+    if (storyProgressInterval) clearInterval(storyProgressInterval);
+
+    const story = currentStoriesList[index];
+    if (!story) return;
+
+    // Set progress fills
+    currentStoriesList.forEach((_, i) => {
+        const fill = document.getElementById(`storyProgressFill_${i}`);
+        if (!fill) return;
+        if (i < index) fill.style.width = '100%';
+        else fill.style.width = '0%';
+    });
+
+    const avatarEl = document.getElementById('storyViewerAvatar');
+    const nameEl = document.getElementById('storyViewerName');
+    const subEl = document.getElementById('storyViewerSub');
+    const starsEl = document.getElementById('storyViewerStars');
+    const commentEl = document.getElementById('storyViewerComment');
+    const imgEl = document.getElementById('storyViewerImg');
+    const vidEl = document.getElementById('storyViewerVid');
+
+    if (avatarEl) avatarEl.src = story.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(story.name)}&background=dc2626&color=fff&bold=true`;
+    if (nameEl) nameEl.textContent = story.name;
+    if (subEl) subEl.textContent = `${story.car_name || 'Unit Rental'} • Cerita Pelanggan`;
+    if (commentEl) commentEl.textContent = story.comment;
+
+    if (starsEl) {
+        const rating = parseInt(story.rating || 5);
+        starsEl.innerHTML = Array.from({ length: 5 }, (_, i) => i < rating ? '★' : '☆').join('') + ` <span style="font-size:0.75rem; color:#fff; margin-left:0.25rem;">(${rating}.0)</span>`;
+    }
+
+    const durationMs = 6000;
+    const isVideo = story.media_type === 'video' || (story.media && (story.media.startsWith('data:video/') || story.media.endsWith('.mp4')));
+    const textBgEl = document.getElementById('storyViewerTextBg');
+
+    const dateEl = document.getElementById('storyViewerDate');
+    if (dateEl) {
+        dateEl.textContent = story.created_at ? formatDateIndo(story.created_at) : 'Ulasan Resmi';
+    }
+
+    if (story.media) {
+        if (textBgEl) textBgEl.classList.add('hidden');
+        if (isVideo) {
+            imgEl.classList.add('hidden');
+            vidEl.classList.remove('hidden');
+            vidEl.src = story.media;
+            vidEl.currentTime = 0;
+            vidEl.play().catch(() => {});
+        } else {
+            vidEl.classList.add('hidden');
+            vidEl.pause();
+            imgEl.classList.remove('hidden');
+            imgEl.src = story.media;
+        }
+    } else {
+        // Jika pelanggan hanya mengunggah teks komentar tanpa media, tampilkan kartu background story gradien elegan
+        if (imgEl) imgEl.classList.add('hidden');
+        if (vidEl) {
+            vidEl.classList.add('hidden');
+            vidEl.pause();
+        }
+        if (textBgEl) textBgEl.classList.remove('hidden');
+    }
+
+    // Animate progress bar fill
+    const activeFill = document.getElementById(`storyProgressFill_${index}`);
+    let startTime = Date.now();
+
+    storyProgressInterval = setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        const pct = Math.min(100, (elapsed / durationMs) * 100);
+        if (activeFill) activeFill.style.width = `${pct}%`;
+        if (elapsed >= durationMs) {
+            clearInterval(storyProgressInterval);
+        }
+    }, 50);
+
+    storyTimer = setTimeout(() => {
+        nextStory();
+    }, durationMs);
+}
+
+function nextStory() {
+    if (currentStoryIndex < currentStoriesList.length - 1) {
+        currentStoryIndex++;
+        displayStorySlide(currentStoryIndex);
+    } else {
+        closeStoryViewer();
+    }
+}
+
+function prevStory() {
+    if (currentStoryIndex > 0) {
+        currentStoryIndex--;
+        displayStorySlide(currentStoryIndex);
+    } else {
+        displayStorySlide(0);
+    }
+}
+
 // Buka Modal Tambah Review Pelanggan
 function openReviewModal() {
     state.selectedReviewRating = 5;
     state.reviewAvatarBase64 = null;
+    state.reviewMediaBase64 = null;
+    state.reviewMediaType = null;
 
     const form = document.getElementById('reviewForm');
     if (form) form.reset();
+
+    const mediaPrevBox = document.getElementById('reviewMediaPreviewBox');
+    if (mediaPrevBox) mediaPrevBox.classList.add('hidden');
+
+    const avatarPrev = document.getElementById('reviewAvatarPreview');
+    if (avatarPrev) avatarPrev.classList.add('hidden');
 
     setReviewRating(5);
 
@@ -694,6 +921,49 @@ function handleReviewAvatarUpload(e) {
     reader.readAsDataURL(file);
 }
 
+// Handle Upload Media Story (Foto / Video)
+function handleReviewMediaUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 15 * 1024 * 1024) {
+        alert("Ukuran media terlalu besar. Maksimal 15MB.");
+        e.target.value = '';
+        return;
+    }
+
+    const isVideo = file.type.startsWith('video');
+    state.reviewMediaType = isVideo ? 'video' : 'image';
+
+    const reader = new FileReader();
+    reader.onload = function (event) {
+        state.reviewMediaBase64 = event.target.result;
+        const box = document.getElementById('reviewMediaPreviewBox');
+        const img = document.getElementById('reviewMediaImgPreview');
+        const vid = document.getElementById('reviewMediaVidPreview');
+
+        if (box) box.classList.remove('hidden');
+
+        if (isVideo) {
+            if (img) img.classList.add('hidden');
+            if (vid) {
+                vid.classList.remove('hidden');
+                vid.src = event.target.result;
+            }
+        } else {
+            if (vid) {
+                vid.classList.add('hidden');
+                vid.pause();
+            }
+            if (img) {
+                img.classList.remove('hidden');
+                img.src = event.target.result;
+            }
+        }
+    };
+    reader.readAsDataURL(file);
+}
+
 // Handle Submit Review Pelanggan
 async function handleReviewSubmit(e) {
     e.preventDefault();
@@ -703,6 +973,8 @@ async function handleReviewSubmit(e) {
     const comment = document.getElementById('reviewComment').value.trim();
     const rating = state.selectedReviewRating;
     const avatar = state.reviewAvatarBase64 || null;
+    const media = state.reviewMediaBase64 || null;
+    const mediaType = state.reviewMediaType || (media ? 'image' : null);
 
     if (!name || !comment) {
         alert("Silakan isi nama dan ulasan Anda!");
@@ -715,6 +987,8 @@ async function handleReviewSubmit(e) {
         car_name: carName,
         comment: comment,
         avatar: avatar,
+        media: media,
+        media_type: mediaType,
         status: 'pending' // pending verification by Admin
     };
 
@@ -1127,18 +1401,25 @@ async function openBookingModal(carId) {
         }
     }
 
-    // Inisialisasi Kalender ke Bulan Oktober 2026 (atau bulan saat ini)
-    calMonthStart = 9; // Oktober
-    calYearStart = 2026;
-    calMonthEnd = 9;
-    calYearEnd = 2026;
+    // Inisialisasi Kalender ke Bulan & Tahun Berjalan Secara Real-Time
+    const currentDate = new Date();
+    calMonthStart = currentDate.getMonth();
+    calYearStart = currentDate.getFullYear();
+    calMonthEnd = currentDate.getMonth();
+    calYearEnd = currentDate.getFullYear();
 
-    // Set Default Date di luar tanggal bentrok (contoh: 22 s/d 24 Oktober 2026)
+    // Set Default Date secara Real-Time (Hari ini s/d Besok)
     const startDateInput = document.getElementById('bookStartDate');
     const endDateInput = document.getElementById('bookEndDate');
 
-    if (startDateInput) startDateInput.value = '2026-10-22';
-    if (endDateInput) endDateInput.value = '2026-10-24';
+    const pad = (n) => String(n).padStart(2, '0');
+    const todayStr = `${currentDate.getFullYear()}-${pad(currentDate.getMonth() + 1)}-${pad(currentDate.getDate())}`;
+    const nextDate = new Date(currentDate);
+    nextDate.setDate(currentDate.getDate() + 1);
+    const nextDayStr = `${nextDate.getFullYear()}-${pad(nextDate.getMonth() + 1)}-${pad(nextDate.getDate())}`;
+
+    if (startDateInput) startDateInput.value = todayStr;
+    if (endDateInput) endDateInput.value = nextDayStr;
 
     // Ambil jadwal terkonfirmasi dari database
     await fetchConfirmedBookings(car.id);
@@ -1578,14 +1859,23 @@ function closeMobileMenu() {
     document.body.style.overflow = '';
 }
 
-// Scroll Effects (Header Glass & Back to Top)
+// Scroll Effects (Header Glass, Scroll Progress Bar & Back to Top)
 function initScrollEffects() {
     const header = document.querySelector('.header-glass');
     const backToTopBtn = document.getElementById('backToTopBtn');
+    const progressBar = document.getElementById('scrollProgressBar');
 
     window.addEventListener('scroll', () => {
         const scrollY = window.scrollY || window.pageYOffset;
+        const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
 
+        // 1. Progress Bar Scroll
+        if (progressBar && totalHeight > 0) {
+            const scrollPercent = Math.min((scrollY / totalHeight) * 100, 100);
+            progressBar.style.width = `${scrollPercent}%`;
+        }
+
+        // 2. Header Glass Effect
         if (header) {
             if (scrollY > 30) {
                 header.classList.add('header-scrolled');
@@ -1594,6 +1884,7 @@ function initScrollEffects() {
             }
         }
 
+        // 3. Floating Back to Top Button
         if (backToTopBtn) {
             if (scrollY > 400) {
                 backToTopBtn.classList.remove('hidden');
@@ -1604,9 +1895,9 @@ function initScrollEffects() {
     }, { passive: true });
 }
 
-// Scroll Reveal Effect via IntersectionObserver
+// Scroll Reveal Effect via IntersectionObserver dengan Staggering
 function initScrollReveal() {
-    const targets = document.querySelectorAll('.reveal-on-scroll:not(.is-revealed)');
+    const targets = document.querySelectorAll('.reveal-on-scroll:not(.is-revealed), .reveal-scale:not(.is-revealed)');
     if (!targets.length) return;
 
     if ('IntersectionObserver' in window) {
@@ -1618,13 +1909,40 @@ function initScrollReveal() {
                 }
             });
         }, {
-            threshold: 0.08,
-            rootMargin: '0px 0px -20px 0px'
+            threshold: 0.05,
+            rootMargin: '0px 0px -30px 0px'
         });
 
-        targets.forEach(target => observer.observe(target));
+        targets.forEach((target, index) => {
+            target.style.transitionDelay = `${(index % 4) * 0.08}s`;
+            observer.observe(target);
+        });
     } else {
         targets.forEach(target => target.classList.add('is-revealed'));
+    }
+}
+
+// Modern Card 3D Tilt Effect on Mouse Move
+function initCardTiltEffects() {
+    // Jalankan hanya di desktop (perangkat dengan hover)
+    if (window.matchMedia('(hover: hover)').matches) {
+        document.querySelectorAll('.card-unit').forEach(card => {
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                const deltaX = (x - centerX) / centerX;
+                const deltaY = (y - centerY) / centerY;
+
+                card.style.transform = `perspective(1000px) rotateY(${deltaX * 5}deg) rotateX(${-deltaY * 5}deg) translateY(-6px)`;
+            });
+
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = '';
+            });
+        });
     }
 }
 
@@ -1633,6 +1951,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initStorage();
     initScrollEffects();
     initScrollReveal();
+    setTimeout(initCardTiltEffects, 600);
 
     const searchInput = document.getElementById('carSearchInput');
     if (searchInput) {

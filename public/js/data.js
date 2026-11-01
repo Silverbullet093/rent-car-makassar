@@ -219,6 +219,8 @@ const DEFAULT_REVIEWS = [
         car_name: "Toyota Innova Zenix",
         comment: "Pelayanan RPM Rent Car sangat memuaskan! Mobil Innova Zenix-nya sangat bersih, wangi, dan mesin halus. Driver juga ramah dan tepat waktu saat penjemputan di Bandara.",
         avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80",
+        media: "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=1080&q=80",
+        media_type: "image",
         status: "approved",
         created_at: new Date().toISOString()
     },
@@ -226,9 +228,11 @@ const DEFAULT_REVIEWS = [
         id: 2,
         name: "Sofia Lestari",
         rating: 5,
-        car_name: "Honda HRV SE",
+        car_name: "Toyota Alphard Gen 4",
         comment: "Sewa lepas kunci di sini sangat praktis & cepat proses syaratnya. Mobil kondisi mulus 100%. Pasti bakal langganan setiap kali kunjungan dinas!",
         avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80",
+        media: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1080&q=80",
+        media_type: "image",
         status: "approved",
         created_at: new Date().toISOString()
     },
@@ -239,6 +243,20 @@ const DEFAULT_REVIEWS = [
         car_name: "Toyota Fortuner GR",
         comment: "Pengalaman sewa Fortuner untuk acara pernikahan keluarga luar biasa mantap. Harga transparan tanpa biaya tersembunyi. Admin fast respon dan sangat membantu!",
         avatar: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=150&q=80",
+        media: "https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=1080&q=80",
+        media_type: "image",
+        status: "approved",
+        created_at: new Date().toISOString()
+    },
+    {
+        id: 4,
+        name: "Rizky Ramadhan",
+        rating: 5,
+        car_name: "Land Cruiser VIP",
+        comment: "Layanan VIP jemputan tamu direksi luar biasa profesional. Unit bersih steril dan supir berseragam sangat santun. Rekomendasi no 1 di Makassar!",
+        avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80",
+        media: "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=1080&q=80",
+        media_type: "image",
         status: "approved",
         created_at: new Date().toISOString()
     }
