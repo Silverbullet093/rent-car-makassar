@@ -1,4 +1,4 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    Rent Car Makassar — RED CRIMSON EDITION (INSPIRED BY REFERENCE DESIGN)
    ========================================================================== */
 
@@ -491,8 +491,8 @@ button, input, select, textarea {
 
 .hero-alphard-overlay {
     position: absolute;
-    inset: 0;
-    background: linear-gradient(90deg, #ffffff 0%, rgba(255,255,255,0.85) 30%, rgba(255,255,255,0.1) 75%, rgba(255,255,255,0) 100%);
+    inset: -2px;
+    background: linear-gradient(90deg, #ffffff 0%, #ffffff 10%, rgba(255,255,255,0.85) 32%, rgba(255,255,255,0.1) 75%, rgba(255,255,255,0) 100%);
 }
 
 @media (max-width: 1023px) {
@@ -1940,4 +1940,322 @@ button, input, select, textarea {
         opacity: 1;
         transform: translateX(0) scale(1);
     }
+}
+
+/* ==========================================================================
+   CUSTOM MODERN STATUS DROPDOWN & ICON-ONLY ACTION BUTTONS (ADMIN BOOKINGS)
+   ========================================================================== */
+
+.custom-status-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.55rem;
+    min-width: 10.25rem;
+    padding: 0.42rem 0.8rem;
+    border-radius: 9999px;
+    font-family: inherit;
+    font-size: 0.75rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    user-select: none;
+    white-space: nowrap;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    outline: none;
+}
+
+.custom-status-trigger .status-trigger-left {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.custom-status-trigger .status-trigger-chevron {
+    font-size: 0.65rem;
+    opacity: 0.75;
+    transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.custom-status-trigger.is-open .status-trigger-chevron {
+    transform: rotate(180deg);
+}
+
+.custom-status-confirmed {
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+    color: #065f46;
+    border: 1.5px solid #6ee7b7;
+}
+
+.custom-status-confirmed:hover,
+.custom-status-confirmed.is-open {
+    border-color: #10b981;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+    transform: translateY(-1px);
+}
+
+.custom-status-pending {
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+    color: #b45309;
+    border: 1.5px solid #fcd34d;
+}
+
+.custom-status-pending:hover,
+.custom-status-pending.is-open {
+    border-color: #f59e0b;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+    transform: translateY(-1px);
+}
+
+.custom-status-cancelled {
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+    color: #b91c1c;
+    border: 1.5px solid #fca5a5;
+}
+
+.custom-status-cancelled:hover,
+.custom-status-cancelled.is-open {
+    border-color: #ef4444;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+    transform: translateY(-1px);
+}
+
+/* Floating Portal Menu for Status Dropdown */
+.status-dd-portal {
+    position: fixed;
+    z-index: 99990;
+    width: 15.25rem;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.95rem;
+    padding: 0.4rem;
+    box-shadow: 0 20px 40px -10px rgba(15, 23, 42, 0.22), 0 4px 12px rgba(15, 23, 42, 0.06);
+    animation: statusMenuPop 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes statusMenuPop {
+    from {
+        opacity: 0;
+        transform: translateY(-6px) scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.status-dd-header {
+    font-size: 0.625rem;
+    font-weight: 800;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: #94a3b8;
+    padding: 0.35rem 0.6rem 0.3rem;
+}
+
+.status-dd-item {
+    width: 100%;
+    border: none;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    padding: 0.55rem 0.65rem;
+    border-radius: 0.65rem;
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+    transition: all 0.15s ease;
+}
+
+.status-dd-item + .status-dd-item {
+    margin-top: 0.15rem;
+}
+
+.status-dd-item-left {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-width: 0;
+}
+
+.status-dd-icon {
+    width: 1.85rem;
+    height: 1.85rem;
+    border-radius: 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+}
+
+.status-dd-title {
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1.2;
+}
+
+.status-dd-sub {
+    font-size: 0.65rem;
+    color: #64748b;
+    margin-top: 0.1rem;
+    line-height: 1.2;
+}
+
+.status-dd-check {
+    font-size: 0.75rem;
+    opacity: 0;
+    transform: scale(0.8);
+    transition: all 0.15s ease;
+}
+
+.status-dd-item.is-selected .status-dd-check {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.status-dd-item.opt-confirmed .status-dd-icon {
+    background: #ecfdf5;
+    color: #059669;
+}
+.status-dd-item.opt-confirmed:hover,
+.status-dd-item.opt-confirmed.is-selected {
+    background: #f0fdf4;
+}
+.status-dd-item.opt-confirmed .status-dd-check {
+    color: #059669;
+}
+
+.status-dd-item.opt-pending .status-dd-icon {
+    background: #fffbeb;
+    color: #d97706;
+}
+.status-dd-item.opt-pending:hover,
+.status-dd-item.opt-pending.is-selected {
+    background: #fffbeb;
+}
+.status-dd-item.opt-pending .status-dd-check {
+    color: #d97706;
+}
+
+.status-dd-item.opt-cancelled .status-dd-icon {
+    background: #fef2f2;
+    color: #dc2626;
+}
+.status-dd-item.opt-cancelled:hover,
+.status-dd-item.opt-cancelled.is-selected {
+    background: #fef2f2;
+}
+.status-dd-item.opt-cancelled .status-dd-check {
+    color: #dc2626;
+}
+
+/* 3 Icon-Only Action Buttons in Booking & History Tables */
+.booking-action-group {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+}
+
+.booking-action-icon-btn {
+    width: 2.15rem;
+    height: 2.15rem;
+    border-radius: 0.6rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    border: 1px solid transparent;
+    padding: 0;
+    flex-shrink: 0;
+}
+
+.booking-action-icon-btn.btn-icon-doc {
+    background: #eff6ff;
+    color: #2563eb;
+    border-color: #bfdbfe;
+}
+.booking-action-icon-btn.btn-icon-doc:hover {
+    background: #2563eb;
+    color: #ffffff;
+    border-color: #2563eb;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    transform: translateY(-2px);
+}
+
+.booking-action-icon-btn.btn-icon-edit {
+    background: #fffbeb;
+    color: #d97706;
+    border-color: #fde68a;
+}
+.booking-action-icon-btn.btn-icon-edit:hover {
+    background: #f59e0b;
+    color: #ffffff;
+    border-color: #f59e0b;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+    transform: translateY(-2px);
+}
+
+.booking-action-icon-btn.btn-icon-delete {
+    background: #fef2f2;
+    color: #dc2626;
+    border-color: #fecaca;
+}
+.booking-action-icon-btn.btn-icon-delete:hover {
+    background: #dc2626;
+    color: #ffffff;
+    border-color: #dc2626;
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+    transform: translateY(-2px);
+}
+
+/* Riwayat Pemesanan & Excel Export Buttons */
+.btn-history-switch {
+    background: #0f172a;
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 0.8125rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.62rem 1.05rem;
+    border-radius: var(--radius-md);
+    border: 1px solid #1e293b;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow-xs);
+}
+
+.btn-history-switch:hover {
+    background: #1e293b;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 14px rgba(15, 23, 42, 0.18);
+}
+
+.btn-excel-export {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: #ffffff;
+    font-weight: 800;
+    font-size: 0.8125rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1.15rem;
+    border-radius: var(--radius-md);
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);
+}
+
+.btn-excel-export:hover {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(5, 150, 105, 0.35);
 }

@@ -12,6 +12,8 @@ let adminState = {
     reviewsFilter: 'all',
     bookingFilterStatus: 'all',
     bookingSearchQuery: '',
+    historyFilterStatus: 'all',
+    historySearchQuery: '',
     isLoggedIn: false
 };
 
@@ -23,6 +25,27 @@ function getRelativeDateStr(offsetDays = 0) {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
+function getTodayLocalStr() {
+    return getRelativeDateStr(0);
+}
+
+// Cek apakah booking sudah lewat tanggal peminjaman (otomatis masuk Riwayat Pemesanan secara real-time)
+function isBookingExpired(b) {
+    if (!b) return false;
+    const st = String(b.status || '').toLowerCase();
+    if (st === 'completed') return true;
+    if (!b.end_date) return false;
+    const endDateClean = String(b.end_date).split('T')[0];
+    return endDateClean < getTodayLocalStr();
+}
+
+// Cek apakah pembayaran booking sudah diverifikasi (hanya yang terverifikasi yang menaikkan Pendapatan)
+function isBookingVerified(b) {
+    if (!b) return false;
+    const st = String(b.status || '').toLowerCase();
+    return st === 'confirmed' || st === 'verifikasi' || st === 'terverifikasi' || st === 'dikonfirmasi' || st === 'completed';
+}
+
 const DEFAULT_BOOKINGS = [
     {
         id: "1",
@@ -31,14 +54,35 @@ const DEFAULT_BOOKINGS = [
         customer_name: "Irfan Pratama",
         customer_phone: "082196984912",
         car_name: "Toyota Avanza Veloz",
-        start_date: getRelativeDateStr(-2),
-        end_date: getRelativeDateStr(1),
+        start_date: getRelativeDateStr(0),
+        end_date: getRelativeDateStr(2),
         start_time: "09:00",
         end_time: "18:00",
         driver_label: "+Supir",
         with_driver: true,
         total_price: 1800000,
+        payment_type: "lunas_awal",
+        payment_method: "transfer",
         status: "confirmed"
+    },
+    {
+        id: "7",
+        booking_code: "RCM-62P19X",
+        car_id: "5",
+        customer_name: "Nadia Putri",
+        customer_phone: "081355667788",
+        car_name: "Innova Zenix Hybrid",
+        start_date: getRelativeDateStr(1),
+        end_date: getRelativeDateStr(3),
+        start_time: "08:30",
+        end_time: "18:00",
+        driver_label: "+Supir",
+        with_driver: true,
+        total_price: 2200000,
+        payment_type: "dp",
+        payment_method: "qris",
+        dp_amount: 1100000,
+        status: "pending"
     },
     {
         id: "2",
@@ -257,7 +301,11 @@ async function fetchAdminOwnerConfig() {
                         tiktok: c.tiktok || '@rentcarmakassar'
                     },
                     isHolidayPricingActive: Boolean(c.is_holiday_pricing_active),
-                    holidayNotes: c.holiday_notes || 'Tarif Musim Libur & Hari Besar Nasional (Peak Season)'
+                    holidayNotes: c.holiday_notes || 'Tarif Musim Libur & Hari Besar Nasional (Peak Season)',
+                    bankName: c.bank_name || adminState.ownerConfig.bankName || 'BCA',
+                    bankAccountNumber: c.bank_account_number || adminState.ownerConfig.bankAccountNumber || '7890123456',
+                    bankAccountHolder: c.bank_account_holder || adminState.ownerConfig.bankAccountHolder || 'RPM Rent Car Makassar',
+                    qrisImage: c.qris_image !== undefined ? (c.qris_image || '') : (adminState.ownerConfig.qrisImage || '')
                 };
                 saveConfigData();
             }
@@ -407,6 +455,9 @@ function handleAdminLogout() {
 function switchTab(tabName) {
     adminState.currentTab = tabName;
     closeAdminSidebar();
+    if (typeof closeStatusDropdownPortal === 'function') {
+        closeStatusDropdownPortal();
+    }
 
     // Sembunyikan semua tab pane
     document.querySelectorAll('.tab-pane').forEach(p => p.classList.add('hidden'));
@@ -427,8 +478,9 @@ function switchTab(tabName) {
 
     // Update Judul Header
     const titles = {
-        overview: { title: 'Ringkasan Bisnis & Armada', subtitle: 'Pantau ketersediaan armada dan status operasional hari ini.' },
-        bookings: { title: 'Kelola Data Booking & Pesanan', subtitle: 'Pantau pesanan masuk, verifikasi status sewa, dan input booking manual.' },
+        overview: { title: 'Ringkasan Bisnis & Armada', subtitle: 'Pantau ketersediaan armada dan pendapatan terverifikasi hari ini.' },
+        bookings: { title: 'Kelola Data Booking & Pesanan Aktif', subtitle: 'Pantau pesanan aktif, verifikasi pembayaran, dan input booking manual.' },
+        history: { title: 'Riwayat Pemesanan Selesai', subtitle: 'Data pesanan yang sudah lewat tanggal peminjaman secara real-time & siap diunduh ke Excel.' },
         cars: { title: 'Kelola Seluruh Unit Armada Mobil', subtitle: 'Atur ketersediaan unit (Ready/Digunakan), tarif normal, dan tarif libur.' },
         reviews: { title: 'Moderasi & Verifikasi Ulasan Pelanggan', subtitle: 'Verifikasi ulasan dari pelanggan untuk ditampilkan di halaman utama website.' },
         pricing: { title: 'Pengaturan Tarif Khusus Musim Liburan', subtitle: 'Aktifkan atau nonaktifkan harga libur secara serentak dengan satu sakelar.' },
@@ -445,7 +497,20 @@ function switchTab(tabName) {
     // Render ulang konten tab spesifik
     if (tabName === 'bookings') {
         renderBookingsTable();
-        fetchAdminBookings().then(() => renderBookingsTable());
+        renderHistoryTable();
+        fetchAdminBookings().then(() => {
+            renderBookingsTable();
+            renderHistoryTable();
+            renderOverviewMetrics();
+        });
+    }
+    if (tabName === 'history') {
+        renderHistoryTable();
+        fetchAdminBookings().then(() => {
+            renderBookingsTable();
+            renderHistoryTable();
+            renderOverviewMetrics();
+        });
     }
     if (tabName === 'cars') renderCarsTable();
     if (tabName === 'reviews') renderReviewsTable();
@@ -459,6 +524,7 @@ function renderAllDashboard() {
     renderOverviewMetrics();
     renderOverviewQuickCars();
     renderBookingsTable();
+    renderHistoryTable();
     renderCarsTable();
     renderReviewsTable();
     renderPricingTab();
@@ -537,28 +603,29 @@ function renderOverviewMetrics() {
     renderRevenueAnalytics();
 }
 
-// Hitung & Render Statistik Analisis Pendapatan
+// Hitung & Render Statistik Analisis Pendapatan (Hanya Menghitung Pembayaran yang Sudah Diverifikasi)
 function renderRevenueAnalytics() {
     const bookings = adminState.bookings || [];
+    const verifiedBookings = bookings.filter(isBookingVerified);
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth(); // 0-indexed
 
-    // 1. Hitung Pendapatan Berdasarkan Waktu
+    // 1. Hitung Pendapatan Berdasarkan Waktu (Hanya Pesanan Terverifikasi)
     let totalAllTime = 0;
     let thisMonthRevenue = 0;
     let lastMonthRevenue = 0;
     let thisYearRevenue = 0;
     let lastYearRevenue = 0;
 
-    bookings.forEach(b => {
+    verifiedBookings.forEach(b => {
         const price = parseFloat(b.total_price) || 0;
         totalAllTime += price;
 
         if (b.start_date) {
-            const bDate = new Date(b.start_date);
-            const bYear = bDate.getFullYear();
-            const bMonth = bDate.getMonth();
+            const parts = String(b.start_date).split('T')[0].split('-');
+            const bYear = parts.length === 3 ? parseInt(parts[0], 10) : new Date(b.start_date).getFullYear();
+            const bMonth = parts.length === 3 ? (parseInt(parts[1], 10) - 1) : new Date(b.start_date).getMonth();
 
             // Cek Tahun Ini vs Tahun Lalu
             if (bYear === currentYear) {
@@ -589,7 +656,7 @@ function renderRevenueAnalytics() {
     if (totalCountEl) totalCountEl.textContent = `${bookings.length} Order`;
 
     const totalSalesAllEl = document.getElementById('statTotalSalesAllTime');
-    if (totalSalesAllEl) totalSalesAllEl.textContent = `Total: ${formatRupiah(totalAllTime)}`;
+    if (totalSalesAllEl) totalSalesAllEl.textContent = `Terverifikasi (${verifiedBookings.length}): ${formatRupiah(totalAllTime)}`;
 
     // 3. Hitung Persentase Naik/Turun MoM (Month over Month)
     let momGrowth = 0;
@@ -641,63 +708,68 @@ function renderRevenueAnalytics() {
     }
     if (cmpYearSub) cmpYearSub.textContent = `vs thn lalu (${formatRupiah(lastYearRevenue)})`;
 
-    // Rata-rata per order
-    const avgOrder = bookings.length > 0 ? (totalAllTime / bookings.length) : 0;
+    // Rata-rata per order terverifikasi
+    const avgOrder = verifiedBookings.length > 0 ? (totalAllTime / verifiedBookings.length) : 0;
     const avgOrderEl = document.getElementById('cmpAvgOrder');
     if (avgOrderEl) avgOrderEl.textContent = formatRupiah(avgOrder);
 
-    // 5. Render Grafik Interaktif (Minggu / Bulan / Tahun)
-    renderDynamicRevenueChart(bookings, currentRevenueTimeframe);
+    // 5. Render Grafik Interaktif (Minggu / Bulan / Tahun) hanya dari pesanan terverifikasi
+    renderDynamicRevenueChart(verifiedBookings, currentRevenueTimeframe);
 }
 
-// Visualisasi Grafik Bar / Area Dinamis Berdasarkan Timeframe
+// Visualisasi Grafik Bar / Area Dinamis Berdasarkan Timeframe (Hanya Pesanan Terverifikasi)
 function renderDynamicRevenueChart(bookings, timeframe) {
     const container = document.getElementById('revenueChartContainer');
     const titleEl = document.getElementById('chartViewTitle');
     if (!container) return;
 
     const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
     let dataPoints = [];
 
     if (timeframe === 'week') {
-        if (titleEl) titleEl.textContent = 'Grafik Pendapatan 7 Hari Terakhir (Mingguan)';
-        // 7 Hari terakhir
+        if (titleEl) titleEl.textContent = 'Grafik Pendapatan Terverifikasi 7 Hari Terakhir (Mingguan)';
+        // 7 Hari terakhir (tanggal lokal akurat)
         for (let i = 6; i >= 0; i--) {
             const d = new Date(now);
             d.setDate(now.getDate() - i);
-            const dateStr = d.toISOString().split('T')[0];
+            const dateStr = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
             const label = d.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric' });
 
             const dayTotal = bookings
-                .filter(b => b.start_date && b.start_date.split('T')[0] === dateStr)
+                .filter(b => b.start_date && String(b.start_date).split('T')[0] === dateStr)
                 .reduce((sum, b) => sum + (parseFloat(b.total_price) || 0), 0);
 
             dataPoints.push({ label, amount: dayTotal, rawDate: dateStr });
         }
     } else if (timeframe === 'month') {
-        if (titleEl) titleEl.textContent = `Grafik Pendapatan 12 Bulan (${now.getFullYear()})`;
+        if (titleEl) titleEl.textContent = `Grafik Pendapatan Terverifikasi 12 Bulan (${now.getFullYear()})`;
         // 12 Bulan di tahun berjalan
         const monthShorts = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
         for (let m = 0; m < 12; m++) {
             const monthTotal = bookings
                 .filter(b => {
                     if (!b.start_date) return false;
-                    const bd = new Date(b.start_date);
-                    return bd.getFullYear() === now.getFullYear() && bd.getMonth() === m;
+                    const parts = String(b.start_date).split('T')[0].split('-');
+                    const bY = parts.length === 3 ? parseInt(parts[0], 10) : new Date(b.start_date).getFullYear();
+                    const bM = parts.length === 3 ? (parseInt(parts[1], 10) - 1) : new Date(b.start_date).getMonth();
+                    return bY === now.getFullYear() && bM === m;
                 })
                 .reduce((sum, b) => sum + (parseFloat(b.total_price) || 0), 0);
 
             dataPoints.push({ label: monthShorts[m], amount: monthTotal });
         }
     } else if (timeframe === 'year') {
-        if (titleEl) titleEl.textContent = 'Grafik Perbandingan Pendapatan 5 Tahun Terakhir';
+        if (titleEl) titleEl.textContent = 'Grafik Perbandingan Pendapatan Terverifikasi 5 Tahun Terakhir';
         // 5 Tahun terakhir (e.g. 2022 s/d 2026)
         const curY = now.getFullYear();
         for (let y = curY - 4; y <= curY; y++) {
             const yearTotal = bookings
                 .filter(b => {
                     if (!b.start_date) return false;
-                    return new Date(b.start_date).getFullYear() === y;
+                    const parts = String(b.start_date).split('T')[0].split('-');
+                    const bY = parts.length === 3 ? parseInt(parts[0], 10) : new Date(b.start_date).getFullYear();
+                    return bY === y;
                 })
                 .reduce((sum, b) => sum + (parseFloat(b.total_price) || 0), 0);
 
@@ -1583,6 +1655,12 @@ function renderContactForm() {
     const igInput = document.getElementById('ownerIg');
     const fbInput = document.getElementById('ownerFb');
     const tiktokInput = document.getElementById('ownerTiktok');
+    const bankNameInput = document.getElementById('ownerBankName');
+    const bankNumberInput = document.getElementById('ownerBankNumber');
+    const bankHolderInput = document.getElementById('ownerBankHolder');
+    const qrisImageHidden = document.getElementById('ownerQrisImage');
+    const qrisPreviewBox = document.getElementById('ownerQrisPreviewBox');
+    const qrisPreviewImg = document.getElementById('ownerQrisPreviewImg');
 
     if (businessInput) businessInput.value = cfg.businessName || 'Rent Car Makassar';
     if (waInput) waInput.value = cfg.whatsappNumber || '6281234567890';
@@ -1594,9 +1672,82 @@ function renderContactForm() {
     if (igInput) igInput.value = sm.instagram || cfg.instagram || '@rentcarmakassar_id';
     if (fbInput) fbInput.value = sm.facebook || cfg.facebook || 'Rent Car Makassar Official';
     if (tiktokInput) tiktokInput.value = sm.tiktok || cfg.tiktok || '@rentcarmakassar';
+    if (bankNameInput) bankNameInput.value = cfg.bankName || 'BCA';
+    if (bankNumberInput) bankNumberInput.value = cfg.bankAccountNumber || '7890123456';
+    if (bankHolderInput) bankHolderInput.value = cfg.bankAccountHolder || 'RPM Rent Car Makassar';
+    if (qrisImageHidden) qrisImageHidden.value = cfg.qrisImage || '';
+    if (qrisPreviewBox && qrisPreviewImg) {
+        if (cfg.qrisImage && cfg.qrisImage.length > 20) {
+            qrisPreviewImg.src = cfg.qrisImage;
+            qrisPreviewBox.classList.remove('hidden');
+        } else {
+            qrisPreviewImg.src = '';
+            qrisPreviewBox.classList.add('hidden');
+        }
+    }
 }
 
-// Simpan Kontak Owner & WhatsApp
+// Upload Gambar Barcode QRIS di Tab Kontak Admin
+function handleOwnerQrisUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+        alert('Ukuran gambar QRIS maksimal 10MB.');
+        event.target.value = '';
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const rawBase64 = e.target.result;
+        const tempImg = new Image();
+        tempImg.onload = function() {
+            const canvas = document.createElement('canvas');
+            let width = tempImg.width;
+            let height = tempImg.height;
+            const maxDim = 1000;
+            if (width > maxDim || height > maxDim) {
+                if (width > height) {
+                    height = Math.round((height * maxDim) / width);
+                    width = maxDim;
+                } else {
+                    width = Math.round((width * maxDim) / height);
+                    height = maxDim;
+                }
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(tempImg, 0, 0, width, height);
+            const compressed = canvas.toDataURL('image/jpeg', 0.88);
+
+            const qrisHidden = document.getElementById('ownerQrisImage');
+            const qrisPreviewBox = document.getElementById('ownerQrisPreviewBox');
+            const qrisPreviewImg = document.getElementById('ownerQrisPreviewImg');
+
+            if (qrisHidden) qrisHidden.value = compressed;
+            if (qrisPreviewImg) qrisPreviewImg.src = compressed;
+            if (qrisPreviewBox) qrisPreviewBox.classList.remove('hidden');
+        };
+        tempImg.src = rawBase64;
+    };
+    reader.readAsDataURL(file);
+}
+
+function removeOwnerQrisImage() {
+    const qrisHidden = document.getElementById('ownerQrisImage');
+    const qrisFile = document.getElementById('ownerQrisFile');
+    const qrisPreviewBox = document.getElementById('ownerQrisPreviewBox');
+    const qrisPreviewImg = document.getElementById('ownerQrisPreviewImg');
+
+    if (qrisHidden) qrisHidden.value = '';
+    if (qrisFile) qrisFile.value = '';
+    if (qrisPreviewImg) qrisPreviewImg.src = '';
+    if (qrisPreviewBox) qrisPreviewBox.classList.add('hidden');
+}
+
+// Simpan Kontak Owner, Rekening Bank, QRIS & WhatsApp
 async function saveContactSettings(e) {
     if (e && e.preventDefault) e.preventDefault();
 
@@ -1610,6 +1761,10 @@ async function saveContactSettings(e) {
     const instagram = document.getElementById('ownerIg')?.value.trim() || '';
     const facebook = document.getElementById('ownerFb')?.value.trim() || '';
     const tiktok = document.getElementById('ownerTiktok')?.value.trim() || '';
+    const bankName = document.getElementById('ownerBankName')?.value.trim() || 'BCA';
+    const bankAccountNumber = document.getElementById('ownerBankNumber')?.value.trim() || '7890123456';
+    const bankAccountHolder = document.getElementById('ownerBankHolder')?.value.trim() || businessName;
+    const qrisImage = document.getElementById('ownerQrisImage')?.value || '';
 
     adminState.ownerConfig = {
         ...adminState.ownerConfig,
@@ -1620,7 +1775,11 @@ async function saveContactSettings(e) {
         address,
         mapsUrl,
         operatingHours,
-        socialMedia: { instagram, facebook, tiktok }
+        socialMedia: { instagram, facebook, tiktok },
+        bankName,
+        bankAccountNumber,
+        bankAccountHolder,
+        qrisImage
     };
 
     saveConfigData();
@@ -1640,7 +1799,11 @@ async function saveContactSettings(e) {
                 operating_hours: operatingHours,
                 instagram: instagram,
                 facebook: facebook,
-                tiktok: tiktok
+                tiktok: tiktok,
+                bank_name: bankName,
+                bank_account_number: bankAccountNumber,
+                bank_account_holder: bankAccountHolder,
+                qris_image: qrisImage || null
             })
         });
     } catch (err) {
@@ -1649,7 +1812,7 @@ async function saveContactSettings(e) {
 
     renderOverviewMetrics();
     renderContactForm();
-    showAdminToast('Pengaturan Disimpan', 'Informasi kontak & titik GPS berhasil diperbarui.', 'success');
+    showAdminToast('Pengaturan Disimpan', 'Kontak, Rekening Bank & QRIS berhasil diperbarui.', 'success');
 }
 
 function handleSaveContact(e) {
@@ -1964,9 +2127,13 @@ async function fetchAdminBookings() {
                     driver_label: b.driver_label || (b.with_driver ? '+Supir' : 'Tanpa Supir'),
                     with_driver: Boolean(b.with_driver),
                     total_price: parseFloat(b.total_price || 0),
+                    payment_type: b.payment_type || 'lunas_awal',
+                    payment_method: b.payment_method || null,
+                    dp_amount: parseFloat(b.dp_amount || 0),
                     status: b.status || 'pending',
                     notes: b.notes || '',
-                    ktp_image: b.ktp_image || ''
+                    ktp_image: b.ktp_image || '',
+                    payment_proof: b.payment_proof || ''
                 }));
 
                 const apiIds = new Set(apiBookings.map(a => a.id));
@@ -1989,14 +2156,142 @@ function saveBookingsData() {
     localStorage.setItem('rcm_rent_bookings', JSON.stringify(adminState.bookings));
 }
 
+function updateBookingCounters() {
+    const all = adminState.bookings || [];
+    const activeList = all.filter(b => !isBookingExpired(b));
+    const historyList = all.filter(b => isBookingExpired(b));
+    const historyVerifiedTotal = historyList
+        .filter(isBookingVerified)
+        .reduce((sum, b) => sum + (parseFloat(b.total_price) || 0), 0);
+
+    const activeBadge = document.getElementById('sidebarActiveBookingCount');
+    const sidebarHistBadge = document.getElementById('sidebarHistoryCount');
+    const headerHistBadge = document.getElementById('headerHistoryCount');
+    const histTotalStat = document.getElementById('historyTotalCountStat');
+    const histRevStat = document.getElementById('historyVerifiedRevenueStat');
+
+    if (activeBadge) activeBadge.textContent = activeList.length;
+    if (sidebarHistBadge) sidebarHistBadge.textContent = historyList.length;
+    if (headerHistBadge) headerHistBadge.textContent = historyList.length;
+    if (histTotalStat) histTotalStat.textContent = `${historyList.length} Pesanan`;
+    if (histRevStat) histRevStat.textContent = formatRupiah(historyVerifiedTotal);
+}
+
+function normalizeBookingStatusKey(rawStatus) {
+    const st = String(rawStatus || 'pending').toLowerCase();
+    if (st === 'confirmed' || st === 'verifikasi' || st === 'terverifikasi' || st === 'dikonfirmasi' || st === 'completed') {
+        return 'confirmed';
+    }
+    if (st === 'cancelled' || st === 'dibatalkan' || st === 'dibatalakn' || st === 'batal') {
+        return 'cancelled';
+    }
+    return 'pending';
+}
+
+function buildBookingRowHtml(b, isHistoryRow = false) {
+    const normStatus = normalizeBookingStatusKey(b.status);
+    let triggerClass = 'custom-status-pending';
+    let statusIcon = 'fa-clock';
+    let statusLabel = 'Menunggu Pembayaran';
+
+    if (normStatus === 'confirmed') {
+        triggerClass = 'custom-status-confirmed';
+        statusIcon = 'fa-circle-check';
+        statusLabel = 'Verifikasi';
+    } else if (normStatus === 'cancelled') {
+        triggerClass = 'custom-status-cancelled';
+        statusIcon = 'fa-circle-xmark';
+        statusLabel = 'Dibatalkan';
+    }
+
+    const dateDisplay = formatBookingDateRange(b.start_date, b.end_date, b.start_time, b.end_time);
+    const driverDisplay = b.driver_label || (b.with_driver ? '+Supir' : 'Tanpa Supir');
+    const carDisplay = b.car_name || 'Toyota Avanza Veloz';
+
+    const statusDropdownHtml = `
+        <button type="button" onclick="toggleStatusDropdownPortal(event, '${b.id}')" class="custom-status-trigger ${triggerClass}" data-status-trigger-id="${b.id}">
+            <span class="status-trigger-left">
+                <i class="fa-solid ${statusIcon}"></i>
+                <span>${statusLabel}</span>
+            </span>
+            <i class="fa-solid fa-chevron-down status-trigger-chevron"></i>
+        </button>
+    `;
+
+    const payType = b.payment_type || 'lunas_awal';
+    const payMethod = (b.payment_method || '').toUpperCase();
+    const hasProof = b.payment_proof && b.payment_proof.length > 50;
+    let payBadgeHtml = '';
+    if (payType === 'dp') {
+        const dpVal = parseFloat(b.dp_amount) || Math.round((parseFloat(b.total_price) || 0) * 0.5);
+        payBadgeHtml = `<div style="margin-top: 0.25rem; font-size: 0.68rem; font-weight: 700; color: #b45309; background: #fffbeb; border: 1px solid #fde68a; padding: 0.1rem 0.4rem; border-radius: 4px; display: inline-block;">DP: ${formatRupiah(dpVal)} ${payMethod ? `(${escapeHtml(payMethod)})` : ''}</div>`;
+    } else if (payType === 'bayar_akhir') {
+        payBadgeHtml = `<div style="margin-top: 0.25rem; font-size: 0.68rem; font-weight: 700; color: #475569; background: #f1f5f9; border: 1px solid #cbd5e1; padding: 0.1rem 0.4rem; border-radius: 4px; display: inline-block;">Bayar di Akhir</div>`;
+    } else {
+        payBadgeHtml = `<div style="margin-top: 0.25rem; font-size: 0.68rem; font-weight: 700; color: #047857; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 0.1rem 0.4rem; border-radius: 4px; display: inline-block;">Lunas di Awal ${payMethod ? `(${escapeHtml(payMethod)})` : ''}</div>`;
+    }
+    const proofBadgeHtml = hasProof
+        ? `<div style="margin-top: 0.2rem; font-size: 0.65rem; font-weight: 800; color: #059669;">✓ Bukti Bayar Ada</div>`
+        : (payType !== 'bayar_akhir' ? `<div style="margin-top: 0.2rem; font-size: 0.65rem; color: #94a3b8;">Belum ada bukti bayar</div>` : '');
+
+    const expiredTagHtml = isHistoryRow
+        ? `<div style="margin-top: 0.25rem;"><span style="font-size: 0.62rem; font-weight: 800; background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; padding: 0.1rem 0.4rem; border-radius: 999px;">✓ Selesai / Lewat Jadwal</span></div>`
+        : '';
+
+    return `
+        <tr style="border-bottom: 1px solid var(--clr-border); background: #ffffff; transition: background 0.15s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#ffffff'">
+            <td style="padding: 1rem 1.25rem;">
+                <div style="font-weight: 700; color: var(--clr-text-main); font-size: 0.875rem;">${escapeHtml(b.customer_name)}</div>
+                <div style="font-size: 0.75rem; color: #64748b; margin-top: 0.15rem;">${escapeHtml(b.customer_phone)}</div>
+                ${b.booking_code ? `<span style="display:inline-block; font-size: 0.65rem; background: #f1f5f9; color: #475569; padding: 0.1rem 0.35rem; border-radius: 4px; margin-top: 0.25rem; font-family: monospace;">${escapeHtml(b.booking_code)}</span>` : ''}
+            </td>
+            <td style="padding: 1rem 1.25rem; color: var(--clr-text-main); font-weight: 600;">
+                ${escapeHtml(carDisplay)}
+            </td>
+            <td style="padding: 1rem 1.25rem; white-space: nowrap;">
+                ${dateDisplay}
+                ${expiredTagHtml}
+            </td>
+            <td style="padding: 1rem 1.25rem; color: #059669; font-weight: 600;">
+                ${escapeHtml(driverDisplay)}
+            </td>
+            <td style="padding: 1rem 1.25rem; font-weight: 800; color: var(--clr-text-main); white-space: nowrap;">
+                <div>${formatRupiah(b.total_price)}</div>
+                ${payBadgeHtml}
+                ${proofBadgeHtml}
+            </td>
+            <td style="padding: 1rem 1.25rem;">
+                ${statusDropdownHtml}
+            </td>
+            <td style="padding: 1rem 1.25rem; text-align: center;">
+                <div class="booking-action-group">
+                    <button type="button" onclick="viewBookingDocument('${b.id}')" class="booking-action-icon-btn btn-icon-doc" title="Dokumen KTP & Bukti Pembayaran" aria-label="Dokumen">
+                        <i class="fa-solid fa-file-lines"></i>
+                    </button>
+                    <button type="button" onclick="openEditAdminBookingModal('${b.id}')" class="booking-action-icon-btn btn-icon-edit" title="Edit Data Booking" aria-label="Edit">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                    </button>
+                    <button type="button" onclick="deleteBooking('${b.id}')" class="booking-action-icon-btn btn-icon-delete" title="Hapus Data Booking" aria-label="Hapus">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `;
+}
+
 function renderBookingsTable() {
+    updateBookingCounters();
     const tbody = document.getElementById('adminBookingsTableBody');
     if (!tbody) return;
 
     const searchQuery = (document.getElementById('adminBookingSearch')?.value || adminState.bookingSearchQuery || '').toLowerCase();
     const filterStatus = document.getElementById('adminBookingFilterStatus')?.value || adminState.bookingFilterStatus || 'all';
 
+    // Hanya tampilkan booking yang MASIH AKTIF (belum lewat tanggal peminjaman)
     let filtered = (adminState.bookings || []).filter(b => {
+        if (isBookingExpired(b)) return false;
+
         const matchesSearch = !searchQuery ||
             (b.customer_name && b.customer_name.toLowerCase().includes(searchQuery)) ||
             (b.customer_phone && b.customer_phone.toLowerCase().includes(searchQuery)) ||
@@ -2005,16 +2300,7 @@ function renderBookingsTable() {
 
         let matchesStatus = true;
         if (filterStatus !== 'all') {
-            const curStatus = (b.status || 'pending').toLowerCase();
-            if (filterStatus === 'confirmed') {
-                matchesStatus = (curStatus === 'confirmed' || curStatus === 'verifikasi' || curStatus === 'dikonfirmasi');
-            } else if (filterStatus === 'pending') {
-                matchesStatus = (curStatus === 'pending' || curStatus === 'menunggu' || curStatus === 'menunggu pembayaran');
-            } else if (filterStatus === 'cancelled') {
-                matchesStatus = (curStatus === 'cancelled' || curStatus === 'dibatalkan' || curStatus === 'dibatalakn' || curStatus === 'batal');
-            } else {
-                matchesStatus = (curStatus === filterStatus);
-            }
+            matchesStatus = (normalizeBookingStatusKey(b.status) === filterStatus);
         }
 
         return matchesSearch && matchesStatus;
@@ -2024,71 +2310,54 @@ function renderBookingsTable() {
         tbody.innerHTML = `
             <tr>
                 <td colspan="7" style="padding: 2.5rem; text-align: center; color: var(--clr-text-muted);">
-                    Belum ada data booking atau tidak ada pesanan yang sesuai dengan pencarian/filter.
+                    Belum ada data booking aktif, atau pesanan yang sudah lewat tanggal telah berpindah otomatis ke <strong>Riwayat Pemesanan</strong>.
                 </td>
             </tr>
         `;
         return;
     }
 
-    tbody.innerHTML = filtered.map(b => {
-        const statusVal = (b.status || 'pending').toLowerCase();
-        let selectClass = 'status-pending';
-        let isConfirmed = false;
-        let isPending = false;
-        let isCancelled = false;
+    tbody.innerHTML = filtered.map(b => buildBookingRowHtml(b, false)).join('');
+}
 
-        if (statusVal === 'confirmed' || statusVal === 'verifikasi' || statusVal === 'dikonfirmasi') {
-            selectClass = 'status-confirmed';
-            isConfirmed = true;
-        } else if (statusVal === 'cancelled' || statusVal === 'dibatalkan' || statusVal === 'dibatalakn' || statusVal === 'batal') {
-            selectClass = 'status-cancelled';
-            isCancelled = true;
-        } else {
-            selectClass = 'status-pending';
-            isPending = true;
+function renderHistoryTable() {
+    updateBookingCounters();
+    const tbody = document.getElementById('adminHistoryTableBody');
+    if (!tbody) return;
+
+    const searchQuery = (document.getElementById('adminHistorySearch')?.value || adminState.historySearchQuery || '').toLowerCase();
+    const filterStatus = document.getElementById('adminHistoryFilterStatus')?.value || adminState.historyFilterStatus || 'all';
+
+    // Hanya tampilkan booking yang SUDAH LEWAT tanggal peminjaman
+    let filtered = (adminState.bookings || []).filter(b => {
+        if (!isBookingExpired(b)) return false;
+
+        const matchesSearch = !searchQuery ||
+            (b.customer_name && b.customer_name.toLowerCase().includes(searchQuery)) ||
+            (b.customer_phone && b.customer_phone.toLowerCase().includes(searchQuery)) ||
+            (b.car_name && b.car_name.toLowerCase().includes(searchQuery)) ||
+            (b.booking_code && b.booking_code.toLowerCase().includes(searchQuery));
+
+        let matchesStatus = true;
+        if (filterStatus !== 'all') {
+            matchesStatus = (normalizeBookingStatusKey(b.status) === filterStatus);
         }
 
-        const dateDisplay = formatBookingDateRange(b.start_date, b.end_date, b.start_time, b.end_time);
-        const driverDisplay = b.driver_label || (b.with_driver ? '+Supir' : 'Tanpa Supir');
-        const carDisplay = b.car_name || 'Toyota Avanza Veloz';
+        return matchesSearch && matchesStatus;
+    });
 
-        const statusSelectHtml = `
-            <select onchange="handleBookingStatusChange('${b.id}', this.value)" class="booking-status-select ${selectClass}">
-                <option value="confirmed" ${isConfirmed ? 'selected' : ''}>Verifikasi</option>
-                <option value="pending" ${isPending ? 'selected' : ''}>Menunggu Pembayaran</option>
-                <option value="cancelled" ${isCancelled ? 'selected' : ''}>Dibatalkan</option>
-            </select>
-        `;
-
-        return `
-            <tr style="border-bottom: 1px solid var(--clr-border); background: #ffffff;">
-                <td style="padding: 1rem 1.25rem;">
-                    <div style="font-weight: 700; color: var(--clr-text-main); font-size: 0.875rem;">${escapeHtml(b.customer_name)}</div>
-                    <div style="font-size: 0.75rem; color: #64748b; margin-top: 0.15rem;">${escapeHtml(b.customer_phone)}</div>
-                    ${b.booking_code ? `<span style="display:inline-block; font-size: 0.65rem; background: #f1f5f9; color: #475569; padding: 0.1rem 0.35rem; border-radius: 4px; margin-top: 0.25rem; font-family: monospace;">${escapeHtml(b.booking_code)}</span>` : ''}
-                </td>
-                <td style="padding: 1rem 1.25rem; color: var(--clr-text-main); font-weight: 600;">
-                    ${escapeHtml(carDisplay)}
-                </td>
-                <td style="padding: 1rem 1.25rem; white-space: nowrap;">
-                    ${dateDisplay}
-                </td>
-                <td style="padding: 1rem 1.25rem; color: #059669; font-weight: 600;">
-                    ${escapeHtml(driverDisplay)}
-                </td>
-                <td style="padding: 1rem 1.25rem; font-weight: 800; color: var(--clr-text-main); white-space: nowrap;">
-                    ${formatRupiah(b.total_price)}
-                </td>
-                <td style="padding: 1rem 1.25rem;">
-                    ${statusSelectHtml}
-                </td>
-                <td style="padding: 1rem 1.25rem; text-align: center;">
-                    <button onclick="viewBookingDocument('${b.id}')" style="background: #2563eb; color: white; border: none; padding: 0.4rem 0.85rem; border-radius: 0.375rem; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: background 0.15s; display: inline-flex; align-items: center; gap: 0.35rem;" title="Lihat Dokumen Persyaratan & KTP">📄 Lihat Dokumen</button>
+    if (filtered.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" style="padding: 2.5rem; text-align: center; color: var(--clr-text-muted);">
+                    Belum ada riwayat pemesanan yang melewati tanggal sewa atau sesuai filter pencarian.
                 </td>
             </tr>
         `;
-    }).join('');
+        return;
+    }
+
+    tbody.innerHTML = filtered.map(b => buildBookingRowHtml(b, true)).join('');
 }
 
 function filterBookingsTable() {
@@ -2096,6 +2365,116 @@ function filterBookingsTable() {
     adminState.bookingFilterStatus = document.getElementById('adminBookingFilterStatus')?.value || 'all';
     renderBookingsTable();
 }
+
+function filterHistoryTable() {
+    adminState.historySearchQuery = document.getElementById('adminHistorySearch')?.value || '';
+    adminState.historyFilterStatus = document.getElementById('adminHistoryFilterStatus')?.value || 'all';
+    renderHistoryTable();
+}
+
+// =========================================================================
+// CUSTOM FLOATING STATUS DROPDOWN PORTAL
+// =========================================================================
+let activeStatusDropdownBookingId = null;
+
+function closeStatusDropdownPortal() {
+    const portal = document.getElementById('globalStatusDropdownPortal');
+    if (portal) portal.remove();
+    document.querySelectorAll('.custom-status-trigger.is-open').forEach(btn => btn.classList.remove('is-open'));
+    activeStatusDropdownBookingId = null;
+}
+
+function toggleStatusDropdownPortal(event, bookingId) {
+    event.stopPropagation();
+    const btn = event.currentTarget;
+
+    if (activeStatusDropdownBookingId == bookingId && document.getElementById('globalStatusDropdownPortal')) {
+        closeStatusDropdownPortal();
+        return;
+    }
+
+    closeStatusDropdownPortal();
+    activeStatusDropdownBookingId = bookingId;
+    btn.classList.add('is-open');
+
+    const booking = (adminState.bookings || []).find(b => b.id == bookingId);
+    const currentStatus = normalizeBookingStatusKey(booking ? booking.status : 'pending');
+
+    const portal = document.createElement('div');
+    portal.id = 'globalStatusDropdownPortal';
+    portal.className = 'status-dd-portal';
+    portal.onclick = (e) => e.stopPropagation();
+
+    portal.innerHTML = `
+        <div class="status-dd-header">Ubah Status Pesanan</div>
+        <button type="button" class="status-dd-item opt-confirmed ${currentStatus === 'confirmed' ? 'is-selected' : ''}" onclick="selectBookingStatusFromPortal('${bookingId}', 'confirmed')">
+            <span class="status-dd-item-left">
+                <span class="status-dd-icon"><i class="fa-solid fa-circle-check"></i></span>
+                <span>
+                    <div class="status-dd-title">Verifikasi</div>
+                    <div class="status-dd-sub">Pembayaran sah & masuk pendapatan</div>
+                </span>
+            </span>
+            <i class="fa-solid fa-check status-dd-check"></i>
+        </button>
+        <button type="button" class="status-dd-item opt-pending ${currentStatus === 'pending' ? 'is-selected' : ''}" onclick="selectBookingStatusFromPortal('${bookingId}', 'pending')">
+            <span class="status-dd-item-left">
+                <span class="status-dd-icon"><i class="fa-solid fa-clock"></i></span>
+                <span>
+                    <div class="status-dd-title">Menunggu Pembayaran</div>
+                    <div class="status-dd-sub">Belum masuk hitungan pendapatan</div>
+                </span>
+            </span>
+            <i class="fa-solid fa-check status-dd-check"></i>
+        </button>
+        <button type="button" class="status-dd-item opt-cancelled ${currentStatus === 'cancelled' ? 'is-selected' : ''}" onclick="selectBookingStatusFromPortal('${bookingId}', 'cancelled')">
+            <span class="status-dd-item-left">
+                <span class="status-dd-icon"><i class="fa-solid fa-circle-xmark"></i></span>
+                <span>
+                    <div class="status-dd-title">Dibatalkan</div>
+                    <div class="status-dd-sub">Pesanan batal & jadwal dibuka</div>
+                </span>
+            </span>
+            <i class="fa-solid fa-check status-dd-check"></i>
+        </button>
+    `;
+
+    document.body.appendChild(portal);
+
+    // Hitung posisi akurat terhadap viewport (otomatis ke atas jika mentok bawah layar)
+    const rect = btn.getBoundingClientRect();
+    const portalWidth = portal.offsetWidth || 244;
+    const portalHeight = portal.offsetHeight || 195;
+
+    let topPos = rect.bottom + 6;
+    if (topPos + portalHeight > window.innerHeight - 12) {
+        topPos = Math.max(12, rect.top - portalHeight - 6);
+    }
+
+    let leftPos = rect.left;
+    if (leftPos + portalWidth > window.innerWidth - 12) {
+        leftPos = Math.max(12, window.innerWidth - portalWidth - 12);
+    }
+
+    portal.style.top = `${topPos}px`;
+    portal.style.left = `${leftPos}px`;
+}
+
+async function selectBookingStatusFromPortal(bookingId, newStatus) {
+    closeStatusDropdownPortal();
+    await updateBookingStatus(bookingId, newStatus);
+}
+
+document.addEventListener('click', () => {
+    closeStatusDropdownPortal();
+});
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeStatusDropdownPortal();
+});
+
+window.addEventListener('resize', closeStatusDropdownPortal);
+window.addEventListener('scroll', closeStatusDropdownPortal, true);
 
 async function handleBookingStatusChange(id, newStatus) {
     await updateBookingStatus(id, newStatus);
@@ -2107,6 +2486,8 @@ async function updateBookingStatus(id, newStatus) {
         adminState.bookings[idx].status = newStatus;
         saveBookingsData();
         renderBookingsTable();
+        renderHistoryTable();
+        renderOverviewMetrics();
 
         const statusLabels = {
             confirmed: 'Verifikasi',
@@ -2114,7 +2495,10 @@ async function updateBookingStatus(id, newStatus) {
             cancelled: 'Dibatalkan'
         };
         const toastType = newStatus === 'confirmed' ? 'success' : (newStatus === 'cancelled' ? 'error' : 'warning');
-        showAdminToast('Status Booking Diperbarui', `Pesanan #${id} status: ${statusLabels[newStatus] || newStatus}`, toastType);
+        const extraMsg = newStatus === 'confirmed'
+            ? 'Pembayaran terverifikasi — Pendapatan otomatis bertambah!'
+            : `Status pesanan diubah menjadi: ${statusLabels[newStatus] || newStatus}`;
+        showAdminToast('Status Booking Diperbarui', extraMsg, toastType);
 
         try {
             await fetch(`/api/bookings/${id}/status`, {
@@ -2131,6 +2515,9 @@ async function deleteBooking(id) {
     adminState.bookings = adminState.bookings.filter(b => b.id != id);
     saveBookingsData();
     renderBookingsTable();
+    renderHistoryTable();
+    renderOverviewMetrics();
+    showAdminToast('Data Booking Dihapus', 'Pesanan berhasil dihapus dari daftar.', 'error');
 
     try {
         await fetch(`/api/bookings/${id}`, {
@@ -2139,7 +2526,203 @@ async function deleteBooking(id) {
     } catch (e) {}
 }
 
+// =========================================================================
+// DOWNLOAD EXCEL RIWAYAT PEMESANAN (.XLSX / FALLBACK .XLS)
+// =========================================================================
+function exportBookingHistoryExcel() {
+    const searchQuery = (document.getElementById('adminHistorySearch')?.value || adminState.historySearchQuery || '').toLowerCase();
+    const filterStatus = document.getElementById('adminHistoryFilterStatus')?.value || adminState.historyFilterStatus || 'all';
+
+    const historyList = (adminState.bookings || []).filter(b => {
+        if (!isBookingExpired(b)) return false;
+        const matchesSearch = !searchQuery ||
+            (b.customer_name && b.customer_name.toLowerCase().includes(searchQuery)) ||
+            (b.customer_phone && b.customer_phone.toLowerCase().includes(searchQuery)) ||
+            (b.car_name && b.car_name.toLowerCase().includes(searchQuery)) ||
+            (b.booking_code && b.booking_code.toLowerCase().includes(searchQuery));
+
+        let matchesStatus = true;
+        if (filterStatus !== 'all') {
+            matchesStatus = (normalizeBookingStatusKey(b.status) === filterStatus);
+        }
+        return matchesSearch && matchesStatus;
+    });
+
+    if (historyList.length === 0) {
+        showAdminToast('Riwayat Kosong', 'Belum ada data riwayat pemesanan untuk diunduh ke Excel.', 'warning');
+        return;
+    }
+
+    const statusLabelMap = {
+        confirmed: 'Terverifikasi',
+        pending: 'Menunggu Pembayaran',
+        cancelled: 'Dibatalkan'
+    };
+
+    const payTypeLabelMap = {
+        dp: 'DP (Uang Muka)',
+        lunas_awal: 'Bayar Lunas di Awal',
+        bayar_akhir: 'Bayar di Akhir'
+    };
+
+    let totalVerifiedIncome = 0;
+
+    const excelRows = historyList.map((b, index) => {
+        const normStatus = normalizeBookingStatusKey(b.status);
+        const totalPrice = parseFloat(b.total_price) || 0;
+        const verifiedIncome = normStatus === 'confirmed' ? totalPrice : 0;
+        totalVerifiedIncome += verifiedIncome;
+
+        const pType = b.payment_type || 'lunas_awal';
+        const dpVal = pType === 'dp' ? (parseFloat(b.dp_amount) || Math.round(totalPrice * 0.5)) : 0;
+
+        return {
+            'No': index + 1,
+            'Kode Booking': b.booking_code || '-',
+            'Nama Pelanggan': b.customer_name || '-',
+            'No. WhatsApp': b.customer_phone || '-',
+            'Armada Mobil': b.car_name || '-',
+            'Tanggal Mulai': b.start_date || '-',
+            'Jam Mulai': b.start_time || '09:00',
+            'Tanggal Selesai': b.end_date || '-',
+            'Jam Selesai': b.end_time || '09:00',
+            'Layanan Supir': b.driver_label || (b.with_driver ? '+Supir' : 'Tanpa Supir'),
+            'Skema Pembayaran': payTypeLabelMap[pType] || pType,
+            'Metode Bayar': b.payment_method ? String(b.payment_method).toUpperCase() : '-',
+            'Nominal DP (Rp)': dpVal,
+            'Total Biaya Sewa (Rp)': totalPrice,
+            'Status Pembayaran': statusLabelMap[normStatus] || b.status,
+            'Pendapatan Terverifikasi (Rp)': verifiedIncome,
+            'Catatan': b.notes || '-'
+        };
+    });
+
+    // Baris Ringkasan Total di bagian bawah Excel
+    excelRows.push({
+        'No': '',
+        'Kode Booking': '',
+        'Nama Pelanggan': 'TOTAL PENDAPATAN TERVERIFIKASI',
+        'No. WhatsApp': '',
+        'Armada Mobil': '',
+        'Tanggal Mulai': '',
+        'Jam Mulai': '',
+        'Tanggal Selesai': '',
+        'Jam Selesai': '',
+        'Layanan Supir': '',
+        'Skema Pembayaran': '',
+        'Metode Bayar': '',
+        'Nominal DP (Rp)': '',
+        'Total Biaya Sewa (Rp)': '',
+        'Status Pembayaran': `${historyList.filter(isBookingVerified).length} Pesanan Sah`,
+        'Pendapatan Terverifikasi (Rp)': totalVerifiedIncome,
+        'Catatan': ''
+    });
+
+    const fileDate = getTodayLocalStr();
+
+    if (typeof window.XLSX !== 'undefined') {
+        const worksheet = window.XLSX.utils.json_to_sheet(excelRows);
+        worksheet['!cols'] = [
+            { wch: 5 },  // No
+            { wch: 14 }, // Kode Booking
+            { wch: 24 }, // Nama Pelanggan
+            { wch: 16 }, // No. WhatsApp
+            { wch: 24 }, // Armada Mobil
+            { wch: 14 }, // Tanggal Mulai
+            { wch: 11 }, // Jam Mulai
+            { wch: 14 }, // Tanggal Selesai
+            { wch: 11 }, // Jam Selesai
+            { wch: 18 }, // Layanan Supir
+            { wch: 20 }, // Skema Pembayaran
+            { wch: 14 }, // Metode Bayar
+            { wch: 16 }, // Nominal DP
+            { wch: 20 }, // Total Biaya Sewa
+            { wch: 20 }, // Status Pembayaran
+            { wch: 26 }, // Pendapatan Terverifikasi
+            { wch: 30 }  // Catatan
+        ];
+        const workbook = window.XLSX.utils.book_new();
+        window.XLSX.utils.book_append_sheet(workbook, worksheet, 'Riwayat Pemesanan');
+        window.XLSX.writeFile(workbook, `Riwayat_Pemesanan_RCM_${fileDate}.xlsx`);
+        showAdminToast('Excel Berhasil Diunduh', `File Riwayat_Pemesanan_RCM_${fileDate}.xlsx berhasil disimpan.`, 'success');
+    } else {
+        // Fallback Offline ke format Excel .xls berbasis tabel HTML
+        const headers = Object.keys(excelRows[0]);
+        let tableHtml = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="UTF-8"></head><body><table border="1">';
+        tableHtml += '<tr style="background:#dc2626;color:#ffffff;font-weight:bold;">' + headers.map(h => `<th>${escapeHtml(h)}</th>`).join('') + '</tr>';
+        excelRows.forEach(row => {
+            tableHtml += '<tr>' + headers.map(h => `<td>${escapeHtml(String(row[h] ?? ''))}</td>`).join('') + '</tr>';
+        });
+        tableHtml += '</table></body></html>';
+
+        const blob = new Blob(['\ufeff', tableHtml], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `Riwayat_Pemesanan_RCM_${fileDate}.xls`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showAdminToast('Excel Berhasil Diunduh', `File Riwayat_Pemesanan_RCM_${fileDate}.xls berhasil disimpan.`, 'success');
+    }
+}
+
 let currentViewingBookingId = null;
+
+// Buat URL Pesan Permintaan Pembayaran via WhatsApp untuk Pelanggan
+function buildPaymentRequestWaUrl(booking) {
+    const cfg = adminState.ownerConfig || {};
+    const cleanPhone = (booking.customer_phone || '').replace(/[^0-9]/g, '');
+    const targetPhone = cleanPhone.startsWith('0') ? '62' + cleanPhone.substring(1) : cleanPhone;
+
+    const totalPrice = parseFloat(booking.total_price) || 0;
+    const payType = booking.payment_type || 'lunas_awal';
+    const dpAmount = payType === 'dp' ? (parseFloat(booking.dp_amount) || Math.round(totalPrice * 0.5)) : 0;
+    const remAmount = payType === 'dp' ? Math.max(0, totalPrice - dpAmount) : 0;
+
+    const bankName = cfg.bankName || 'BCA';
+    const bankNum = cfg.bankAccountNumber || '7890123456';
+    const bankHolder = cfg.bankAccountHolder || cfg.businessName || 'RPM Rent Car Makassar';
+
+    let tagihanLines = '';
+    if (payType === 'dp') {
+        tagihanLines = `• Skema Pembayaran: *DP (Uang Muka)*\n• Total Biaya Sewa: ${formatRupiah(totalPrice)}\n• *Nominal DP yang Perlu Dibayar: ${formatRupiah(dpAmount)}*\n• Sisa Pelunasan: ${formatRupiah(remAmount)}`;
+    } else if (payType === 'bayar_akhir') {
+        tagihanLines = `• Skema Pembayaran: *Bayar di Akhir / Pelunasan*\n• *Total Tagihan Pembayaran: ${formatRupiah(totalPrice)}*`;
+    } else {
+        tagihanLines = `• Skema Pembayaran: *Bayar Lunas di Awal*\n• *Total Tagihan Pembayaran: ${formatRupiah(totalPrice)}*`;
+    }
+
+    const msg = `
+*PERMINTAAN PEMBAYARAN RENTAL MOBIL*
+_${cfg.businessName || 'RPM Rent Car Makassar'}_
+
+Halo Kak *${booking.customer_name || 'Pelanggan'}*, berikut rincian permintaan pembayaran untuk pesanan sewa mobil Anda:
+
+📌 *Detail Pesanan:*
+• Kode Booking: *${booking.booking_code || '-'}*
+• Unit Armada: *${booking.car_name || '-'}*
+• Jadwal Sewa: ${booking.start_date || '-'} s/d ${booking.end_date || '-'}
+
+💳 *Rincian Tagihan Pembayaran:*
+${tagihanLines}
+
+🏦 *Metode Pembayaran Resmi:*
+• *Transfer Bank ${bankName}:* \`${bankNum}\`
+  a.n *${bankHolder}*
+• *QRIS:* Tersedia (Silakan balas pesan ini jika ingin meminta gambar kode QRIS)
+
+Mohon kesediaannya untuk melakukan pembayaran dan mengirimkan foto *Bukti Transfer / Pembayaran* melalui WhatsApp ini agar pesanan Anda segera kami proses/verifikasi. Terima kasih! 🙏
+`.trim();
+
+    return `https://wa.me/${targetPhone}?text=${encodeURIComponent(msg)}`;
+}
+
+function sendPaymentRequestWhatsApp(id) {
+    const booking = (adminState.bookings || []).find(b => b.id == id);
+    if (!booking) return;
+    const url = buildPaymentRequestWaUrl(booking);
+    window.open(url, '_blank');
+}
 
 function viewBookingDocument(id) {
     currentViewingBookingId = id;
@@ -2153,11 +2736,64 @@ function viewBookingDocument(id) {
     const phoneEl = document.getElementById('docCustomerPhone');
     const carEl = document.getElementById('docCarName');
     const codeEl = document.getElementById('docBookingCode');
+    const payTypeEl = document.getElementById('docPaymentType');
+    const payDetailEl = document.getElementById('docPaymentDetail');
 
     if (nameEl) nameEl.textContent = booking.customer_name || '-';
     if (phoneEl) phoneEl.textContent = booking.customer_phone || '-';
     if (carEl) carEl.textContent = booking.car_name || '-';
     if (codeEl) codeEl.textContent = booking.booking_code || '-';
+
+    const payType = booking.payment_type || 'lunas_awal';
+    const payMethod = booking.payment_method ? booking.payment_method.toUpperCase() : '-';
+    const totalPrice = parseFloat(booking.total_price) || 0;
+    const dpAmount = parseFloat(booking.dp_amount) || Math.round(totalPrice * 0.5);
+
+    if (payTypeEl) {
+        if (payType === 'dp') payTypeEl.textContent = 'DP (Uang Muka)';
+        else if (payType === 'bayar_akhir') payTypeEl.textContent = 'Bayar di Akhir';
+        else payTypeEl.textContent = 'Bayar Lunas di Awal';
+    }
+    if (payDetailEl) {
+        if (payType === 'dp') {
+            payDetailEl.textContent = `${payMethod} • DP ${formatRupiah(dpAmount)} (Total ${formatRupiah(totalPrice)})`;
+        } else if (payType === 'bayar_akhir') {
+            payDetailEl.textContent = `Tagihan Akhir: ${formatRupiah(totalPrice)}`;
+        } else {
+            payDetailEl.textContent = `${payMethod} • Lunas ${formatRupiah(totalPrice)}`;
+        }
+    }
+
+    // Set tombol Permintaan Pembayaran via WhatsApp
+    const reqPayWaUrl = buildPaymentRequestWaUrl(booking);
+    const reqPayWaBtn = document.getElementById('docRequestPaymentWaBtn');
+    const reqPayWaBtnInner = document.getElementById('docRequestPaymentWaBtnInner');
+    if (reqPayWaBtn) reqPayWaBtn.href = reqPayWaUrl;
+    if (reqPayWaBtnInner) reqPayWaBtnInner.href = reqPayWaUrl;
+
+    // Preview Bukti Pembayaran Pelanggan
+    const proofImg = document.getElementById('docPaymentProofImage');
+    const noProofMsg = document.getElementById('docNoPaymentProofMsg');
+    const openProofFullBtn = document.getElementById('docOpenProofFullBtn');
+
+    if (booking.payment_proof && booking.payment_proof.length > 50) {
+        if (proofImg) {
+            proofImg.src = booking.payment_proof;
+            proofImg.classList.remove('hidden');
+        }
+        if (noProofMsg) noProofMsg.classList.add('hidden');
+        if (openProofFullBtn) {
+            openProofFullBtn.href = booking.payment_proof;
+            openProofFullBtn.classList.remove('hidden');
+        }
+    } else {
+        if (proofImg) {
+            proofImg.src = '';
+            proofImg.classList.add('hidden');
+        }
+        if (noProofMsg) noProofMsg.classList.remove('hidden');
+        if (openProofFullBtn) openProofFullBtn.classList.add('hidden');
+    }
 
     const img = document.getElementById('docKtpImage');
     const noImgMsg = document.getElementById('docNoImageMsg');
@@ -2190,6 +2826,67 @@ function viewBookingDocument(id) {
     }
 
     modal.classList.remove('hidden');
+}
+
+// Upload atau ganti Bukti Pembayaran Pelanggan langsung oleh Admin (termasuk untuk transaksi secara langsung)
+async function handleAdminUploadPaymentProof(event) {
+    const file = event.target.files[0];
+    if (!file || !currentViewingBookingId) return;
+
+    const booking = (adminState.bookings || []).find(b => b.id == currentViewingBookingId);
+    if (!booking) return;
+
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+        const rawBase64 = e.target.result;
+        const tempImg = new Image();
+        tempImg.onload = async function() {
+            const canvas = document.createElement('canvas');
+            let width = tempImg.width;
+            let height = tempImg.height;
+            const maxDim = 1280;
+            if (width > maxDim || height > maxDim) {
+                if (width > height) {
+                    height = Math.round((height * maxDim) / width);
+                    width = maxDim;
+                } else {
+                    width = Math.round((width * maxDim) / height);
+                    height = maxDim;
+                }
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(tempImg, 0, 0, width, height);
+            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.85);
+
+            booking.payment_proof = compressedBase64;
+            saveBookingsData();
+
+            try {
+                await fetch(`/api/bookings/${booking.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        payment_proof: compressedBase64
+                    })
+                });
+            } catch (err) {
+                console.error(err);
+            }
+
+            viewBookingDocument(booking.id);
+            renderBookingsTable();
+            renderHistoryTable();
+            showAdminToast('Bukti Pembayaran Disimpan', 'Bukti pembayaran pelanggan berhasil diunggah oleh Admin.', 'success');
+            event.target.value = '';
+        };
+        tempImg.src = rawBase64;
+    };
+    reader.readAsDataURL(file);
 }
 
 // Upload atau ganti foto KTP langsung dari Admin Dashboard
@@ -2246,7 +2943,8 @@ async function handleAdminUploadKtp(event) {
 
             viewBookingDocument(booking.id);
             renderBookingsTable();
-            alert('✅ Foto KTP berhasil disimpan!');
+            renderHistoryTable();
+            showAdminToast('Foto KTP Disimpan', 'Foto KTP pelanggan berhasil disimpan.', 'success');
             event.target.value = '';
         };
         tempImg.src = rawBase64;
@@ -2262,31 +2960,225 @@ function closeDocumentViewModal() {
 window.viewBookingDocument = viewBookingDocument;
 window.closeDocumentViewModal = closeDocumentViewModal;
 window.handleAdminUploadKtp = handleAdminUploadKtp;
+window.handleAdminUploadPaymentProof = handleAdminUploadPaymentProof;
+window.sendPaymentRequestWhatsApp = sendPaymentRequestWhatsApp;
+window.handleOwnerQrisUpload = handleOwnerQrisUpload;
+window.removeOwnerQrisImage = removeOwnerQrisImage;
+
+function handleAdminBookingPaymentTypeChange() {
+    const payType = document.getElementById('abPaymentType')?.value || 'lunas_awal';
+    const methodWrap = document.getElementById('abPaymentMethodWrap');
+    const dpWrap = document.getElementById('abDpAmountWrap');
+    const proofWrap = document.getElementById('abPaymentProofWrap');
+    const totalPrice = parseFloat(document.getElementById('abTotalPrice')?.value) || 0;
+    const dpInput = document.getElementById('abDpAmount');
+
+    if (payType === 'dp') {
+        if (dpWrap) dpWrap.classList.remove('hidden');
+        if (methodWrap) methodWrap.classList.remove('hidden');
+        if (proofWrap) proofWrap.classList.remove('hidden');
+        if (dpInput && !dpInput.value) {
+            dpInput.value = Math.round(totalPrice * 0.5);
+        }
+    } else if (payType === 'bayar_akhir') {
+        if (dpWrap) dpWrap.classList.add('hidden');
+        if (methodWrap) methodWrap.classList.add('hidden');
+        if (proofWrap) proofWrap.classList.add('hidden');
+    } else {
+        if (dpWrap) dpWrap.classList.add('hidden');
+        if (methodWrap) methodWrap.classList.remove('hidden');
+        if (proofWrap) proofWrap.classList.remove('hidden');
+    }
+}
+
+function handleAdminBookingProofFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const rawBase64 = e.target.result;
+        const tempImg = new Image();
+        tempImg.onload = function() {
+            const canvas = document.createElement('canvas');
+            let width = tempImg.width;
+            let height = tempImg.height;
+            const maxDim = 1200;
+            if (width > maxDim || height > maxDim) {
+                if (width > height) {
+                    height = Math.round((height * maxDim) / width);
+                    width = maxDim;
+                } else {
+                    width = Math.round((width * maxDim) / height);
+                    height = maxDim;
+                }
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(tempImg, 0, 0, width, height);
+            const compressed = canvas.toDataURL('image/jpeg', 0.85);
+
+            const hiddenEl = document.getElementById('abPaymentProofBase64');
+            const prevBox = document.getElementById('abPaymentProofPreviewBox');
+            const prevImg = document.getElementById('abPaymentProofPreviewImg');
+            if (hiddenEl) hiddenEl.value = compressed;
+            if (prevImg) prevImg.src = compressed;
+            if (prevBox) prevBox.classList.remove('hidden');
+        };
+        tempImg.src = rawBase64;
+    };
+    reader.readAsDataURL(file);
+}
+
+function removeAdminBookingProof() {
+    const fileEl = document.getElementById('abPaymentProofFile');
+    const hiddenEl = document.getElementById('abPaymentProofBase64');
+    const prevBox = document.getElementById('abPaymentProofPreviewBox');
+    const prevImg = document.getElementById('abPaymentProofPreviewImg');
+    if (fileEl) fileEl.value = '';
+    if (hiddenEl) hiddenEl.value = '';
+    if (prevImg) prevImg.src = '';
+    if (prevBox) prevBox.classList.add('hidden');
+}
+
+window.handleAdminBookingPaymentTypeChange = handleAdminBookingPaymentTypeChange;
+window.handleAdminBookingProofFile = handleAdminBookingProofFile;
+window.removeAdminBookingProof = removeAdminBookingProof;
+
+function populateAdminBookingCarSelect(selectedCarId = null) {
+    const carSelect = document.getElementById('abCarId');
+    if (!carSelect) return;
+    if (adminState.cars && adminState.cars.length > 0) {
+        carSelect.innerHTML = adminState.cars.map(c =>
+            `<option value="${c.id}" ${selectedCarId && c.id == selectedCarId ? 'selected' : ''}>${escapeHtml(c.brand)} ${escapeHtml(c.model)} (${escapeHtml(c.year || '')})</option>`
+        ).join('');
+    } else {
+        carSelect.innerHTML = '<option value="1">Toyota Avanza Veloz</option>';
+    }
+}
 
 function openAdminBookingModal() {
     const modal = document.getElementById('adminBookingModal');
     if (!modal) return;
 
-    const carSelect = document.getElementById('abCarId');
-    if (carSelect) {
-        if (adminState.cars && adminState.cars.length > 0) {
-            carSelect.innerHTML = adminState.cars.map(c =>
-                `<option value="${c.id}">${c.brand} ${c.model} (${c.year})</option>`
-            ).join('');
-        } else {
-            carSelect.innerHTML = '<option value="1">Toyota Avanza Veloz</option>';
-        }
-    }
+    const bookingIdEl = document.getElementById('abBookingId');
+    if (bookingIdEl) bookingIdEl.value = '';
 
-    const today = new Date().toISOString().split('T')[0];
-    const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+    const titleIconEl = document.getElementById('adminBookingModalIcon');
+    const titleTextEl = document.getElementById('adminBookingModalTitleText');
+    const submitBtnEl = document.getElementById('abSubmitBtn');
+    if (titleIconEl) titleIconEl.innerHTML = '+';
+    if (titleTextEl) titleTextEl.textContent = 'Input Booking Manual';
+    if (submitBtnEl) submitBtnEl.textContent = 'Simpan Booking';
+
+    populateAdminBookingCarSelect();
+
+    const nameEl = document.getElementById('abCustomerName');
+    const phoneEl = document.getElementById('abCustomerPhone');
+    const notesEl = document.getElementById('abNotes');
+    const startTimeEl = document.getElementById('abStartTime');
+    const endTimeEl = document.getElementById('abEndTime');
+    const driverOptEl = document.getElementById('abDriverOption');
+    const statusEl = document.getElementById('abStatus');
+    const payMethodEl = document.getElementById('abPaymentMethod');
+
+    if (nameEl) nameEl.value = '';
+    if (phoneEl) phoneEl.value = '';
+    if (notesEl) notesEl.value = '';
+    if (startTimeEl) startTimeEl.value = '09:00';
+    if (endTimeEl) endTimeEl.value = '09:00';
+    if (driverOptEl) driverOptEl.value = 'with_driver';
+    if (statusEl) statusEl.value = 'confirmed';
+    if (payMethodEl) payMethodEl.value = 'transfer';
+
+    const today = getRelativeDateStr(0);
+    const tomorrow = getRelativeDateStr(1);
 
     const startDateInput = document.getElementById('abStartDate');
     const endDateInput = document.getElementById('abEndDate');
     if (startDateInput) startDateInput.value = today;
     if (endDateInput) endDateInput.value = tomorrow;
 
+    const payTypeEl = document.getElementById('abPaymentType');
+    if (payTypeEl) payTypeEl.value = 'lunas_awal';
+    const dpEl = document.getElementById('abDpAmount');
+    if (dpEl) dpEl.value = '';
+    removeAdminBookingProof();
+
     calculateAdminBookingPrice();
+    handleAdminBookingPaymentTypeChange();
+    modal.classList.remove('hidden');
+}
+
+function openEditAdminBookingModal(id) {
+    const booking = (adminState.bookings || []).find(b => b.id == id);
+    if (!booking) return;
+
+    const modal = document.getElementById('adminBookingModal');
+    if (!modal) return;
+
+    const bookingIdEl = document.getElementById('abBookingId');
+    if (bookingIdEl) bookingIdEl.value = booking.id;
+
+    const titleIconEl = document.getElementById('adminBookingModalIcon');
+    const titleTextEl = document.getElementById('adminBookingModalTitleText');
+    const submitBtnEl = document.getElementById('abSubmitBtn');
+    if (titleIconEl) titleIconEl.innerHTML = '<i class="fa-solid fa-pen-to-square" style="font-size: 0.95rem;"></i>';
+    if (titleTextEl) titleTextEl.textContent = 'Edit Data Booking';
+    if (submitBtnEl) submitBtnEl.textContent = 'Simpan Perubahan';
+
+    populateAdminBookingCarSelect(booking.car_id);
+
+    const nameEl = document.getElementById('abCustomerName');
+    const phoneEl = document.getElementById('abCustomerPhone');
+    const startDateEl = document.getElementById('abStartDate');
+    const endDateEl = document.getElementById('abEndDate');
+    const startTimeEl = document.getElementById('abStartTime');
+    const endTimeEl = document.getElementById('abEndTime');
+    const driverOptEl = document.getElementById('abDriverOption');
+    const statusEl = document.getElementById('abStatus');
+    const totalPriceEl = document.getElementById('abTotalPrice');
+    const payTypeEl = document.getElementById('abPaymentType');
+    const payMethodEl = document.getElementById('abPaymentMethod');
+    const dpEl = document.getElementById('abDpAmount');
+    const notesEl = document.getElementById('abNotes');
+
+    if (nameEl) nameEl.value = booking.customer_name || '';
+    if (phoneEl) phoneEl.value = booking.customer_phone || '';
+    if (startDateEl) startDateEl.value = booking.start_date ? String(booking.start_date).split('T')[0] : getRelativeDateStr(0);
+    if (endDateEl) endDateEl.value = booking.end_date ? String(booking.end_date).split('T')[0] : getRelativeDateStr(1);
+    if (startTimeEl) startTimeEl.value = booking.start_time || '09:00';
+    if (endTimeEl) endTimeEl.value = booking.end_time || '09:00';
+
+    if (driverOptEl) {
+        const dLabel = String(booking.driver_label || '').toLowerCase();
+        if (dLabel.includes('luar kota')) driverOptEl.value = 'luar_kota';
+        else if (booking.with_driver === false || dLabel.includes('lepas') || dLabel.includes('tanpa')) driverOptEl.value = 'without_driver';
+        else driverOptEl.value = 'with_driver';
+    }
+
+    if (statusEl) {
+        statusEl.value = normalizeBookingStatusKey(booking.status);
+    }
+
+    if (totalPriceEl) totalPriceEl.value = parseFloat(booking.total_price) || 0;
+    if (payTypeEl) payTypeEl.value = booking.payment_type || 'lunas_awal';
+    if (payMethodEl) payMethodEl.value = booking.payment_method || 'transfer';
+    if (dpEl) dpEl.value = booking.dp_amount ? parseFloat(booking.dp_amount) : '';
+    if (notesEl) notesEl.value = booking.notes || '';
+
+    removeAdminBookingProof();
+    if (booking.payment_proof && booking.payment_proof.length > 50) {
+        const hiddenEl = document.getElementById('abPaymentProofBase64');
+        const prevBox = document.getElementById('abPaymentProofPreviewBox');
+        const prevImg = document.getElementById('abPaymentProofPreviewImg');
+        if (hiddenEl) hiddenEl.value = booking.payment_proof;
+        if (prevImg) prevImg.src = booking.payment_proof;
+        if (prevBox) prevBox.classList.remove('hidden');
+    }
+
+    handleAdminBookingPaymentTypeChange();
     modal.classList.remove('hidden');
 }
 
@@ -2328,6 +3220,7 @@ function calculateAdminBookingPrice() {
 
 async function handleSaveAdminBooking(e) {
     e.preventDefault();
+    const editingId = document.getElementById('abBookingId')?.value || '';
     const name = document.getElementById('abCustomerName').value.trim();
     const phone = document.getElementById('abCustomerPhone').value.trim();
     const carId = document.getElementById('abCarId').value;
@@ -2339,12 +3232,85 @@ async function handleSaveAdminBooking(e) {
     const status = document.getElementById('abStatus').value;
     const totalPrice = parseFloat(document.getElementById('abTotalPrice').value) || 0;
     const notes = document.getElementById('abNotes').value.trim();
+    const paymentType = document.getElementById('abPaymentType')?.value || 'lunas_awal';
+    const paymentMethod = paymentType === 'bayar_akhir' ? null : (document.getElementById('abPaymentMethod')?.value || 'transfer');
+    const dpAmount = paymentType === 'dp' ? (parseFloat(document.getElementById('abDpAmount')?.value) || Math.round(totalPrice * 0.5)) : 0;
+    const paymentProof = paymentType === 'bayar_akhir' ? null : (document.getElementById('abPaymentProofBase64')?.value || null);
+
+    if (endDate < startDate) {
+        showAdminToast('Tanggal Tidak Valid', 'Tanggal selesai tidak boleh lebih awal dari tanggal mulai.', 'error');
+        return;
+    }
 
     const selectedCar = (adminState.cars || []).find(c => c.id == carId);
-    const carName = selectedCar ? `${selectedCar.brand} ${selectedCar.model}` : 'toyota avanza veloz';
+    const carName = selectedCar ? `${selectedCar.brand} ${selectedCar.model}` : 'Toyota Avanza Veloz';
 
     const driverLabel = driverOpt === 'with_driver' ? '+Supir' : (driverOpt === 'luar_kota' ? '+Supir (Luar Kota)' : 'Tanpa Supir');
     const withDriver = driverOpt !== 'without_driver';
+
+    const apiPayload = {
+        car_id: carId,
+        customer_name: name,
+        customer_phone: phone,
+        start_date: startDate,
+        end_date: endDate,
+        start_time: startTime,
+        end_time: endTime,
+        with_driver: withDriver,
+        driver_option: driverOpt,
+        total_price: totalPrice,
+        payment_type: paymentType,
+        payment_method: paymentMethod,
+        dp_amount: dpAmount,
+        payment_proof: paymentProof,
+        status: status,
+        notes: notes
+    };
+
+    if (editingId) {
+        const idx = (adminState.bookings || []).findIndex(b => b.id == editingId);
+        if (idx !== -1) {
+            adminState.bookings[idx] = {
+                ...adminState.bookings[idx],
+                car_id: carId,
+                customer_name: name,
+                customer_phone: phone,
+                car_name: carName,
+                start_date: startDate,
+                end_date: endDate,
+                start_time: startTime,
+                end_time: endTime,
+                driver_label: driverLabel,
+                with_driver: withDriver,
+                total_price: totalPrice,
+                payment_type: paymentType,
+                payment_method: paymentMethod,
+                dp_amount: dpAmount,
+                payment_proof: paymentProof,
+                status: status,
+                notes: notes
+            };
+        }
+
+        try {
+            await fetch(`/api/bookings/${editingId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(apiPayload)
+            });
+        } catch (err) {}
+
+        saveBookingsData();
+        closeAdminBookingModal();
+        renderBookingsTable();
+        renderHistoryTable();
+        renderOverviewMetrics();
+        showAdminToast('Data Booking Diperbarui', `Perubahan pesanan ${name} berhasil disimpan.`, 'success');
+        return;
+    }
 
     const newBooking = {
         id: Date.now().toString(),
@@ -2360,6 +3326,10 @@ async function handleSaveAdminBooking(e) {
         driver_label: driverLabel,
         with_driver: withDriver,
         total_price: totalPrice,
+        payment_type: paymentType,
+        payment_method: paymentMethod,
+        dp_amount: dpAmount,
+        payment_proof: paymentProof,
         status: status,
         notes: notes
     };
@@ -2367,26 +3337,17 @@ async function handleSaveAdminBooking(e) {
     try {
         const res = await fetch('/api/bookings', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                car_id: carId,
-                customer_name: name,
-                customer_phone: phone,
-                start_date: startDate,
-                end_date: endDate,
-                start_time: startTime,
-                end_time: endTime,
-                with_driver: withDriver,
-                driver_option: driverOpt,
-                total_price: totalPrice,
-                status: status,
-                notes: notes
-            })
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(apiPayload)
         });
         if (res.ok) {
             const data = await res.json();
             if (data.data) {
                 newBooking.id = data.data.id.toString();
+                if (data.data.booking_code) newBooking.booking_code = data.data.booking_code;
             }
         }
     } catch (err) {}
@@ -2395,7 +3356,9 @@ async function handleSaveAdminBooking(e) {
     saveBookingsData();
     closeAdminBookingModal();
     renderBookingsTable();
-    alert('✅ Data Booking Manual berhasil disimpan!');
+    renderHistoryTable();
+    renderOverviewMetrics();
+    showAdminToast('Booking Berhasil Disimpan', `Pesanan ${name} berhasil ditambahkan.`, 'success');
 }
 
 function resetAllDataToDefault() {
@@ -2409,19 +3372,53 @@ function resetAllDataToDefault() {
     }
 }
 
+// Watcher Real-Time: Pindahkan otomatis booking yang lewat tanggal ke Riwayat Pemesanan tanpa perlu reload
+let lastActiveBookingSignature = null;
+
+function checkAndMigrateExpiredBookingsRealtime() {
+    if (!adminState.isLoggedIn) return;
+    const activeIds = (adminState.bookings || [])
+        .filter(b => !isBookingExpired(b))
+        .map(b => `${b.id}:${b.end_date}:${b.status}`)
+        .join('|');
+
+    if (lastActiveBookingSignature !== null && lastActiveBookingSignature !== activeIds) {
+        renderBookingsTable();
+        renderHistoryTable();
+        renderOverviewMetrics();
+    }
+    lastActiveBookingSignature = activeIds;
+}
+
+setInterval(checkAndMigrateExpiredBookingsRealtime, 15000);
+
 // Inisialisasi saat DOM siap
 document.addEventListener('DOMContentLoaded', () => {
     initAdmin();
 });
 
-// Auto-refresh data booking saat window aktif kembali
+// Auto-refresh data booking saat window aktif kembali atau LocalStorage berubah dari tab pelanggan
 window.addEventListener('focus', () => {
-    if (adminState.isLoggedIn && adminState.currentTab === 'bookings') {
-        fetchAdminBookings().then(() => renderBookingsTable());
+    if (adminState.isLoggedIn) {
+        fetchAdminBookings().then(() => {
+            renderBookingsTable();
+            renderHistoryTable();
+            renderOverviewMetrics();
+        });
     }
 });
 
-// Window exports for review moderation & manual add/edit
+window.addEventListener('storage', (e) => {
+    if (adminState.isLoggedIn && (!e.key || e.key === 'rcm_rent_bookings')) {
+        fetchAdminBookings().then(() => {
+            renderBookingsTable();
+            renderHistoryTable();
+            renderOverviewMetrics();
+        });
+    }
+});
+
+// Window exports for review moderation, booking history, Excel export & custom dropdown
 window.openAdminAddReviewModal = openAdminAddReviewModal;
 window.openAdminEditReviewModal = openAdminEditReviewModal;
 window.closeAdminAddReviewModal = closeAdminAddReviewModal;
@@ -2433,6 +3430,13 @@ window.removeAdminRevAvatar = removeAdminRevAvatar;
 window.handleAdminAddReviewSubmit = handleAdminAddReviewSubmit;
 window.handleBookingStatusChange = handleBookingStatusChange;
 window.updateBookingStatus = updateBookingStatus;
+window.toggleStatusDropdownPortal = toggleStatusDropdownPortal;
+window.closeStatusDropdownPortal = closeStatusDropdownPortal;
+window.selectBookingStatusFromPortal = selectBookingStatusFromPortal;
+window.openEditAdminBookingModal = openEditAdminBookingModal;
+window.filterHistoryTable = filterHistoryTable;
+window.renderHistoryTable = renderHistoryTable;
+window.exportBookingHistoryExcel = exportBookingHistoryExcel;
 window.formatBookingDateRange = formatBookingDateRange;
 window.showAdminToast = showAdminToast;
 window.toggleAdminSidebar = toggleAdminSidebar;

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 namespace App\Http\Controllers\Api;
 
@@ -31,6 +31,10 @@ class OwnerConfigController extends Controller
                     'tiktok' => '@rentcarmakassar',
                     'is_holiday_pricing_active' => false,
                     'holiday_notes' => 'Tarif Musim Libur & Hari Besar Nasional (Peak Season)',
+                    'bank_name' => 'BCA',
+                    'bank_account_number' => '7890123456',
+                    'bank_account_holder' => 'RPM Rent Car Makassar',
+                    'qris_image' => null,
                 ]);
             }
 
@@ -52,6 +56,10 @@ class OwnerConfigController extends Controller
                     'operating_hours' => 'Buka 24 Jam Setiap Hari',
                     'is_holiday_pricing_active' => false,
                     'holiday_notes' => 'Tarif Musim Libur & Hari Besar Nasional (Peak Season)',
+                    'bank_name' => 'BCA',
+                    'bank_account_number' => '7890123456',
+                    'bank_account_holder' => 'RPM Rent Car Makassar',
+                    'qris_image' => null,
                 ],
             ]);
         }
@@ -79,6 +87,10 @@ class OwnerConfigController extends Controller
             'tiktok' => 'nullable|string|max:100',
             'is_holiday_pricing_active' => 'nullable|boolean',
             'holiday_notes' => 'nullable|string',
+            'bank_name' => 'nullable|string|max:100',
+            'bank_account_number' => 'nullable|string|max:100',
+            'bank_account_holder' => 'nullable|string|max:150',
+            'qris_image' => 'nullable|string',
         ]);
 
         $config->update($validated);

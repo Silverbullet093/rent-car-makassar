@@ -10,6 +10,7 @@ let state = {
     selectedCar: null,
     confirmedBookings: [],
     ktpImageBase64: null,
+    paymentProofBase64: null,
     reviewAvatarBase64: null,
     selectedReviewRating: 5,
     currentCategoryFilter: 'all',
@@ -152,7 +153,11 @@ async function initStorage() {
                         tiktok: c.tiktok
                     },
                     isHolidayPricingActive: !!c.is_holiday_pricing_active,
-                    holidayNotes: c.holiday_notes
+                    holidayNotes: c.holiday_notes,
+                    bankName: c.bank_name || state.ownerConfig.bankName || 'BCA',
+                    bankAccountNumber: c.bank_account_number || state.ownerConfig.bankAccountNumber || '7890123456',
+                    bankAccountHolder: c.bank_account_holder || state.ownerConfig.bankAccountHolder || 'RPM Rent Car Makassar',
+                    qrisImage: c.qris_image !== undefined ? (c.qris_image || '') : (state.ownerConfig.qrisImage || '')
                 };
                 localStorage.setItem('rcm_rent_config', JSON.stringify(state.ownerConfig));
             }
@@ -1026,33 +1031,50 @@ async function handleReviewSubmit(e) {
     alert("🎉 Terima kasih! Ulasan Anda telah berhasil dikirim.\n\nReview Anda akan ditampilkan di halaman utama website setelah diverifikasi dan disetujui oleh Admin kami.");
 }
 
-// Ambil Jadwal Booking Terkonfirmasi untuk Unit Mobil Ini
+// Helper Tanggal Lokal Hari Ini (YYYY-MM-DD) secara Real-Time
+function getTodayLocalStr() {
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}
+
+function isBookingScheduleActive(endDateStr, statusVal = 'confirmed') {
+    if (!endDateStr) return false;
+    const st = String(statusVal || '').toLowerCase();
+    if (st === 'completed' || st === 'cancelled' || st === 'dibatalkan') return false;
+    const cleanEnd = String(endDateStr).split('T')[0];
+    return cleanEnd >= getTodayLocalStr();
+}
+
+// Ambil Jadwal Booking Terkonfirmasi (Yang Masih Aktif / Belum Lewat Tanggal) untuk Unit Mobil Ini
 async function fetchConfirmedBookings(carId) {
     state.confirmedBookings = [];
     if (!carId) return [];
 
     let bookings = [];
 
-    // 1. Coba ambil dari Backend API Laravel
+    // 1. Coba ambil dari Backend API Laravel (hanya yang aktif / belum lewat tanggal)
     try {
-        const res = await fetch(`/api/bookings?car_id=${carId}&status=confirmed`);
+        const res = await fetch(`/api/bookings?car_id=${carId}&status=confirmed&active_only=1`);
         if (res.ok) {
             const json = await res.json();
             if (json.data && Array.isArray(json.data)) {
-                bookings = json.data;
+                bookings = json.data.filter(b => isBookingScheduleActive(b.end_date, b.status));
             }
         }
     } catch (e) {
         // Fallback jika API sedang tidak terjangkau
     }
 
-    // 2. Gabungkan dengan LocalStorage (sinkronisasi offline & realtime)
+    // 2. Gabungkan dengan LocalStorage (sinkronisasi offline & realtime), abaikan yang sudah lewat tanggal
     try {
         const saved = localStorage.getItem('rcm_rent_bookings');
         if (saved) {
             const localList = JSON.parse(saved);
             localList.forEach(lb => {
-                if ((lb.car_id == carId || lb.carId == carId) && lb.status === 'confirmed') {
+                const lbStatus = String(lb.status || '').toLowerCase();
+                const isConfirmed = (lbStatus === 'confirmed' || lbStatus === 'verifikasi' || lbStatus === 'dikonfirmasi');
+                if ((lb.car_id == carId || lb.carId == carId) && isConfirmed && isBookingScheduleActive(lb.end_date, lb.status)) {
                     const exists = bookings.some(b => b.id == lb.id || (b.booking_code && b.booking_code === lb.booking_code));
                     if (!exists) {
                         bookings.push(lb);
@@ -1062,18 +1084,21 @@ async function fetchConfirmedBookings(carId) {
         }
     } catch (e) {}
 
-    state.confirmedBookings = bookings;
-    return bookings;
+    state.confirmedBookings = bookings.filter(b => isBookingScheduleActive(b.end_date, b.status));
+    return state.confirmedBookings;
 }
 
-// Render Notifikasi Jadwal yang Sudah Dikonfirmasi pada Modal
+// Render Notifikasi Jadwal yang Sudah Dikonfirmasi pada Modal (Hanya yang Belum Lewat Tanggal)
 function renderConfirmedDatesNotice() {
     const noticeEl = document.getElementById('confirmedDatesNotice');
     const listEl = document.getElementById('confirmedDatesList');
     if (!noticeEl || !listEl) return;
 
-    if (state.confirmedBookings && state.confirmedBookings.length > 0) {
-        listEl.innerHTML = state.confirmedBookings.map(b => {
+    const activeConfirmed = (state.confirmedBookings || []).filter(b => isBookingScheduleActive(b.end_date, b.status));
+    state.confirmedBookings = activeConfirmed;
+
+    if (activeConfirmed.length > 0) {
+        listEl.innerHTML = activeConfirmed.map(b => {
             const startText = formatDisplayDate(b.start_date);
             const endText = formatDisplayDate(b.end_date);
             const cust = b.customer_name ? ` (${escapeHtml(b.customer_name)})` : '';
@@ -1092,7 +1117,7 @@ let calYearStart = 2026;
 let calMonthEnd = 9;
 let calYearEnd = 2026;
 
-// Fallback jadwal statis per model mobil (agar langsung terdata seperti di referensi)
+// Fallback jadwal statis per model mobil (otomatis difilter jika tanggal sudah lewat)
 const defaultBookedSchedules = {
     "Land Cruiser": [
         { start: "2026-10-18", end: "2026-10-21" }
@@ -1113,23 +1138,26 @@ function getCarBookedSchedules() {
     const car = state.selectedCar;
     if (!car) return [];
 
+    const todayStr = getTodayLocalStr();
     const schedules = [];
-    // 1. Ambil dari database / state.confirmedBookings
+    // 1. Ambil dari database / state.confirmedBookings (hanya jadwal yang belum lewat dari hari ini)
     if (state.confirmedBookings && state.confirmedBookings.length > 0) {
         state.confirmedBookings.forEach(b => {
-            if (b.start_date && b.end_date) {
+            if (b.start_date && b.end_date && isBookingScheduleActive(b.end_date, b.status)) {
                 const s = b.start_date.split('T')[0];
                 const e = b.end_date.split('T')[0];
-                schedules.push({ start: s, end: e });
+                if (e >= todayStr) {
+                    schedules.push({ start: s, end: e });
+                }
             }
         });
     }
 
-    // 2. Tambahkan default schedules jika cocok dengan nama model mobil
+    // 2. Tambahkan default schedules jika cocok dengan nama model mobil & belum lewat tanggal
     Object.keys(defaultBookedSchedules).forEach(key => {
         if (car.model && car.model.toLowerCase().includes(key.toLowerCase())) {
             defaultBookedSchedules[key].forEach(ds => {
-                if (!schedules.some(s => s.start === ds.start && s.end === ds.end)) {
+                if (ds.end >= todayStr && !schedules.some(s => s.start === ds.start && s.end === ds.end)) {
                     schedules.push(ds);
                 }
             });
@@ -1359,7 +1387,23 @@ async function openBookingModal(carId) {
 
     state.selectedCar = car;
     state.ktpImageBase64 = null;
+    state.paymentProofBase64 = null;
     resetKtpPreview();
+    resetPaymentProofPreview();
+
+    // Reset Opsi Pembayaran ke default (Bayar Lunas di Awal + Transfer)
+    const defaultPayType = document.querySelector('input[name="paymentType"][value="lunas_awal"]');
+    if (defaultPayType) defaultPayType.checked = true;
+    const defaultPayMethod = document.querySelector('input[name="paymentMethod"][value="transfer"]');
+    if (defaultPayMethod) defaultPayMethod.checked = true;
+    const dpInput = document.getElementById('bookDpAmount');
+    if (dpInput) {
+        dpInput.value = '';
+        delete dpInput.dataset.userEdited;
+    }
+    renderPaymentConfigInModal();
+    handlePaymentTypeChange();
+    handlePaymentMethodChange();
 
     const modal = document.getElementById('bookingModal');
 
@@ -1421,17 +1465,24 @@ async function openBookingModal(carId) {
     if (startDateInput) startDateInput.value = todayStr;
     if (endDateInput) endDateInput.value = nextDayStr;
 
-    // Ambil jadwal terkonfirmasi dari database
-    await fetchConfirmedBookings(car.id);
+    // Tampilkan modal secara INSTAN tanpa menunggu jaringan (zero delay / anti-lag)
     renderConfirmedDatesNotice();
-
-    // Render kalender untuk unit mobil yang dipilih
     renderBookingCalendar('start');
     renderBookingCalendar('end');
     calculateBookingPrice();
     checkDateConflict();
 
     if (modal) modal.classList.remove('hidden');
+
+    // Ambil jadwal terkonfirmasi dari database secara asynchronous di latar belakang
+    fetchConfirmedBookings(car.id).then(() => {
+        if (state.selectedCar && state.selectedCar.id === car.id) {
+            renderConfirmedDatesNotice();
+            renderBookingCalendar('start');
+            renderBookingCalendar('end');
+            checkDateConflict();
+        }
+    }).catch(() => {});
 }
 
 // Tutup Modal Pemesanan
@@ -1440,6 +1491,26 @@ function closeBookingModal() {
     if (modal) modal.classList.add('hidden');
     closeBookingCalendars();
 }
+
+// Sinkronisasi Real-Time pada Form Pemesanan agar booking yang sudah lewat tanggal otomatis hilang
+function refreshBookingModalSchedulesRealtime() {
+    const modal = document.getElementById('bookingModal');
+    if (!modal || modal.classList.contains('hidden') || !state.selectedCar) return;
+    fetchConfirmedBookings(state.selectedCar.id).then(() => {
+        renderConfirmedDatesNotice();
+        renderBookingCalendar('start');
+        renderBookingCalendar('end');
+        checkDateConflict();
+    }).catch(() => {});
+}
+
+setInterval(refreshBookingModalSchedulesRealtime, 15000);
+window.addEventListener('focus', refreshBookingModalSchedulesRealtime);
+window.addEventListener('storage', (e) => {
+    if (!e.key || e.key === 'rcm_rent_bookings') {
+        refreshBookingModalSchedulesRealtime();
+    }
+});
 
 // Listener untuk menutup kalender jika klik di luar
 document.addEventListener('click', function(e) {
@@ -1535,6 +1606,196 @@ function resetKtpPreview() {
     if (fileNameEl) fileNameEl.textContent = '';
 }
 
+// Render Info Rekening & QRIS dari Konfigurasi Owner ke Modal Pemesanan
+function renderPaymentConfigInModal() {
+    const cfg = state.ownerConfig || {};
+    const bankNameEl = document.getElementById('displayBankName');
+    const bankNumEl = document.getElementById('displayBankNumber');
+    const bankHolderEl = document.getElementById('displayBankHolder');
+    const qrisImgEl = document.getElementById('displayQrisImage');
+    const qrisEmptyEl = document.getElementById('qrisEmptyNotice');
+
+    if (bankNameEl) bankNameEl.textContent = cfg.bankName || 'BCA';
+    if (bankNumEl) bankNumEl.textContent = cfg.bankAccountNumber || '7890123456';
+    if (bankHolderEl) bankHolderEl.textContent = cfg.bankAccountHolder || cfg.businessName || 'RPM Rent Car Makassar';
+
+    if (qrisImgEl && qrisEmptyEl) {
+        if (cfg.qrisImage && cfg.qrisImage.length > 20) {
+            qrisImgEl.src = cfg.qrisImage;
+            qrisImgEl.classList.remove('hidden');
+            qrisEmptyEl.classList.add('hidden');
+        } else {
+            qrisImgEl.src = '';
+            qrisImgEl.classList.add('hidden');
+            qrisEmptyEl.classList.remove('hidden');
+        }
+    }
+}
+
+// Salin Nomor Rekening ke Clipboard
+function copyBankAccountNumber() {
+    const cfg = state.ownerConfig || {};
+    const accNum = cfg.bankAccountNumber || document.getElementById('displayBankNumber')?.textContent || '7890123456';
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(accNum.trim()).then(() => {
+            const btnTxt = document.getElementById('copyBankBtnText');
+            if (btnTxt) {
+                const old = btnTxt.textContent;
+                btnTxt.textContent = '✓ Tersalin!';
+                setTimeout(() => { btnTxt.textContent = old; }, 2000);
+            }
+        }).catch(() => {});
+    }
+}
+
+// Handler Perubahan Opsi Pembayaran (DP / Bayar Lunas di Awal / Bayar di Akhir)
+function handlePaymentTypeChange() {
+    const payType = document.querySelector('input[name="paymentType"]:checked')?.value || 'lunas_awal';
+    const dpAmountBox = document.getElementById('dpAmountBox');
+    const paymentMethodSection = document.getElementById('paymentMethodSection');
+    const waNoticeText = document.getElementById('whatsappPaymentNoticeText');
+
+    // Update highlight border radio cards
+    const lblDp = document.getElementById('labelPayTypeDp');
+    const lblLunas = document.getElementById('labelPayTypeLunas');
+    const lblAkhir = document.getElementById('labelPayTypeAkhir');
+    [lblDp, lblLunas, lblAkhir].forEach(el => {
+        if (el) {
+            el.style.borderColor = 'var(--clr-border)';
+            el.style.background = '#f8fafc';
+        }
+    });
+    const activeLbl = payType === 'dp' ? lblDp : (payType === 'lunas_awal' ? lblLunas : lblAkhir);
+    if (activeLbl) {
+        activeLbl.style.borderColor = '#dc2626';
+        activeLbl.style.background = '#fef2f2';
+    }
+
+    if (payType === 'dp') {
+        if (dpAmountBox) dpAmountBox.classList.remove('hidden');
+        if (paymentMethodSection) paymentMethodSection.classList.remove('hidden');
+        if (waNoticeText) {
+            waNoticeText.innerHTML = '<strong>Permintaan Pembayaran DP via WhatsApp:</strong><br>Silakan lakukan pembayaran DP melalui Transfer Bank atau QRIS di atas. Upload bukti bayar bersifat <strong>opsional</strong> (Anda juga dapat meminta instruksi atau mengirim bukti bayar langsung via WhatsApp Admin).';
+        }
+    } else if (payType === 'lunas_awal') {
+        if (dpAmountBox) dpAmountBox.classList.add('hidden');
+        if (paymentMethodSection) paymentMethodSection.classList.remove('hidden');
+        if (waNoticeText) {
+            waNoticeText.innerHTML = '<strong>Permintaan Pembayaran Lunas di Awal via WhatsApp:</strong><br>Silakan lakukan pembayaran melalui Transfer Bank atau QRIS di atas. Upload bukti bayar bersifat <strong>opsional</strong> (Anda juga dapat meminta instruksi atau mengirim bukti bayar langsung via WhatsApp Admin).';
+        }
+    } else {
+        // bayar_akhir: sembunyikan metode pembayaran (TF/QRIS) dan upload bukti bayar
+        if (dpAmountBox) dpAmountBox.classList.add('hidden');
+        if (paymentMethodSection) paymentMethodSection.classList.add('hidden');
+        if (waNoticeText) {
+            waNoticeText.innerHTML = '<strong>Keterangan Permintaan Pembayaran via WhatsApp (Bayar di Akhir):</strong><br>Anda memilih opsi <strong>Bayar di Akhir</strong>. Tidak perlu transfer atau upload bukti bayar sekarang. Permintaan konfirmasi jadwal & rincian tagihan pembayaran akan dikirimkan melalui WhatsApp Admin.';
+        }
+    }
+
+    calculateBookingPrice();
+}
+
+// Handler Perubahan Metode Pembayaran (Transfer Bank / QRIS)
+function handlePaymentMethodChange() {
+    const method = document.querySelector('input[name="paymentMethod"]:checked')?.value || 'transfer';
+    const tfInfo = document.getElementById('paymentTransferInfo');
+    const qrisInfo = document.getElementById('paymentQrisInfo');
+    const lblTf = document.getElementById('labelMethodTf');
+    const lblQris = document.getElementById('labelMethodQris');
+
+    if (method === 'qris') {
+        if (tfInfo) tfInfo.classList.add('hidden');
+        if (qrisInfo) qrisInfo.classList.remove('hidden');
+        if (lblQris) lblQris.style.borderColor = '#dc2626';
+        if (lblTf) lblTf.style.borderColor = 'var(--clr-border)';
+    } else {
+        if (tfInfo) tfInfo.classList.remove('hidden');
+        if (qrisInfo) qrisInfo.classList.add('hidden');
+        if (lblTf) lblTf.style.borderColor = '#dc2626';
+        if (lblQris) lblQris.style.borderColor = 'var(--clr-border)';
+    }
+}
+
+// Set Cepat Persentase DP (30% atau 50%)
+function setDpPercentage(pct) {
+    const dpInput = document.getElementById('bookDpAmount');
+    if (!dpInput) return;
+    const total = state.currentGrandTotal || 400000;
+    const calcDp = Math.round((total * pct) / 100);
+    dpInput.value = calcDp;
+    dpInput.dataset.userEdited = 'true';
+    calculateBookingPrice();
+}
+
+// Upload Bukti Pembayaran (Opsional) dengan Kompresi Canvas
+function handlePaymentProofUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+        alert("Ukuran file bukti pembayaran terlalu besar. Maksimal 10MB.");
+        e.target.value = '';
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function (event) {
+        const rawBase64 = event.target.result;
+        const tempImg = new Image();
+        tempImg.onload = function () {
+            const canvas = document.createElement('canvas');
+            let width = tempImg.width;
+            let height = tempImg.height;
+            const maxDim = 1200;
+            if (width > maxDim || height > maxDim) {
+                if (width > height) {
+                    height = Math.round((height * maxDim) / width);
+                    width = maxDim;
+                } else {
+                    width = Math.round((width * maxDim) / height);
+                    height = maxDim;
+                }
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(tempImg, 0, 0, width, height);
+            const compressed = canvas.toDataURL('image/jpeg', 0.85);
+
+            state.paymentProofBase64 = compressed;
+
+            const promptEl = document.getElementById('paymentProofUploadPrompt');
+            const containerEl = document.getElementById('paymentProofPreviewContainer');
+            const previewImg = document.getElementById('paymentProofPreviewImg');
+            const fileNameEl = document.getElementById('paymentProofFileName');
+
+            if (promptEl) promptEl.classList.add('hidden');
+            if (containerEl) containerEl.classList.remove('hidden');
+            if (previewImg) previewImg.src = compressed;
+            if (fileNameEl) fileNameEl.textContent = `${file.name} (Bukti Bayar Siap Dikirim)`;
+        };
+        tempImg.src = rawBase64;
+    };
+    reader.readAsDataURL(file);
+}
+
+// Reset Preview Bukti Pembayaran
+function resetPaymentProofPreview() {
+    state.paymentProofBase64 = null;
+    const input = document.getElementById('bookPaymentProofInput');
+    if (input) input.value = '';
+
+    const promptEl = document.getElementById('paymentProofUploadPrompt');
+    const containerEl = document.getElementById('paymentProofPreviewContainer');
+    const previewImg = document.getElementById('paymentProofPreviewImg');
+    const fileNameEl = document.getElementById('paymentProofFileName');
+
+    if (promptEl) promptEl.classList.remove('hidden');
+    if (containerEl) containerEl.classList.add('hidden');
+    if (previewImg) previewImg.src = '';
+    if (fileNameEl) fileNameEl.textContent = '';
+}
+
 // Kalkulasi Total Harga Sewa & Supir
 function calculateBookingPrice() {
     const selectedId = document.getElementById('bookCarSelect')?.value;
@@ -1570,6 +1831,10 @@ function calculateBookingPrice() {
     }
 
     const grandTotal = carTotal + driverTotal;
+    state.currentGrandTotal = grandTotal;
+
+    const daysLabelEl = document.getElementById('calcDaysLabel');
+    if (daysLabelEl) daysLabelEl.textContent = `${days} Hari`;
 
     // Update UI Kalkulasi
     const dailyEl = document.getElementById('calcDailyRate');
@@ -1592,6 +1857,33 @@ function calculateBookingPrice() {
 
     const grandTotalEl = document.getElementById('calcGrandTotal');
     if (grandTotalEl) grandTotalEl.textContent = formatRupiah(grandTotal);
+
+    // Hitung Nominal Pembayaran (DP vs Lunas di Awal vs Bayar di Akhir)
+    const payType = document.querySelector('input[name="paymentType"]:checked')?.value || 'lunas_awal';
+    const dpInput = document.getElementById('bookDpAmount');
+    const dpSummaryRow = document.getElementById('calcDpSummaryRow');
+    const dpDisplayEl = document.getElementById('calcDpDisplay');
+    const remDisplayEl = document.getElementById('calcRemainingDisplay');
+    const tfAmountEl = document.getElementById('displayTransferAmount');
+    const qrisAmountEl = document.getElementById('displayQrisAmount');
+
+    if (payType === 'dp') {
+        if (dpInput && (!dpInput.value || !dpInput.dataset.userEdited)) {
+            dpInput.value = Math.round(grandTotal * 0.5);
+        }
+        const dpVal = Math.max(0, Math.min(grandTotal, parseFloat(dpInput?.value) || Math.round(grandTotal * 0.5)));
+        const remainingVal = Math.max(0, grandTotal - dpVal);
+
+        if (dpSummaryRow) dpSummaryRow.classList.remove('hidden');
+        if (dpDisplayEl) dpDisplayEl.textContent = formatRupiah(dpVal);
+        if (remDisplayEl) remDisplayEl.textContent = formatRupiah(remainingVal);
+        if (tfAmountEl) tfAmountEl.textContent = `${formatRupiah(dpVal)} (DP)`;
+        if (qrisAmountEl) qrisAmountEl.textContent = `${formatRupiah(dpVal)} (DP)`;
+    } else {
+        if (dpSummaryRow) dpSummaryRow.classList.add('hidden');
+        if (tfAmountEl) tfAmountEl.textContent = `${formatRupiah(grandTotal)} (Lunas)`;
+        if (qrisAmountEl) qrisAmountEl.textContent = `${formatRupiah(grandTotal)} (Lunas)`;
+    }
 }
 
 // Handle Submit Formulir Pemesanan ke WhatsApp & Database Booking
@@ -1666,6 +1958,17 @@ async function handleBookingSubmit(e) {
     const grandTotal = carTotal + driverTotal;
     const generatedCode = 'RCM-' + Math.random().toString(36).substring(2, 8).toUpperCase();
 
+    // Ambil data opsi pembayaran, metode pembayaran, nominal DP, dan bukti bayar
+    const paymentType = document.querySelector('input[name="paymentType"]:checked')?.value || 'lunas_awal';
+    const paymentMethod = paymentType === 'bayar_akhir'
+        ? null
+        : (document.querySelector('input[name="paymentMethod"]:checked')?.value || 'transfer');
+    const dpAmountVal = paymentType === 'dp'
+        ? (parseFloat(document.getElementById('bookDpAmount')?.value) || Math.round(grandTotal * 0.5))
+        : 0;
+    const remainingAmountVal = paymentType === 'dp' ? Math.max(0, grandTotal - dpAmountVal) : 0;
+    const paymentProofData = paymentType === 'bayar_akhir' ? null : (state.paymentProofBase64 || null);
+
     const newBookingObj = {
         id: Date.now().toString(),
         booking_code: generatedCode,
@@ -1680,9 +1983,13 @@ async function handleBookingSubmit(e) {
         driver_label: isWithDriver ? '+Supir' : 'Tanpa Supir',
         with_driver: isWithDriver,
         total_price: grandTotal,
+        payment_type: paymentType,
+        payment_method: paymentMethod,
+        dp_amount: dpAmountVal,
         status: 'pending', // Status awal: Menunggu Konfirmasi
         notes: notes,
-        ktp_image: state.ktpImageBase64 || null
+        ktp_image: state.ktpImageBase64 || null,
+        payment_proof: paymentProofData
     };
 
     // 1. Simpan ke LocalStorage agar langsung tampil di Dashboard Admin Data Booking
@@ -1719,9 +2026,13 @@ async function handleBookingSubmit(e) {
                 driver_option: isWithDriver ? 'with_driver' : 'without_driver',
                 with_driver: isWithDriver,
                 total_price: grandTotal,
+                payment_type: paymentType,
+                payment_method: paymentMethod,
+                dp_amount: dpAmountVal,
                 status: 'pending',
                 notes: notes,
-                ktp_image: state.ktpImageBase64 || null
+                ktp_image: state.ktpImageBase64 || null,
+                payment_proof: paymentProofData
             })
         });
 
@@ -1753,8 +2064,34 @@ async function handleBookingSubmit(e) {
         console.warn('Simpan ke backend offline/fallback:', apiErr);
     }
 
-    // 3. Format Pesan WhatsApp Super Rapi & Menarik
+    // 3. Format Pesan WhatsApp Super Rapi & Menarik (Termasuk Rincian & Permintaan Pembayaran)
     const cfg = state.ownerConfig;
+    const paymentTypeLabel = paymentType === 'dp'
+        ? 'DP (Uang Muka di Awal)'
+        : (paymentType === 'lunas_awal' ? 'Bayar Lunas di Awal' : 'Bayar di Akhir (Saat Selesai / Serah Terima)');
+
+    const bankInfoStr = `${cfg.bankName || 'BCA'} ${cfg.bankAccountNumber || '7890123456'} a.n ${cfg.bankAccountHolder || cfg.businessName || 'RPM Rent Car Makassar'}`;
+    const methodLabel = paymentMethod === 'qris'
+        ? 'QRIS (Scan Barcode Resmi)'
+        : `Transfer Bank (${bankInfoStr})`;
+
+    let paymentDetailsWa = `💳 *RINCIAN & PERMINTAAN PEMBAYARAN:*\n• Skema Pembayaran: *${paymentTypeLabel}*\n`;
+    if (paymentType === 'dp') {
+        paymentDetailsWa += `• Nominal DP Awal: *${formatRupiah(dpAmountVal)}*\n`;
+        paymentDetailsWa += `• Sisa Pelunasan: *${formatRupiah(remainingAmountVal)}*\n`;
+        paymentDetailsWa += `• Metode Pembayaran: ${methodLabel}\n`;
+        paymentDetailsWa += `• Status Bukti Bayar: ${paymentProofData ? '✅ Sudah Diupload di Form Website' : '⏳ Belum Diupload (Mohon konfirmasi / kirim bukti via WhatsApp)'}\n`;
+        paymentDetailsWa += `• Keterangan: _Mohon konfirmasi permintaan pembayaran DP ini via WhatsApp._`;
+    } else if (paymentType === 'lunas_awal') {
+        paymentDetailsWa += `• Total Dibayar Lunas: *${formatRupiah(grandTotal)}*\n`;
+        paymentDetailsWa += `• Metode Pembayaran: ${methodLabel}\n`;
+        paymentDetailsWa += `• Status Bukti Bayar: ${paymentProofData ? '✅ Sudah Diupload di Form Website' : '⏳ Belum Diupload (Mohon konfirmasi / kirim bukti via WhatsApp)'}\n`;
+        paymentDetailsWa += `• Keterangan: _Mohon konfirmasi permintaan pembayaran Lunas di Awal ini via WhatsApp._`;
+    } else {
+        paymentDetailsWa += `• Total Tagihan Akhir: *${formatRupiah(grandTotal)}*\n`;
+        paymentDetailsWa += `• Keterangan: _Pembayaran dilakukan di akhir / saat serah terima unit. Mohon konfirmasi permintaan pembayaran & jadwal pesanan via WhatsApp._`;
+    }
+
     const message = `
 *FORMULIR PEMESANAN RENTAL MOBIL*
 _Rent Car Makassar — Booking System_
@@ -1778,10 +2115,12 @@ ${pickupLoc ? `• Lokasi Penjemputan: ${pickupLoc}\n` : ''}
 • Tarif Sewa Unit (${diffDays} Hari): ${formatRupiah(carTotal)}
 ${isWithDriver ? `• Biaya Supir (${diffDays} Hari): ${formatRupiah(driverTotal)}\n` : ''}• *GRAND TOTAL BIAYA: ${formatRupiah(grandTotal)}*
 ${isHoliday ? `_(Catatan: Menggunakan Tarif Peak Season / Liburan)_\n` : ''}
+${paymentDetailsWa}
+
 📝 *CATATAN TAMBAHAN:*
 ${notes ? notes : '-'}
 
-Halo Admin ${cfg.businessName || 'Rent Car Makassar'}, mohon proses pesanan rental mobil saya di atas. KTP dan dokumen pendukung sudah siap dikonfirmasi. Terima kasih!
+Halo Admin ${cfg.businessName || 'Rent Car Makassar'}, mohon proses pesanan & permintaan pembayaran rental mobil saya di atas. KTP dan data pemesanan sudah siap dikonfirmasi. Terima kasih!
 `.trim();
 
     const encodedMsg = encodeURIComponent(message);
@@ -1859,38 +2198,38 @@ function closeMobileMenu() {
     document.body.style.overflow = '';
 }
 
-// Scroll Effects (Header Glass, Scroll Progress Bar & Back to Top)
+// Scroll Effects (Header Glass & Back to Top - Optimized with requestAnimationFrame)
 function initScrollEffects() {
     const header = document.querySelector('.header-glass');
     const backToTopBtn = document.getElementById('backToTopBtn');
-    const progressBar = document.getElementById('scrollProgressBar');
+    let ticking = false;
 
     window.addEventListener('scroll', () => {
-        const scrollY = window.scrollY || window.pageYOffset;
-        const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
+        if (!ticking) {
+            window.requestAnimationFrame(() => {
+                const scrollY = window.scrollY || window.pageYOffset;
 
-        // 1. Progress Bar Scroll
-        if (progressBar && totalHeight > 0) {
-            const scrollPercent = Math.min((scrollY / totalHeight) * 100, 100);
-            progressBar.style.width = `${scrollPercent}%`;
-        }
+                // 1. Header Glass Effect
+                if (header) {
+                    if (scrollY > 30) {
+                        header.classList.add('header-scrolled');
+                    } else {
+                        header.classList.remove('header-scrolled');
+                    }
+                }
 
-        // 2. Header Glass Effect
-        if (header) {
-            if (scrollY > 30) {
-                header.classList.add('header-scrolled');
-            } else {
-                header.classList.remove('header-scrolled');
-            }
-        }
+                // 2. Floating Back to Top Button
+                if (backToTopBtn) {
+                    if (scrollY > 400) {
+                        backToTopBtn.classList.remove('hidden');
+                    } else {
+                        backToTopBtn.classList.add('hidden');
+                    }
+                }
 
-        // 3. Floating Back to Top Button
-        if (backToTopBtn) {
-            if (scrollY > 400) {
-                backToTopBtn.classList.remove('hidden');
-            } else {
-                backToTopBtn.classList.add('hidden');
-            }
+                ticking = false;
+            });
+            ticking = true;
         }
     }, { passive: true });
 }
@@ -1989,6 +2328,14 @@ document.addEventListener('DOMContentLoaded', () => {
         ktpInput.addEventListener('change', handleKtpUpload);
     }
 
+    const dpInput = document.getElementById('bookDpAmount');
+    if (dpInput) {
+        dpInput.addEventListener('input', () => {
+            dpInput.dataset.userEdited = 'true';
+            calculateBookingPrice();
+        });
+    }
+
     const reviewAvatarInput = document.getElementById('reviewAvatarInput');
     if (reviewAvatarInput) {
         reviewAvatarInput.addEventListener('change', handleReviewAvatarUpload);
@@ -2001,6 +2348,12 @@ state.cars = [...DEFAULT_CARS];
 window.submitBookingWhatsApp = handleBookingSubmit;
 window.handleBookingSubmit = handleBookingSubmit;
 window.resetKtpPreview = resetKtpPreview;
+window.resetPaymentProofPreview = resetPaymentProofPreview;
+window.handlePaymentProofUpload = handlePaymentProofUpload;
+window.handlePaymentTypeChange = handlePaymentTypeChange;
+window.handlePaymentMethodChange = handlePaymentMethodChange;
+window.setDpPercentage = setDpPercentage;
+window.copyBankAccountNumber = copyBankAccountNumber;
 window.checkDateConflict = checkDateConflict;
 window.openBookingModal = openBookingModal;
 window.closeBookingModal = closeBookingModal;

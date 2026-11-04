@@ -24,6 +24,10 @@ class OwnerConfig extends Model
         'tiktok',
         'is_holiday_pricing_active',
         'holiday_notes',
+        'bank_name',
+        'bank_account_number',
+        'bank_account_holder',
+        'qris_image',
     ];
 
     protected $casts = [

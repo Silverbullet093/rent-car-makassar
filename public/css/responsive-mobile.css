@@ -989,15 +989,7 @@
    ========================================================================== */
 
 #scrollProgressBar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    height: 3px;
-    width: 0%;
-    background: linear-gradient(90deg, #dc2626 0%, #ef4444 50%, #f59e0b 100%);
-    z-index: 99999;
-    transition: width 0.1s ease-out;
-    box-shadow: 0 0 10px rgba(220, 38, 38, 0.6);
+    display: none !important;
 }
 
 /* 2. Glassmorphism Header when Scrolled */

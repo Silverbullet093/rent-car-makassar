@@ -15,7 +15,11 @@ const DEFAULT_OWNER_CONFIG = {
         tiktok: "@rentcarmakassar"
     },
     isHolidayPricingActive: false,
-    holidayNotes: "Tarif Musim Libur & Hari Besar Nasional (Peak Season)"
+    holidayNotes: "Tarif Musim Libur & Hari Besar Nasional (Peak Season)",
+    bankName: "BCA",
+    bankAccountNumber: "7890123456",
+    bankAccountHolder: "RPM Rent Car Makassar",
+    qrisImage: ""
 };
 
 const DEFAULT_CARS = [

@@ -21,9 +21,6 @@
 </head>
 <body style="overflow-x: hidden;">
 
-    <!-- TOP SCROLL PROGRESS BAR (EFEK INDIKATOR BACA/SCROLL MODERN) -->
-    <div id="scrollProgressBar"></div>
-
     <!-- ANNOUNCEMENT BANNER: TARIF LIBUR / PEAK SEASON (JIKA AKTIF) -->
     <div id="holidayAlertBanner" class="hidden" style="background-color: var(--clr-primary); color: white; font-size: 0.75rem; padding: 0.5rem 1rem; text-align: center; font-weight: 700;">
         <span id="holidayBannerText">Mode Tarif Hari Libur / Peak Season Sedang Aktif</span>
@@ -759,6 +756,167 @@
                         <div style="padding-top: 0.75rem; margin-top: 0.75rem; border-top: 1px solid #1e293b; display: flex; align-items: baseline; justify-content: space-between;">
                             <span style="font-size: 0.8125rem; color: #94a3b8;">Total Biaya:</span>
                             <span id="calcGrandTotal" style="font-size: 1.5rem; font-weight: 800; color: white;">Rp 400.000</span>
+                        </div>
+                        <div id="calcDpSummaryRow" class="hidden" style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px dashed #334155; display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.78rem;">
+                            <div style="display: flex; justify-content: space-between; color: #fde047;">
+                                <span>Nominal DP Dibayar Awal:</span>
+                                <span id="calcDpDisplay" style="font-weight: 800;">Rp 200.000</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; color: #94a3b8;">
+                                <span>Sisa Pelunasan:</span>
+                                <span id="calcRemainingDisplay" style="color: #f8fafc; font-weight: 700;">Rp 200.000</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PILIHAN OPSI PEMBAYARAN (DP / LUNAS DI AWAL / BAYAR DI AKHIR) -->
+                    <div class="form-group">
+                        <label class="form-label">Opsi Pembayaran <span style="color: var(--clr-rose);">*</span></label>
+                        <div class="grid sm:grid-cols-3 gap-2">
+                            <label id="labelPayTypeDp" style="display: flex; align-items: flex-start; padding: 0.75rem; border: 1.5px solid var(--clr-border); border-radius: var(--radius-md); cursor: pointer; background: #f8fafc; transition: all 0.2s;">
+                                <input type="radio" name="paymentType" value="dp" onchange="handlePaymentTypeChange()" style="margin-right: 0.5rem; margin-top: 0.2rem;" />
+                                <div>
+                                    <div style="font-size: 0.8125rem; font-weight: 800; color: var(--clr-text-main);">DP (Uang Muka)</div>
+                                    <div style="font-size: 0.68rem; color: var(--clr-text-subtle); line-height: 1.3; margin-top: 0.1rem;">Bayar DP di awal untuk kunci jadwal</div>
+                                </div>
+                            </label>
+
+                            <label id="labelPayTypeLunas" style="display: flex; align-items: flex-start; padding: 0.75rem; border: 1.5px solid #dc2626; border-radius: var(--radius-md); cursor: pointer; background: #fef2f2; transition: all 0.2s;">
+                                <input type="radio" name="paymentType" value="lunas_awal" checked onchange="handlePaymentTypeChange()" style="margin-right: 0.5rem; margin-top: 0.2rem;" />
+                                <div>
+                                    <div style="font-size: 0.8125rem; font-weight: 800; color: var(--clr-text-main);">Bayar Lunas di Awal</div>
+                                    <div style="font-size: 0.68rem; color: var(--clr-emerald); font-weight: 700; line-height: 1.3; margin-top: 0.1rem;">Langsung lunas penuh di awal</div>
+                                </div>
+                            </label>
+
+                            <label id="labelPayTypeAkhir" style="display: flex; align-items: flex-start; padding: 0.75rem; border: 1.5px solid var(--clr-border); border-radius: var(--radius-md); cursor: pointer; background: #f8fafc; transition: all 0.2s;">
+                                <input type="radio" name="paymentType" value="bayar_akhir" onchange="handlePaymentTypeChange()" style="margin-right: 0.5rem; margin-top: 0.2rem;" />
+                                <div>
+                                    <div style="font-size: 0.8125rem; font-weight: 800; color: var(--clr-text-main);">Bayar di Akhir</div>
+                                    <div style="font-size: 0.68rem; color: var(--clr-text-subtle); line-height: 1.3; margin-top: 0.1rem;">Bayar saat unit selesai / serah terima</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- INPUT NOMINAL DP (MUNCUL JIKA PILIH DP) -->
+                    <div id="dpAmountBox" class="form-group hidden" style="background: #fffbeb; border: 1px solid #fde68a; padding: 0.875rem; border-radius: var(--radius-md);">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.4rem; flex-wrap: wrap; gap: 0.35rem;">
+                            <label class="form-label" style="margin-bottom: 0; color: #92400e; font-weight: 800;">Nominal DP / Uang Muka (Rp)</label>
+                            <div style="display: flex; gap: 0.35rem;">
+                                <button type="button" onclick="setDpPercentage(30)" style="font-size: 0.68rem; padding: 0.15rem 0.5rem; border-radius: 4px; border: 1px solid #f59e0b; background: #ffffff; color: #b45309; font-weight: 700; cursor: pointer;">DP 30%</button>
+                                <button type="button" onclick="setDpPercentage(50)" style="font-size: 0.68rem; padding: 0.15rem 0.5rem; border-radius: 4px; border: 1px solid #f59e0b; background: #f59e0b; color: #ffffff; font-weight: 700; cursor: pointer;">DP 50%</button>
+                            </div>
+                        </div>
+                        <input type="number" id="bookDpAmount" placeholder="Masukkan nominal DP (Contoh: 300000)" class="form-input" style="background: #ffffff; font-weight: 800; color: #0f172a;" oninput="calculateBookingPrice()" />
+                        <div style="font-size: 0.7rem; color: #b45309; margin-top: 0.35rem;">
+                            💡 Anda dapat mengisi nominal DP sesuai kesepakatan (Default: 50% dari total biaya sewa).
+                        </div>
+                    </div>
+
+                    <!-- METODE PEMBAYARAN (TF / QRIS) & UPLOAD BUKTI BAYAR (HANYA MUNCUL UNTUK DP & LUNAS DI AWAL) -->
+                    <div id="paymentMethodSection" class="flex flex-col gap-3" style="background: #f8fafc; border: 1px solid var(--clr-border); border-radius: var(--radius-lg); padding: 1rem;">
+                        <div>
+                            <label class="form-label" style="margin-bottom: 0.5rem;">Metode Pembayaran <span style="color: var(--clr-rose);">*</span></label>
+                            <div class="grid sm:grid-cols-2 gap-2">
+                                <label id="labelMethodTf" style="display: flex; align-items: center; padding: 0.7rem 0.85rem; border: 1.5px solid #dc2626; border-radius: var(--radius-md); cursor: pointer; background: #ffffff;">
+                                    <input type="radio" name="paymentMethod" value="transfer" checked onchange="handlePaymentMethodChange()" style="margin-right: 0.5rem;" />
+                                    <div>
+                                        <div style="font-size: 0.8125rem; font-weight: 800; color: var(--clr-text-main);">🏦 Transfer Bank (TF)</div>
+                                        <div style="font-size: 0.68rem; color: var(--clr-text-subtle);">Transfer ke nomor rekening resmi</div>
+                                    </div>
+                                </label>
+
+                                <label id="labelMethodQris" style="display: flex; align-items: center; padding: 0.7rem 0.85rem; border: 1.5px solid var(--clr-border); border-radius: var(--radius-md); cursor: pointer; background: #ffffff;">
+                                    <input type="radio" name="paymentMethod" value="qris" onchange="handlePaymentMethodChange()" style="margin-right: 0.5rem;" />
+                                    <div>
+                                        <div style="font-size: 0.8125rem; font-weight: 800; color: var(--clr-text-main);">📱 QRIS (Scan Barcode)</div>
+                                        <div style="font-size: 0.68rem; color: var(--clr-text-subtle);">Semua E-Wallet & Mobile Banking</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Info Rekening Transfer Bank -->
+                        <div id="paymentTransferInfo" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: var(--radius-md); padding: 0.875rem;">
+                            <div style="font-size: 0.72rem; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.4rem;">
+                                Rekening Tujuan Transfer
+                            </div>
+                            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+                                <div>
+                                    <div style="display: flex; align-items: center; gap: 0.4rem;">
+                                        <span id="displayBankName" style="background: #1e3a8a; color: #ffffff; font-size: 0.7rem; font-weight: 800; padding: 0.15rem 0.5rem; border-radius: 4px;">BCA</span>
+                                        <span id="displayBankNumber" style="font-size: 1.05rem; font-weight: 800; color: #0f172a; font-family: monospace; letter-spacing: 0.03em;">7890123456</span>
+                                    </div>
+                                    <div style="font-size: 0.75rem; color: #475569; margin-top: 0.2rem;">
+                                        a.n <strong id="displayBankHolder" style="color: #0f172a;">RPM Rent Car Makassar</strong>
+                                    </div>
+                                </div>
+                                <button type="button" onclick="copyBankAccountNumber()" class="btn btn-outline btn-sm" style="font-size: 0.72rem; padding: 0.35rem 0.65rem; display: inline-flex; align-items: center; gap: 0.3rem;">
+                                    <i class="fa-regular fa-copy"></i>
+                                    <span id="copyBankBtnText">Salin No. Rek</span>
+                                </button>
+                            </div>
+                            <div style="margin-top: 0.6rem; padding-top: 0.5rem; border-top: 1px dashed #e2e8f0; display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem;">
+                                <span style="color: #64748b;">Nominal yang perlu ditransfer:</span>
+                                <strong id="displayTransferAmount" style="color: #dc2626; font-size: 0.9rem;">Rp 400.000</strong>
+                            </div>
+                        </div>
+
+                        <!-- Info Barcode QRIS -->
+                        <div id="paymentQrisInfo" class="hidden" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: var(--radius-md); padding: 0.875rem; text-align: center;">
+                            <div style="font-size: 0.72rem; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.5rem;">
+                                Scan Kode QRIS Resmi
+                            </div>
+                            <div id="qrisImageContainer" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem;">
+                                <img id="displayQrisImage" src="" alt="QRIS Pembayaran" style="max-height: 13rem; max-width: 100%; object-fit: contain; border-radius: var(--radius-md); border: 1px solid #e2e8f0; padding: 0.35rem; background: #ffffff;" />
+                                <div id="qrisEmptyNotice" class="hidden" style="padding: 1rem; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: var(--radius-md); color: #475569; font-size: 0.75rem; width: 100%;">
+                                    <i class="fa-solid fa-qrcode" style="font-size: 1.75rem; color: #dc2626; margin-bottom: 0.35rem; display: block;"></i>
+                                    <strong>Barcode QRIS Tersedia via WhatsApp</strong>
+                                    <div style="font-size: 0.7rem; color: #64748b; margin-top: 0.15rem;">Admin akan mengirimkan gambar kode QRIS langsung di chat WhatsApp Anda setelah form dikirim.</div>
+                                </div>
+                            </div>
+                            <div style="margin-top: 0.6rem; padding-top: 0.5rem; border-top: 1px dashed #e2e8f0; display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem;">
+                                <span style="color: #64748b;">Nominal pembayaran QRIS:</span>
+                                <strong id="displayQrisAmount" style="color: #dc2626; font-size: 0.9rem;">Rp 400.000</strong>
+                            </div>
+                        </div>
+
+                        <!-- Upload Bukti Pembayaran / Transfer (Opsional) -->
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem;">
+                                <label class="form-label" style="margin-bottom: 0;">Upload Bukti Pembayaran / Transfer</label>
+                                <span style="font-size: 0.68rem; font-weight: 700; background: #e2e8f0; color: #475569; padding: 0.1rem 0.45rem; border-radius: 999px;">Opsional</span>
+                            </div>
+
+                            <div class="upload-dropzone" style="background: #ffffff;">
+                                <input type="file" id="bookPaymentProofInput" accept="image/*" class="hidden" onchange="handlePaymentProofUpload(event)" />
+
+                                <div id="paymentProofUploadPrompt" onclick="document.getElementById('bookPaymentProofInput').click()">
+                                    <div style="font-size: 0.8125rem; font-weight: 800; color: var(--clr-text-main);">📤 Klik untuk upload bukti transfer / QRIS (Opsional)</div>
+                                    <div style="font-size: 0.7rem; color: var(--clr-text-subtle); margin-top: 0.2rem;">Bisa diunggah sekarang atau menyusul via WhatsApp Admin (JPG/PNG, Maks 5MB)</div>
+                                </div>
+
+                                <div id="paymentProofPreviewContainer" class="hidden" style="text-align: left;">
+                                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+                                        <span style="font-size: 0.75rem; font-weight: 800; color: var(--clr-emerald);">✓ Bukti Pembayaran Terlampir</span>
+                                        <button type="button" onclick="resetPaymentProofPreview()" class="btn btn-rose btn-sm">Hapus / Ganti</button>
+                                    </div>
+                                    <div style="height: 9rem; width: 100%; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--clr-border); background: #f8fafc; display: flex; align-items: center; justify-content: center;">
+                                        <img id="paymentProofPreviewImg" src="" alt="Preview Bukti Bayar" style="max-height: 100%; max-width: 100%; object-fit: contain;">
+                                    </div>
+                                    <div id="paymentProofFileName" style="font-size: 0.7rem; color: var(--clr-text-subtle); margin-top: 0.35rem; font-family: monospace;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- KETERANGAN PERMINTAAN PEMBAYARAN VIA WHATSAPP -->
+                    <div id="whatsappPaymentRequestNotice" style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: var(--radius-md); padding: 0.75rem 0.9rem; font-size: 0.75rem; color: #065f46; line-height: 1.5; display: flex; align-items: flex-start; gap: 0.6rem;">
+                        <i class="fa-brands fa-whatsapp" style="font-size: 1.15rem; color: #10b981; margin-top: 0.1rem; flex-shrink: 0;"></i>
+                        <div id="whatsappPaymentNoticeText">
+                            <strong>Informasi & Permintaan Pembayaran via WhatsApp:</strong><br>
+                            Pesanan Anda akan otomatis menyertakan rincian permintaan pembayaran ke WhatsApp Admin. Jika belum mengunggah bukti bayar di form ini, Anda dapat meminta instruksi/konfirmasi pembayaran langsung melalui WhatsApp.
                         </div>
                     </div>
 

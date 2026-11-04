@@ -102,9 +102,20 @@
                     <span>Ringkasan Bisnis</span>
                 </button>
 
-                <button onclick="switchTab('bookings')" id="nav-bookings" class="tab-nav-btn">
-                    <svg style="width: 1.1rem; height: 1.1rem;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                    <span>Data Booking & Pesanan</span>
+                <button onclick="switchTab('bookings')" id="nav-bookings" class="tab-nav-btn" style="justify-content: space-between;">
+                    <span style="display: inline-flex; align-items: center; gap: 0.75rem;">
+                        <svg style="width: 1.1rem; height: 1.1rem;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                        <span>Data Booking & Pesanan</span>
+                    </span>
+                    <span id="sidebarActiveBookingCount" style="font-size: 0.65rem; font-weight: 800; padding: 0.1rem 0.45rem; border-radius: 999px; background: rgba(16, 185, 129, 0.2); color: #6ee7b7;">0</span>
+                </button>
+
+                <button onclick="switchTab('history')" id="nav-history" class="tab-nav-btn" style="justify-content: space-between;">
+                    <span style="display: inline-flex; align-items: center; gap: 0.75rem;">
+                        <svg style="width: 1.1rem; height: 1.1rem;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        <span>Riwayat Pemesanan</span>
+                    </span>
+                    <span id="sidebarHistoryCount" style="font-size: 0.65rem; font-weight: 800; padding: 0.1rem 0.45rem; border-radius: 999px; background: rgba(148, 163, 184, 0.22); color: #e2e8f0;">0</span>
                 </button>
 
                 <button onclick="switchTab('cars')" id="nav-cars" class="tab-nav-btn">
@@ -334,7 +345,7 @@
                                 <div style="display: flex; align-items: center; gap: 1rem; font-size: 0.7rem; color: #64748b;">
                                     <span style="display: inline-flex; align-items: center; gap: 0.35rem;">
                                         <span style="width: 0.65rem; height: 0.65rem; background: #dc2626; border-radius: 2px;"></span>
-                                        <span>Pendapatan Selesai</span>
+                                        <span>Pendapatan Terverifikasi</span>
                                     </span>
                                 </div>
                             </div>
@@ -420,27 +431,35 @@
                 </div>
 
                 <!-- ==================================================== -->
-                <!-- TAB 2: DATA BOOKING & PESANAN                       -->
+                <!-- TAB 2: DATA BOOKING & PESANAN (AKTIF)                -->
                 <!-- ==================================================== -->
                 <div id="tab-content-bookings" class="tab-pane hidden flex flex-col gap-6">
                     
                     <!-- Header Actions & Filters -->
                     <div style="display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
                         <div>
-                            <h3 style="font-size: 1.125rem; font-weight: 800; color: var(--clr-text-main);">Kelola Data Booking & Pesanan</h3>
-                            <p style="font-size: 0.75rem; color: var(--clr-text-subtle); margin-top: 0.15rem;">Pantau pesanan masuk, verifikasi status sewa, dan input booking manual.</p>
+                            <h3 style="font-size: 1.125rem; font-weight: 800; color: var(--clr-text-main);">Kelola Data Booking & Pesanan Aktif</h3>
+                            <p style="font-size: 0.75rem; color: var(--clr-text-subtle); margin-top: 0.15rem;">Pesanan yang sudah lewat tanggal peminjaman otomatis berpindah secara real-time ke <strong>Riwayat Pemesanan</strong>.</p>
                         </div>
                         
-                        <button onclick="openAdminBookingModal()" class="btn" style="background-color: #dc2626; color: #ffffff; font-weight: 700; display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.65rem 1.25rem; border-radius: var(--radius-md); border: none; cursor: pointer; box-shadow: var(--shadow-sm);">
-                            <span style="font-size: 1.1rem; line-height: 1;">+</span>
-                            <span>Input Booking Manual</span>
-                        </button>
+                        <div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap;">
+                            <button type="button" onclick="switchTab('history')" class="btn-history-switch" title="Buka Riwayat Pemesanan yang Sudah Lewat Tanggal">
+                                <i class="fa-solid fa-clock-rotate-left" style="color: #38bdf8;"></i>
+                                <span>Riwayat Pemesanan</span>
+                                <span id="headerHistoryCount" style="background: rgba(255,255,255,0.16); color: #ffffff; font-size: 0.7rem; font-weight: 800; padding: 0.1rem 0.5rem; border-radius: 999px;">0</span>
+                            </button>
+
+                            <button type="button" onclick="openAdminBookingModal()" class="btn" style="background-color: #dc2626; color: #ffffff; font-weight: 700; display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.65rem 1.25rem; border-radius: var(--radius-md); border: none; cursor: pointer; box-shadow: var(--shadow-sm);">
+                                <span style="font-size: 1.1rem; line-height: 1;">+</span>
+                                <span>Input Booking Manual</span>
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Search & Filter Controls -->
                     <div style="background: #ffffff; padding: 1rem; border-radius: var(--radius-xl); border: 1px solid var(--clr-border); display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; justify-content: space-between; box-shadow: var(--shadow-xs);">
                         <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 240px;">
-                            <input type="text" id="adminBookingSearch" oninput="filterBookingsTable()" placeholder="Cari nama pelanggan, HP, atau armada..." class="form-input" style="font-size: 0.8125rem;">
+                            <input type="text" id="adminBookingSearch" oninput="filterBookingsTable()" placeholder="Cari nama pelanggan, HP, kode booking, atau armada..." class="form-input" style="font-size: 0.8125rem;">
                         </div>
                         <div style="display: flex; align-items: center; gap: 0.5rem;">
                             <span style="font-size: 0.75rem; color: var(--clr-text-muted); font-weight: 600;">Filter Status:</span>
@@ -470,6 +489,101 @@
                                 </thead>
                                 <tbody id="adminBookingsTableBody">
                                     <!-- Dynamic rows populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- ==================================================== -->
+                <!-- TAB RIWAYAT PEMESANAN (OTOMATIS LEWAT TANGGAL SEWA)  -->
+                <!-- ==================================================== -->
+                <div id="tab-content-history" class="tab-pane hidden flex flex-col gap-6">
+
+                    <!-- Header Actions & Excel Export -->
+                    <div style="display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+                        <div>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span style="display: inline-flex; width: 2rem; height: 2rem; border-radius: 0.5rem; background: #eff6ff; color: #2563eb; align-items: center; justify-content: center; font-size: 0.95rem;">
+                                    <i class="fa-solid fa-clock-rotate-left"></i>
+                                </span>
+                                <h3 style="font-size: 1.125rem; font-weight: 800; color: var(--clr-text-main);">Riwayat Pemesanan (Selesai / Lewat Tanggal)</h3>
+                            </div>
+                            <p style="font-size: 0.75rem; color: var(--clr-text-subtle); margin-top: 0.2rem;">
+                                Data booking yang sudah melewati tanggal peminjaman otomatis masuk ke sini secara real-time dan tidak lagi tampil di kalender form pemesanan pelanggan.
+                            </p>
+                        </div>
+
+                        <div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap;">
+                            <button type="button" onclick="switchTab('bookings')" class="btn btn-outline" style="font-size: 0.8125rem; font-weight: 700; padding: 0.62rem 1rem; display: inline-flex; align-items: center; gap: 0.45rem;">
+                                <i class="fa-solid fa-arrow-left"></i>
+                                <span>Data Booking Aktif</span>
+                            </button>
+
+                            <button type="button" onclick="exportBookingHistoryExcel()" class="btn-excel-export" title="Download Riwayat Pemesanan ke File Microsoft Excel (.xlsx)">
+                                <i class="fa-solid fa-file-excel" style="font-size: 0.95rem;"></i>
+                                <span>Download Excel</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Summary Cards Riwayat -->
+                    <div class="grid sm:grid-cols-2 gap-4">
+                        <div style="background: #ffffff; padding: 1rem 1.25rem; border-radius: var(--radius-lg); border: 1px solid var(--clr-border); display: flex; align-items: center; justify-content: space-between; box-shadow: var(--shadow-xs);">
+                            <div>
+                                <div style="font-size: 0.72rem; font-weight: 700; color: #64748b;">Total Riwayat Pemesanan</div>
+                                <div id="historyTotalCountStat" style="font-size: 1.35rem; font-weight: 800; color: #0f172a; margin-top: 0.15rem;">0 Pesanan</div>
+                            </div>
+                            <div style="width: 2.65rem; height: 2.65rem; border-radius: 0.75rem; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 1.15rem;">
+                                <i class="fa-solid fa-box-archive"></i>
+                            </div>
+                        </div>
+
+                        <div style="background: #ffffff; padding: 1rem 1.25rem; border-radius: var(--radius-lg); border: 1px solid var(--clr-border); display: flex; align-items: center; justify-content: space-between; box-shadow: var(--shadow-xs);">
+                            <div>
+                                <div style="font-size: 0.72rem; font-weight: 700; color: #047857;">Total Pendapatan Terverifikasi (di Riwayat)</div>
+                                <div id="historyVerifiedRevenueStat" style="font-size: 1.35rem; font-weight: 800; color: #059669; margin-top: 0.15rem;">Rp 0</div>
+                            </div>
+                            <div style="width: 2.65rem; height: 2.65rem; border-radius: 0.75rem; background: #ecfdf5; color: #059669; display: flex; align-items: center; justify-content: center; font-size: 1.15rem;">
+                                <i class="fa-solid fa-circle-check"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Search & Filter Controls Riwayat -->
+                    <div style="background: #ffffff; padding: 1rem; border-radius: var(--radius-xl); border: 1px solid var(--clr-border); display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; justify-content: space-between; box-shadow: var(--shadow-xs);">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 240px;">
+                            <input type="text" id="adminHistorySearch" oninput="filterHistoryTable()" placeholder="Cari riwayat pelanggan, HP, kode booking, atau armada..." class="form-input" style="font-size: 0.8125rem;">
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="font-size: 0.75rem; color: var(--clr-text-muted); font-weight: 600;">Filter Status:</span>
+                            <select id="adminHistoryFilterStatus" onchange="filterHistoryTable()" class="form-select" style="font-size: 0.8125rem; width: auto; padding-right: 2rem;">
+                                <option value="all">Semua Status</option>
+                                <option value="confirmed">Verifikasi</option>
+                                <option value="pending">Menunggu Pembayaran</option>
+                                <option value="cancelled">Dibatalkan</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- History Table Card -->
+                    <div style="background: #ffffff; border-radius: var(--radius-xl); border: 1px solid var(--clr-border); box-shadow: var(--shadow-sm); overflow: hidden;">
+                        <div style="overflow-x: auto;">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 0.8125rem; text-align: left;">
+                                <thead style="background: #f8fafc; border-bottom: 1px solid var(--clr-border); color: #64748b; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;">
+                                    <tr>
+                                        <th style="padding: 0.875rem 1.25rem;">PELANGGAN</th>
+                                        <th style="padding: 0.875rem 1.25rem;">ARMADA MOBIL</th>
+                                        <th style="padding: 0.875rem 1.25rem;">TANGGAL SEWA</th>
+                                        <th style="padding: 0.875rem 1.25rem;">LOKAL/SUPIR</th>
+                                        <th style="padding: 0.875rem 1.25rem;">TOTAL BIAYA</th>
+                                        <th style="padding: 0.875rem 1.25rem;">STATUS</th>
+                                        <th style="padding: 0.875rem 1.25rem; text-align: center;">AKSI</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminHistoryTableBody">
+                                    <!-- Dynamic history rows populated by JS -->
                                 </tbody>
                             </table>
                         </div>
@@ -677,9 +791,58 @@
                                 </div>
                             </div>
 
+                            <!-- Pengaturan Metode Pembayaran: Rekening Bank & QRIS -->
+                            <div style="padding-top: 1.25rem; border-top: 1px solid #e2e8f0; margin-top: 0.5rem;">
+                                <div style="margin-bottom: 0.85rem;">
+                                    <h4 style="font-weight: 800; color: var(--clr-text-main); font-size: 0.9rem; display: flex; align-items: center; gap: 0.45rem;">
+                                        <span>💳</span>
+                                        <span>Pengaturan Rekening Bank (Transfer) & Barcode QRIS</span>
+                                    </h4>
+                                    <p style="font-size: 0.72rem; color: var(--clr-text-subtle); margin-top: 0.15rem;">
+                                        Data nomor rekening dan kode QRIS ini akan otomatis ditampilkan pada form pemesanan pelanggan saat memilih <strong>DP</strong> atau <strong>Bayar Lunas di Awal</strong>, serta disertakan dalam pesan <strong>Permintaan Pembayaran via WhatsApp</strong>.
+                                    </p>
+                                </div>
+
+                                <div class="grid sm:grid-cols-3 gap-3" style="margin-bottom: 1rem;">
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label class="form-label">Nama Bank (Transfer)</label>
+                                        <input type="text" id="ownerBankName" placeholder="Contoh: BCA / Mandiri / BRI" class="form-input">
+                                    </div>
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label class="form-label">Nomor Rekening</label>
+                                        <input type="text" id="ownerBankNumber" placeholder="Contoh: 7890123456" class="form-input" style="font-family: monospace; font-weight: 700;">
+                                    </div>
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label class="form-label">Atas Nama Rekening</label>
+                                        <input type="text" id="ownerBankHolder" placeholder="Contoh: RPM Rent Car Makassar" class="form-input">
+                                    </div>
+                                </div>
+
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label class="form-label">Upload Gambar Barcode QRIS Resmi (Opsional)</label>
+                                    <div style="display: flex; flex-direction: column; gap: 0.6rem; background: #f8fafc; border: 2px dashed var(--clr-border); padding: 1rem; border-radius: var(--radius-md);">
+                                        <input type="file" id="ownerQrisFile" accept="image/*" class="form-input" style="padding: 0.35rem 0.5rem; font-size: 0.75rem; background: #ffffff;" onchange="handleOwnerQrisUpload(event)">
+                                        <input type="hidden" id="ownerQrisImage">
+                                        <span style="font-size: 0.72rem; color: #64748b;">💡 Unggah gambar barcode QRIS usaha Anda (Format JPG/PNG). Gambar ini akan muncul otomatis saat pelanggan memilih metode pembayaran QRIS.</span>
+                                        <div id="ownerQrisPreviewBox" class="hidden" style="margin-top: 0.35rem; padding: 0.75rem; background: #ffffff; border: 1px solid var(--clr-border); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+                                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                                <img id="ownerQrisPreviewImg" src="" alt="Preview QRIS" style="height: 5.5rem; width: auto; object-fit: contain; border-radius: var(--radius-sm); border: 1px solid #e2e8f0; padding: 0.2rem; background: #fff;">
+                                                <div>
+                                                    <div style="font-size: 0.8rem; font-weight: 800; color: #047857;">✓ Gambar QRIS Aktif</div>
+                                                    <div style="font-size: 0.7rem; color: #64748b;">Tampil di form pembayaran pelanggan</div>
+                                                </div>
+                                            </div>
+                                            <button type="button" onclick="removeOwnerQrisImage()" class="btn btn-outline btn-sm" style="color: var(--clr-rose); border-color: #fecdd3; font-size: 0.72rem;">
+                                                Hapus QRIS
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div style="padding-top: 0.5rem;">
                                 <button type="submit" class="btn btn-primary btn-md">
-                                    Simpan Perubahan Kontak
+                                    Simpan Perubahan Kontak & Pembayaran
                                 </button>
                             </div>
                         </form>
@@ -908,17 +1071,19 @@
         </div>
     </div>
 
-    <!-- MODAL INPUT BOOKING MANUAL BY ADMIN -->
+    <!-- MODAL INPUT / EDIT BOOKING BY ADMIN -->
     <div id="adminBookingModal" class="modal-backdrop hidden">
         <div class="modal-box max-w-lg">
             <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--clr-border); display: flex; align-items: center; justify-content: space-between; background: #ffffff;">
-                <h3 style="font-size: 1.15rem; font-weight: 800; color: var(--clr-text-main); display: flex; align-items: center; gap: 0.5rem;">
-                    <span style="color: #dc2626;">+</span> Input Booking Manual
+                <h3 id="adminBookingModalTitle" style="font-size: 1.15rem; font-weight: 800; color: var(--clr-text-main); display: flex; align-items: center; gap: 0.5rem;">
+                    <span id="adminBookingModalIcon" style="color: #dc2626;">+</span>
+                    <span id="adminBookingModalTitleText">Input Booking Manual</span>
                 </h3>
                 <button onclick="closeAdminBookingModal()" class="btn btn-outline btn-sm" style="padding: 0.35rem 0.6rem; border-radius: var(--radius-md);">✕</button>
             </div>
             <div style="padding: 1.5rem;">
                 <form onsubmit="handleSaveAdminBooking(event)" class="flex flex-col gap-4">
+                    <input type="hidden" id="abBookingId" value="">
                     <div class="grid sm:grid-cols-2 gap-4">
                         <div class="form-group" style="margin-bottom: 0;">
                             <label class="form-label">Nama Pelanggan <span style="color: var(--clr-rose);">*</span></label>
@@ -980,7 +1145,49 @@
 
                     <div class="form-group" style="margin-bottom: 0;">
                         <label class="form-label">Total Biaya (Rp) <span style="color: var(--clr-rose);">*</span></label>
-                        <input type="number" id="abTotalPrice" required placeholder="Contoh: 9900000" class="form-input">
+                        <input type="number" id="abTotalPrice" required placeholder="Contoh: 9900000" class="form-input" oninput="handleAdminBookingPaymentTypeChange()">
+                    </div>
+
+                    <!-- Skema & Metode Pembayaran (Transaksi Langsung / Manual) -->
+                    <div class="grid sm:grid-cols-2 gap-4">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label class="form-label">Opsi Pembayaran</label>
+                            <select id="abPaymentType" class="form-select" onchange="handleAdminBookingPaymentTypeChange()">
+                                <option value="lunas_awal" selected>Bayar Lunas di Awal</option>
+                                <option value="dp">DP (Uang Muka)</option>
+                                <option value="bayar_akhir">Bayar di Akhir</option>
+                            </select>
+                        </div>
+                        <div id="abPaymentMethodWrap" class="form-group" style="margin-bottom: 0;">
+                            <label class="form-label">Metode Pembayaran</label>
+                            <select id="abPaymentMethod" class="form-select">
+                                <option value="transfer" selected>Transfer Bank (TF)</option>
+                                <option value="qris">QRIS</option>
+                                <option value="tunai">Tunai / Transaksi Langsung</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="abDpAmountWrap" class="form-group hidden" style="margin-bottom: 0;">
+                        <label class="form-label">Nominal DP Dibayar (Rp)</label>
+                        <input type="number" id="abDpAmount" placeholder="Contoh: 500000" class="form-input">
+                    </div>
+
+                    <!-- Upload Bukti Pembayaran Pelanggan oleh Admin (Transaksi Langsung) -->
+                    <div id="abPaymentProofWrap" class="form-group" style="margin-bottom: 0; background: #f8fafc; border: 1.5px dashed #cbd5e1; padding: 0.75rem; border-radius: var(--radius-md);">
+                        <label class="form-label" style="margin-bottom: 0.25rem;">Upload Bukti Pembayaran Pelanggan (Opsional)</label>
+                        <input type="file" id="abPaymentProofFile" accept="image/*" class="form-input" style="padding: 0.35rem; font-size: 0.75rem; background: #ffffff;" onchange="handleAdminBookingProofFile(event)">
+                        <input type="hidden" id="abPaymentProofBase64">
+                        <div style="font-size: 0.68rem; color: #64748b; margin-top: 0.25rem;">
+                            💡 Admin dapat mengunggah foto struk/bukti pembayaran jika pelanggan bertransaksi secara langsung.
+                        </div>
+                        <div id="abPaymentProofPreviewBox" class="hidden" style="margin-top: 0.5rem; display: flex; align-items: center; justify-content: space-between; background: #ffffff; padding: 0.45rem 0.65rem; border-radius: var(--radius-sm); border: 1px solid #e2e8f0;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <img id="abPaymentProofPreviewImg" src="" alt="Bukti Bayar" style="height: 2.75rem; width: 2.75rem; object-fit: cover; border-radius: 4px; border: 1px solid #cbd5e1;">
+                                <span style="font-size: 0.72rem; font-weight: 700; color: #047857;">✓ Bukti Bayar Siap Disimpan</span>
+                            </div>
+                            <button type="button" onclick="removeAdminBookingProof()" class="btn btn-outline btn-sm" style="font-size: 0.68rem; padding: 0.2rem 0.45rem; color: var(--clr-rose);">Hapus</button>
+                        </div>
                     </div>
 
                     <div class="form-group" style="margin-bottom: 0;">
@@ -990,7 +1197,7 @@
 
                     <div style="padding-top: 0.5rem; display: flex; gap: 0.75rem;">
                         <button type="button" onclick="closeAdminBookingModal()" class="btn btn-outline" style="flex: 1;">Batal</button>
-                        <button type="submit" class="btn" style="flex: 2; background-color: #dc2626; color: #ffffff; font-weight: 800; border: none; padding: 0.75rem; border-radius: var(--radius-md); cursor: pointer;">Simpan Booking</button>
+                        <button type="submit" id="abSubmitBtn" class="btn" style="flex: 2; background-color: #dc2626; color: #ffffff; font-weight: 800; border: none; padding: 0.75rem; border-radius: var(--radius-md); cursor: pointer;">Simpan Booking</button>
                     </div>
                 </form>
             </div>
@@ -998,25 +1205,25 @@
     </div>
 
     <!-- ==================================================== -->
-    <!-- MODAL POPUP LIHAT DOKUMEN / KTP PELANGGAN            -->
+    <!-- MODAL POPUP LIHAT DOKUMEN KTP & BUKTI PEMBAYARAN      -->
     <!-- ==================================================== -->
     <div id="documentViewModal" class="modal-backdrop hidden">
-        <div class="modal-box max-w-lg" style="background: #ffffff; border-radius: var(--radius-xl); box-shadow: var(--shadow-xl); border: 1px solid var(--clr-border); width: 100%; max-width: 34rem; overflow: hidden;">
+        <div class="modal-box max-w-lg" style="background: #ffffff; border-radius: var(--radius-xl); box-shadow: var(--shadow-xl); border: 1px solid var(--clr-border); width: 100%; max-width: 38rem; max-height: 90vh; overflow-y: auto;">
             
-            <div style="display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--clr-border);">
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--clr-border); position: sticky; top: 0; background: #ffffff; z-index: 5;">
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
                     <span style="font-size: 1.25rem;">📄</span>
                     <div>
-                        <h3 style="font-size: 1.05rem; font-weight: 800; color: var(--clr-text-main); margin: 0;">Dokumen & Identitas KTP</h3>
-                        <p style="font-size: 0.75rem; color: var(--clr-text-subtle); margin: 0;">Verifikasi identitas pemesan armada</p>
+                        <h3 style="font-size: 1.05rem; font-weight: 800; color: var(--clr-text-main); margin: 0;">Dokumen KTP & Bukti Pembayaran</h3>
+                        <p style="font-size: 0.75rem; color: var(--clr-text-subtle); margin: 0;">Verifikasi identitas, bukti bayar & permintaan pembayaran via WhatsApp</p>
                     </div>
                 </div>
                 <button type="button" onclick="closeDocumentViewModal()" class="btn btn-outline btn-sm" style="padding: 0.25rem 0.6rem; border-radius: var(--radius-sm);">✕</button>
             </div>
 
-            <div style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
-                <!-- Ringkasan Info Booking -->
-                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-md); padding: 0.875rem; font-size: 0.8125rem; display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+            <div style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.15rem;">
+                <!-- Ringkasan Info Booking & Pembayaran -->
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-md); padding: 0.875rem; font-size: 0.8125rem; display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem;">
                     <div>
                         <span style="color: #64748b; font-size: 0.7rem; display: block;">Nama Pelanggan:</span>
                         <strong id="docCustomerName" style="color: #0f172a;">-</strong>
@@ -1033,13 +1240,76 @@
                         <span style="color: #64748b; font-size: 0.7rem; display: block;">Kode Booking:</span>
                         <strong id="docBookingCode" style="color: #2563eb; font-family: monospace;">-</strong>
                     </div>
+                    <div>
+                        <span style="color: #64748b; font-size: 0.7rem; display: block;">Skema Pembayaran:</span>
+                        <strong id="docPaymentType" style="color: #dc2626;">-</strong>
+                    </div>
+                    <div>
+                        <span style="color: #64748b; font-size: 0.7rem; display: block;">Metode & Tagihan:</span>
+                        <strong id="docPaymentDetail" style="color: #047857;">-</strong>
+                    </div>
+                </div>
+
+                <!-- Kotak Keterangan & Tombol Permintaan Pembayaran via WhatsApp -->
+                <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: var(--radius-md); padding: 0.85rem 1rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+                    <div style="flex: 1; min-width: 14rem;">
+                        <div style="font-size: 0.78rem; font-weight: 800; color: #065f46; display: flex; align-items: center; gap: 0.35rem;">
+                            <i class="fa-brands fa-whatsapp" style="color: #10b981; font-size: 1rem;"></i>
+                            <span>Permintaan Pembayaran via WhatsApp</span>
+                        </div>
+                        <div id="docPaymentWaNote" style="font-size: 0.7rem; color: #047857; margin-top: 0.15rem; line-height: 1.4;">
+                            Kirim rincian tagihan (DP / Lunas / Pelunasan) beserta info Nomor Rekening & QRIS langsung ke WhatsApp pelanggan.
+                        </div>
+                    </div>
+                    <a id="docRequestPaymentWaBtn" href="#" target="_blank" style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.9rem; background: #10b981; color: #ffffff; border-radius: 0.5rem; font-size: 0.75rem; font-weight: 800; text-decoration: none; white-space: nowrap; box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25);">
+                        <i class="fa-brands fa-whatsapp" style="font-size: 0.95rem;"></i>
+                        <span>Kirim Permintaan Bayar WA</span>
+                    </a>
+                </div>
+
+                <!-- Preview & Upload Bukti Pembayaran Pelanggan -->
+                <div id="docPaymentProofSection">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem; flex-wrap: wrap; gap: 0.35rem;">
+                        <label style="font-size: 0.75rem; font-weight: 700; color: #475569;">
+                            💳 Bukti Pembayaran (DP / Lunas / Transaksi Langsung):
+                        </label>
+                        <div style="display: flex; gap: 0.35rem;">
+                            <input type="file" id="adminDocPaymentProofFileInput" accept="image/*" class="hidden" onchange="handleAdminUploadPaymentProof(event)">
+                            <button type="button" onclick="document.getElementById('adminDocPaymentProofFileInput').click()" class="btn btn-outline btn-sm" style="padding: 0.25rem 0.6rem; font-size: 0.7rem; display: inline-flex; align-items: center; gap: 0.25rem; border-color: #2563eb; color: #2563eb; font-weight: 700;">
+                                <span>📤</span>
+                                <span>Upload Bukti Bayar (Admin)</span>
+                            </button>
+                            <a id="docOpenProofFullBtn" href="#" target="_blank" class="btn btn-outline btn-sm hidden" style="padding: 0.25rem 0.55rem; font-size: 0.7rem;">
+                                🔍 Penuh
+                            </a>
+                        </div>
+                    </div>
+
+                    <div id="docPaymentProofWrapper" style="border: 2px dashed #cbd5e1; border-radius: var(--radius-lg); background: #f8fafc; min-height: 11rem; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 0.5rem; position: relative;">
+                        <img id="docPaymentProofImage" src="" alt="Bukti Pembayaran" class="hidden" style="max-height: 18rem; max-width: 100%; object-fit: contain; border-radius: var(--radius-sm);" />
+                        <div id="docNoPaymentProofMsg" style="text-align: center; color: #94a3b8; padding: 1.5rem;">
+                            <span style="font-size: 2rem; display: block; margin-bottom: 0.35rem;">🧾</span>
+                            <div id="docNoProofTitle" style="font-weight: 700; font-size: 0.85rem; color: #475569;">Bukti Pembayaran Belum Diunggah</div>
+                            <div id="docNoProofDesc" style="font-size: 0.72rem; margin-top: 0.2rem; max-width: 24rem; margin-left: auto; margin-right: auto;">
+                                Pelanggan belum mengunggah bukti transfer/QRIS pada form, atau melakukan transaksi secara langsung dengan Admin.
+                            </div>
+                            <div style="display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.75rem; flex-wrap: wrap;">
+                                <button type="button" onclick="document.getElementById('adminDocPaymentProofFileInput').click()" style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.4rem 0.85rem; background: #2563eb; color: white; border: none; border-radius: 0.375rem; font-size: 0.75rem; font-weight: 700; cursor: pointer;">
+                                    📷 Upload Bukti Pembayaran
+                                </button>
+                                <a id="docRequestPaymentWaBtnInner" href="#" target="_blank" style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.4rem 0.85rem; background: #10b981; color: white; border-radius: 0.375rem; font-size: 0.75rem; font-weight: 700; text-decoration: none;">
+                                    💬 Minta Pembayaran via WA
+                                </a>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Preview Dokumen KTP -->
                 <div>
                     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem;">
                         <label style="font-size: 0.75rem; font-weight: 700; color: #475569;">
-                            Foto KTP / Kartu Identitas:
+                            🪪 Foto KTP / Kartu Identitas:
                         </label>
                         <input type="file" id="adminDocKtpFileInput" accept="image/*" class="hidden" onchange="handleAdminUploadKtp(event)">
                         <button type="button" onclick="document.getElementById('adminDocKtpFileInput').click()" class="btn btn-outline btn-sm" style="padding: 0.25rem 0.5rem; font-size: 0.7rem; display: inline-flex; align-items: center; gap: 0.25rem;">
@@ -1048,12 +1318,12 @@
                         </button>
                     </div>
 
-                    <div id="docImageWrapper" style="border: 2px dashed #cbd5e1; border-radius: var(--radius-lg); background: #f8fafc; min-height: 14rem; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 0.5rem; position: relative;">
-                        <img id="docKtpImage" src="" alt="Foto KTP" style="max-height: 20rem; max-width: 100%; object-fit: contain; border-radius: var(--radius-sm);" />
-                        <div id="docNoImageMsg" class="hidden" style="text-align: center; color: #94a3b8; padding: 2rem;">
-                            <span style="font-size: 2.5rem; display: block; margin-bottom: 0.5rem;">📇</span>
-                            <div style="font-weight: 700; font-size: 0.875rem; color: #475569;">Dokumen Belum Diunggah di Web</div>
-                            <div style="font-size: 0.75rem; margin-top: 0.25rem; max-width: 22rem; margin-left: auto; margin-right: auto;">Pelanggan belum melampirkan foto KTP di formulir web, atau mengirimkannya langsung lewat chat WA.</div>
+                    <div id="docImageWrapper" style="border: 2px dashed #cbd5e1; border-radius: var(--radius-lg); background: #f8fafc; min-height: 12rem; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 0.5rem; position: relative;">
+                        <img id="docKtpImage" src="" alt="Foto KTP" style="max-height: 18rem; max-width: 100%; object-fit: contain; border-radius: var(--radius-sm);" />
+                        <div id="docNoImageMsg" class="hidden" style="text-align: center; color: #94a3b8; padding: 1.5rem;">
+                            <span style="font-size: 2rem; display: block; margin-bottom: 0.35rem;">📇</span>
+                            <div style="font-weight: 700; font-size: 0.85rem; color: #475569;">Dokumen KTP Belum Diunggah di Web</div>
+                            <div style="font-size: 0.72rem; margin-top: 0.2rem; max-width: 22rem; margin-left: auto; margin-right: auto;">Pelanggan belum melampirkan foto KTP di formulir web, atau mengirimkannya langsung lewat chat WA.</div>
                             <div style="display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.75rem; flex-wrap: wrap;">
                                 <button type="button" onclick="document.getElementById('adminDocKtpFileInput').click()" style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.4rem 0.85rem; background: #2563eb; color: white; border: none; border-radius: 0.375rem; font-size: 0.75rem; font-weight: 700; cursor: pointer;">
                                     📷 Upload KTP Sekarang
@@ -1070,7 +1340,7 @@
                 <div style="display: flex; gap: 0.5rem; justify-content: flex-end; padding-top: 0.5rem; align-items: center;">
                     <a id="docOpenFullBtn" href="#" target="_blank" class="btn btn-outline btn-sm hidden" style="padding: 0.5rem 0.85rem; display: inline-flex; align-items: center; gap: 0.35rem;">
                         <span>🔍</span>
-                        <span>Buka Ukuran Penuh</span>
+                        <span>Buka KTP Penuh</span>
                     </a>
                     <button type="button" onclick="closeDocumentViewModal()" class="btn btn-primary btn-sm" style="padding: 0.5rem 1.25rem;">
                         Tutup
@@ -1087,6 +1357,7 @@
     <div id="adminToastContainer" class="admin-toast-container"></div>
 
     <!-- Scripts -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <script src="/js/data.js"></script>
     <script src="/js/admin.js"></script>
 </body>

@@ -21,9 +21,13 @@ class Booking extends Model
         'end_time',
         'with_driver',
         'total_price',
+        'payment_type',
+        'payment_method',
+        'dp_amount',
         'status',
         'notes',
         'ktp_image',
+        'payment_proof',
     ];
 
     protected $casts = [
@@ -31,6 +35,7 @@ class Booking extends Model
         'end_date' => 'date',
         'with_driver' => 'boolean',
         'total_price' => 'float',
+        'dp_amount' => 'float',
     ];
 
     public function car()

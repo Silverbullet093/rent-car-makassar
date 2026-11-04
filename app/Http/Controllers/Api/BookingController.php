@@ -25,6 +25,12 @@ class BookingController extends Controller
                 $query->where('status', $request->status);
             }
 
+            if ($request->boolean('active_only')) {
+                $todayStr = now('Asia/Makassar')->toDateString();
+                $query->whereDate('end_date', '>=', $todayStr)
+                      ->where('status', '!=', 'completed');
+            }
+
             $bookings = $query->latest()->get();
 
             return response()->json([
@@ -66,17 +72,23 @@ class BookingController extends Controller
             'with_driver' => 'nullable|boolean',
             'driver_option' => 'nullable|string',
             'total_price' => 'required|numeric',
+            'payment_type' => 'nullable|string|max:50',
+            'payment_method' => 'nullable|string|max:50',
+            'dp_amount' => 'nullable|numeric',
             'status' => 'nullable|in:pending,confirmed,completed,cancelled',
             'notes' => 'nullable|string',
             'ktp_image' => 'nullable|string',
+            'payment_proof' => 'nullable|string',
         ]);
 
         $startDate = \Carbon\Carbon::parse($validated['start_date'])->toDateString();
         $endDate = \Carbon\Carbon::parse($validated['end_date'])->toDateString();
 
-        // Cegah booking mobil jika sudah berstatus 'confirmed' pada tanggal yang sama / bentrok
+        // Cegah booking mobil jika sudah berstatus 'confirmed' (dan belum lewat tanggal) pada tanggal yang sama / bentrok
+        $todayMakassar = now('Asia/Makassar')->toDateString();
         $conflict = Booking::where('car_id', $validated['car_id'])
             ->where('status', 'confirmed')
+            ->whereDate('end_date', '>=', $todayMakassar)
             ->where(function ($query) use ($startDate, $endDate) {
                 $query->where('start_date', '<=', $endDate)
                       ->where('end_date', '>=', $startDate);
@@ -113,6 +125,16 @@ class BookingController extends Controller
 
         if ($request->filled('ktp_image')) {
             $validated['ktp_image'] = $request->ktp_image;
+        }
+        if ($request->filled('payment_proof')) {
+            $validated['payment_proof'] = $request->payment_proof;
+        }
+        if (empty($validated['payment_type'])) {
+            $validated['payment_type'] = 'lunas_awal';
+        }
+        if ($validated['payment_type'] === 'bayar_akhir') {
+            $validated['payment_method'] = null;
+            $validated['dp_amount'] = 0;
         }
 
         // Satukan catatan tambahan jika ada lokasi jemput atau kota pengorder
@@ -171,16 +193,32 @@ class BookingController extends Controller
             'with_driver' => 'nullable|boolean',
             'driver_option' => 'nullable|string',
             'total_price' => 'nullable|numeric',
+            'payment_type' => 'nullable|string|max:50',
+            'payment_method' => 'nullable|string|max:50',
+            'dp_amount' => 'nullable|numeric',
             'status' => 'nullable|in:pending,confirmed,completed,cancelled',
             'notes' => 'nullable|string',
             'ktp_image' => 'nullable|string',
+            'payment_proof' => 'nullable|string',
         ]);
 
         if ($request->has('driver_option')) {
             $validated['with_driver'] = ($request->driver_option === 'with_driver' || $request->driver_option === 'driver' || $request->driver_option === 'luar_kota');
         }
 
-        $booking->update(array_filter($validated, fn($val) => $val !== null));
+        $updatePayload = [];
+        foreach ($validated as $key => $val) {
+            if ($request->exists($key) || $key === 'with_driver') {
+                $updatePayload[$key] = $val;
+            }
+        }
+
+        if (($updatePayload['payment_type'] ?? $booking->payment_type) === 'bayar_akhir') {
+            $updatePayload['payment_method'] = null;
+            $updatePayload['dp_amount'] = 0;
+        }
+
+        $booking->update($updatePayload);
 
         return response()->json([
             'success' => true,
