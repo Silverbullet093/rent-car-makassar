@@ -571,11 +571,15 @@
                     </div>
 
                     <!-- Nama Event / Keperluan -->
-                    <div class="form-group">
-                        <label class="form-label">Nama Event / Keperluan Acara <span style="color: var(--clr-rose);">*</span></label>
-                        <select id="bookEvent" name="bookEvent" required class="form-select">
-                            <option value="" disabled selected>-- Pilih Jenis Event / Keperluan Acara --</option>
-                            <option value="Wisata / Liburan">🏖️ Wisata / Liburan Keluarga</option>
+                    <div class="form-group" style="position: relative;">
+                        <label class="form-label" style="display: flex; align-items: center; justify-content: space-between;">
+                            <span>Nama Event / Keperluan Acara <span style="color: var(--clr-rose);">*</span></span>
+                            <span style="font-size: 0.7rem; color: var(--clr-text-subtle); font-weight: normal;">Pilih sesuai keperluan Anda</span>
+                        </label>
+
+                        <!-- Hidden select for form value compatibility -->
+                        <select id="bookEvent" name="bookEvent" required class="hidden">
+                            <option value="Wisata / Liburan" selected>🏖️ Wisata / Liburan Keluarga</option>
                             <option value="Acara Pernikahan (Wedding)">💍 Acara Pernikahan / Iring-iringan</option>
                             <option value="Dinas Kantor / Bisnis">💼 Kunjungan Bisnis / Perjalanan Dinas</option>
                             <option value="Antar Jemput Bandara">✈️ Antar / Jemput Bandara</option>
@@ -583,6 +587,115 @@
                             <option value="Acara Keluarga / Hajatan">👨‍👩‍👧‍👦 Acara Keluarga / Hajatan</option>
                             <option value="Lainnya">✨ Keperluan Lainnya</option>
                         </select>
+
+                        <!-- Custom Modern Select Box -->
+                        <div id="customEventDropdownWrapper" style="position: relative;">
+                            <button 
+                                type="button" 
+                                id="customEventSelectTrigger" 
+                                onclick="toggleCustomEventDropdown(event)" 
+                                class="custom-event-trigger-btn"
+                                aria-haspopup="listbox" 
+                                aria-expanded="false"
+                            >
+                                <div style="display: flex; align-items: center; gap: 0.75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                    <span id="customEventSelectedIconBox" class="custom-event-icon-box">🏖️</span>
+                                    <div style="text-align: left; overflow: hidden; text-overflow: ellipsis;">
+                                        <div id="customEventSelectedTitle" class="custom-event-title">Wisata / Liburan Keluarga</div>
+                                        <div id="customEventSelectedDesc" class="custom-event-desc">Liburan bersama keluarga, kerabat, atau rekan wisata</div>
+                                    </div>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 0.4rem; flex-shrink: 0; margin-left: 0.5rem;">
+                                    <span style="font-size: 0.7rem; font-weight: 700; color: #2563eb; background: #eff6ff; padding: 0.15rem 0.45rem; border-radius: 4px; border: 1px solid #bfdbfe;">Ubah</span>
+                                    <i id="customEventChevron" class="fa-solid fa-chevron-down" style="color: #64748b; font-size: 0.75rem; transition: transform 0.2s;"></i>
+                                </div>
+                            </button>
+
+                            <!-- Modern Dropdown Menu Popup -->
+                            <div id="customEventDropdownMenu" class="custom-event-dropdown-menu hidden" role="listbox">
+                                <div class="custom-event-menu-header">
+                                    <span>Pilih Jenis Keperluan Acara:</span>
+                                </div>
+                                <div class="custom-event-options-list">
+                                    <div class="custom-event-item active" data-value="Wisata / Liburan" onclick="selectCustomEventOption('Wisata / Liburan', 'Wisata / Liburan Keluarga', '🏖️', 'Liburan bersama keluarga, kerabat, atau rekan wisata')">
+                                        <div class="event-item-left">
+                                            <span class="event-item-icon">🏖️</span>
+                                            <div>
+                                                <div class="event-item-name">Wisata / Liburan Keluarga</div>
+                                                <div class="event-item-sub">Liburan bersama keluarga, kerabat, atau rekan wisata</div>
+                                            </div>
+                                        </div>
+                                        <i class="fa-solid fa-circle-check event-item-check"></i>
+                                    </div>
+
+                                    <div class="custom-event-item" data-value="Acara Pernikahan (Wedding)" onclick="selectCustomEventOption('Acara Pernikahan (Wedding)', 'Acara Pernikahan / Iring-iringan', '💍', 'Mobil pengantin, rombongan keluarga, & iring-iringan resepsi')">
+                                        <div class="event-item-left">
+                                            <span class="event-item-icon">💍</span>
+                                            <div>
+                                                <div class="event-item-name">Acara Pernikahan / Iring-iringan</div>
+                                                <div class="event-item-sub">Mobil pengantin, rombongan keluarga, & iring-iringan resepsi</div>
+                                            </div>
+                                        </div>
+                                        <i class="fa-solid fa-circle-check event-item-check hidden"></i>
+                                    </div>
+
+                                    <div class="custom-event-item" data-value="Dinas Kantor / Bisnis" onclick="selectCustomEventOption('Dinas Kantor / Bisnis', 'Kunjungan Bisnis / Perjalanan Dinas', '💼', 'Kunjungan dinas pemerintah, perusahaan, & agenda bisnis resmi')">
+                                        <div class="event-item-left">
+                                            <span class="event-item-icon">💼</span>
+                                            <div>
+                                                <div class="event-item-name">Kunjungan Bisnis / Perjalanan Dinas</div>
+                                                <div class="event-item-sub">Kunjungan dinas pemerintah, perusahaan, & agenda bisnis resmi</div>
+                                            </div>
+                                        </div>
+                                        <i class="fa-solid fa-circle-check event-item-check hidden"></i>
+                                    </div>
+
+                                    <div class="custom-event-item" data-value="Antar Jemput Bandara" onclick="selectCustomEventOption('Antar Jemput Bandara', 'Antar / Jemput Bandara', '✈️', 'Penjemputan & drop-off Bandara Sultan Hasanuddin Makassar')">
+                                        <div class="event-item-left">
+                                            <span class="event-item-icon">✈️</span>
+                                            <div>
+                                                <div class="event-item-name">Antar / Jemput Bandara</div>
+                                                <div class="event-item-sub">Penjemputan & drop-off Bandara Sultan Hasanuddin Makassar</div>
+                                            </div>
+                                        </div>
+                                        <i class="fa-solid fa-circle-check event-item-check hidden"></i>
+                                    </div>
+
+                                    <div class="custom-event-item" data-value="Mudik / Pulang Kampung" onclick="selectCustomEventOption('Mudik / Pulang Kampung', 'Mudik / Pulang Kampung', '🏡', 'Perjalanan antar kota / daerah Sulawesi Selatan & sekitarnya')">
+                                        <div class="event-item-left">
+                                            <span class="event-item-icon">🏡</span>
+                                            <div>
+                                                <div class="event-item-name">Mudik / Pulang Kampung</div>
+                                                <div class="event-item-sub">Perjalanan antar kota / daerah Sulawesi Selatan & sekitarnya</div>
+                                            </div>
+                                        </div>
+                                        <i class="fa-solid fa-circle-check event-item-check hidden"></i>
+                                    </div>
+
+                                    <div class="custom-event-item" data-value="Acara Keluarga / Hajatan" onclick="selectCustomEventOption('Acara Keluarga / Hajatan', 'Acara Keluarga / Hajatan', '👨‍👩‍👧‍👦', 'Hajatan keluarga, wisuda, ziarah, & silaturahmi')">
+                                        <div class="event-item-left">
+                                            <span class="event-item-icon">👨‍👩‍👧‍👦</span>
+                                            <div>
+                                                <div class="event-item-name">Acara Keluarga / Hajatan</div>
+                                                <div class="event-item-sub">Hajatan keluarga, wisuda, ziarah, & silaturahmi</div>
+                                            </div>
+                                        </div>
+                                        <i class="fa-solid fa-circle-check event-item-check hidden"></i>
+                                    </div>
+
+                                    <div class="custom-event-item" data-value="Lainnya" onclick="selectCustomEventOption('Lainnya', 'Keperluan Lainnya', '✨', 'Keperluan transportasi harian atau kebutuhan personal lainnya')">
+                                        <div class="event-item-left">
+                                            <span class="event-item-icon">✨</span>
+                                            <div>
+                                                <div class="event-item-name">Keperluan Lainnya</div>
+                                                <div class="event-item-sub">Keperluan transportasi harian atau kebutuhan personal lainnya</div>
+                                            </div>
+                                        </div>
+                                        <i class="fa-solid fa-circle-check event-item-check hidden"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Waktu Pemakaian -->
@@ -769,9 +882,9 @@
                         </div>
                     </div>
 
-                    <!-- PILIHAN OPSI PEMBAYARAN (DP / LUNAS DI AWAL / BAYAR DI AKHIR) -->
+                    <!-- PILIHAN OPSI PEMBAYARAN (DP / LUNAS DI AWAL / BAYAR DI AKHIR - TRANSAKSI VIA WHATSAPP) -->
                     <div class="form-group">
-                        <label class="form-label">Opsi Pembayaran <span style="color: var(--clr-rose);">*</span></label>
+                        <label class="form-label">Pilihan Opsi Pembayaran <span style="color: var(--clr-rose);">*</span></label>
                         <div class="grid sm:grid-cols-3 gap-2">
                             <label id="labelPayTypeDp" style="display: flex; align-items: flex-start; padding: 0.75rem; border: 1.5px solid var(--clr-border); border-radius: var(--radius-md); cursor: pointer; background: #f8fafc; transition: all 0.2s;">
                                 <input type="radio" name="paymentType" value="dp" onchange="handlePaymentTypeChange()" style="margin-right: 0.5rem; margin-top: 0.2rem;" />
@@ -799,7 +912,7 @@
                         </div>
                     </div>
 
-                    <!-- INPUT NOMINAL DP (MUNCUL JIKA PILIH DP) -->
+                    <!-- INPUT NOMINAL DP (HANYA MUNCUL JIKA PILIH OPSI DP) -->
                     <div id="dpAmountBox" class="form-group hidden" style="background: #fffbeb; border: 1px solid #fde68a; padding: 0.875rem; border-radius: var(--radius-md);">
                         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.4rem; flex-wrap: wrap; gap: 0.35rem;">
                             <label class="form-label" style="margin-bottom: 0; color: #92400e; font-weight: 800;">Nominal DP / Uang Muka (Rp)</label>
@@ -810,113 +923,32 @@
                         </div>
                         <input type="number" id="bookDpAmount" placeholder="Masukkan nominal DP (Contoh: 300000)" class="form-input" style="background: #ffffff; font-weight: 800; color: #0f172a;" oninput="calculateBookingPrice()" />
                         <div style="font-size: 0.7rem; color: #b45309; margin-top: 0.35rem;">
-                            💡 Anda dapat mengisi nominal DP sesuai kesepakatan (Default: 50% dari total biaya sewa).
+                            💡 Anda dapat mengisi nominal DP sesuai kesepakatan (Default: 50% dari total sewa). Transaksi pembayaran DP dilakukan via WhatsApp Admin.
                         </div>
                     </div>
 
-                    <!-- METODE PEMBAYARAN (TF / QRIS) & UPLOAD BUKTI BAYAR (HANYA MUNCUL UNTUK DP & LUNAS DI AWAL) -->
-                    <div id="paymentMethodSection" class="flex flex-col gap-3" style="background: #f8fafc; border: 1px solid var(--clr-border); border-radius: var(--radius-lg); padding: 1rem;">
-                        <div>
-                            <label class="form-label" style="margin-bottom: 0.5rem;">Metode Pembayaran <span style="color: var(--clr-rose);">*</span></label>
-                            <div class="grid sm:grid-cols-2 gap-2">
-                                <label id="labelMethodTf" style="display: flex; align-items: center; padding: 0.7rem 0.85rem; border: 1.5px solid #dc2626; border-radius: var(--radius-md); cursor: pointer; background: #ffffff;">
-                                    <input type="radio" name="paymentMethod" value="transfer" checked onchange="handlePaymentMethodChange()" style="margin-right: 0.5rem;" />
-                                    <div>
-                                        <div style="font-size: 0.8125rem; font-weight: 800; color: var(--clr-text-main);">🏦 Transfer Bank (TF)</div>
-                                        <div style="font-size: 0.68rem; color: var(--clr-text-subtle);">Transfer ke nomor rekening resmi</div>
-                                    </div>
-                                </label>
-
-                                <label id="labelMethodQris" style="display: flex; align-items: center; padding: 0.7rem 0.85rem; border: 1.5px solid var(--clr-border); border-radius: var(--radius-md); cursor: pointer; background: #ffffff;">
-                                    <input type="radio" name="paymentMethod" value="qris" onchange="handlePaymentMethodChange()" style="margin-right: 0.5rem;" />
-                                    <div>
-                                        <div style="font-size: 0.8125rem; font-weight: 800; color: var(--clr-text-main);">📱 QRIS (Scan Barcode)</div>
-                                        <div style="font-size: 0.68rem; color: var(--clr-text-subtle);">Semua E-Wallet & Mobile Banking</div>
-                                    </div>
-                                </label>
-                            </div>
+                    <!-- KARTU INFORMASI TRANSAKSI & PEMBAYARAN VIA WHATSAPP RESMI -->
+                    <div id="whatsappPaymentRequestNotice" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1.5px solid #86efac; border-radius: var(--radius-lg); padding: 1rem 1.15rem; display: flex; align-items: flex-start; gap: 0.85rem; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.08);">
+                        <div style="width: 2.5rem; height: 2.5rem; border-radius: 50%; background: linear-gradient(135deg, #22c55e, #16a34a); color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; flex-shrink: 0; box-shadow: 0 4px 12px rgba(34, 197, 94, 0.35);">
+                            <i class="fa-brands fa-whatsapp"></i>
                         </div>
-
-                        <!-- Info Rekening Transfer Bank -->
-                        <div id="paymentTransferInfo" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: var(--radius-md); padding: 0.875rem;">
-                            <div style="font-size: 0.72rem; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.4rem;">
-                                Rekening Tujuan Transfer
-                            </div>
-                            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
-                                <div>
-                                    <div style="display: flex; align-items: center; gap: 0.4rem;">
-                                        <span id="displayBankName" style="background: #1e3a8a; color: #ffffff; font-size: 0.7rem; font-weight: 800; padding: 0.15rem 0.5rem; border-radius: 4px;">BCA</span>
-                                        <span id="displayBankNumber" style="font-size: 1.05rem; font-weight: 800; color: #0f172a; font-family: monospace; letter-spacing: 0.03em;">7890123456</span>
-                                    </div>
-                                    <div style="font-size: 0.75rem; color: #475569; margin-top: 0.2rem;">
-                                        a.n <strong id="displayBankHolder" style="color: #0f172a;">RPM Rent Car Makassar</strong>
-                                    </div>
+                        <div style="flex: 1;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.2rem;">
+                                <div id="whatsappNoticeTitle" style="font-size: 0.875rem; font-weight: 800; color: #14532d;">
+                                    Transaksi & Pembayaran via WhatsApp Admin
                                 </div>
-                                <button type="button" onclick="copyBankAccountNumber()" class="btn btn-outline btn-sm" style="font-size: 0.72rem; padding: 0.35rem 0.65rem; display: inline-flex; align-items: center; gap: 0.3rem;">
-                                    <i class="fa-regular fa-copy"></i>
-                                    <span id="copyBankBtnText">Salin No. Rek</span>
-                                </button>
+                                <span style="font-size: 0.65rem; background: #22c55e; color: #ffffff; padding: 0.12rem 0.5rem; border-radius: 999px; font-weight: 800;">
+                                    Resmi & Terpercaya
+                                </span>
                             </div>
-                            <div style="margin-top: 0.6rem; padding-top: 0.5rem; border-top: 1px dashed #e2e8f0; display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem;">
-                                <span style="color: #64748b;">Nominal yang perlu ditransfer:</span>
-                                <strong id="displayTransferAmount" style="color: #dc2626; font-size: 0.9rem;">Rp 400.000</strong>
+                            <div id="whatsappPaymentNoticeText" style="font-size: 0.775rem; color: #166534; line-height: 1.45;">
+                                Anda memilih opsi <strong>Bayar Lunas di Awal</strong>. Admin akan mengirimkan invoice total tagihan dan nomor rekening transfer / QRIS resmi langsung di chat WhatsApp.
                             </div>
-                        </div>
-
-                        <!-- Info Barcode QRIS -->
-                        <div id="paymentQrisInfo" class="hidden" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: var(--radius-md); padding: 0.875rem; text-align: center;">
-                            <div style="font-size: 0.72rem; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.5rem;">
-                                Scan Kode QRIS Resmi
+                            <div style="display: flex; gap: 0.75rem; margin-top: 0.45rem; font-size: 0.7rem; color: #15803d; font-weight: 700; flex-wrap: wrap;">
+                                <span>✓ Pembayaran Aman via Admin</span>
+                                <span>✓ Rekening BCA / BRI / QRIS</span>
+                                <span>✓ Konfirmasi Jadwal Instan</span>
                             </div>
-                            <div id="qrisImageContainer" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem;">
-                                <img id="displayQrisImage" src="" alt="QRIS Pembayaran" style="max-height: 13rem; max-width: 100%; object-fit: contain; border-radius: var(--radius-md); border: 1px solid #e2e8f0; padding: 0.35rem; background: #ffffff;" />
-                                <div id="qrisEmptyNotice" class="hidden" style="padding: 1rem; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: var(--radius-md); color: #475569; font-size: 0.75rem; width: 100%;">
-                                    <i class="fa-solid fa-qrcode" style="font-size: 1.75rem; color: #dc2626; margin-bottom: 0.35rem; display: block;"></i>
-                                    <strong>Barcode QRIS Tersedia via WhatsApp</strong>
-                                    <div style="font-size: 0.7rem; color: #64748b; margin-top: 0.15rem;">Admin akan mengirimkan gambar kode QRIS langsung di chat WhatsApp Anda setelah form dikirim.</div>
-                                </div>
-                            </div>
-                            <div style="margin-top: 0.6rem; padding-top: 0.5rem; border-top: 1px dashed #e2e8f0; display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem;">
-                                <span style="color: #64748b;">Nominal pembayaran QRIS:</span>
-                                <strong id="displayQrisAmount" style="color: #dc2626; font-size: 0.9rem;">Rp 400.000</strong>
-                            </div>
-                        </div>
-
-                        <!-- Upload Bukti Pembayaran / Transfer (Opsional) -->
-                        <div class="form-group" style="margin-bottom: 0;">
-                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem;">
-                                <label class="form-label" style="margin-bottom: 0;">Upload Bukti Pembayaran / Transfer</label>
-                                <span style="font-size: 0.68rem; font-weight: 700; background: #e2e8f0; color: #475569; padding: 0.1rem 0.45rem; border-radius: 999px;">Opsional</span>
-                            </div>
-
-                            <div class="upload-dropzone" style="background: #ffffff;">
-                                <input type="file" id="bookPaymentProofInput" accept="image/*" class="hidden" onchange="handlePaymentProofUpload(event)" />
-
-                                <div id="paymentProofUploadPrompt" onclick="document.getElementById('bookPaymentProofInput').click()">
-                                    <div style="font-size: 0.8125rem; font-weight: 800; color: var(--clr-text-main);">📤 Klik untuk upload bukti transfer / QRIS (Opsional)</div>
-                                    <div style="font-size: 0.7rem; color: var(--clr-text-subtle); margin-top: 0.2rem;">Bisa diunggah sekarang atau menyusul via WhatsApp Admin (JPG/PNG, Maks 5MB)</div>
-                                </div>
-
-                                <div id="paymentProofPreviewContainer" class="hidden" style="text-align: left;">
-                                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
-                                        <span style="font-size: 0.75rem; font-weight: 800; color: var(--clr-emerald);">✓ Bukti Pembayaran Terlampir</span>
-                                        <button type="button" onclick="resetPaymentProofPreview()" class="btn btn-rose btn-sm">Hapus / Ganti</button>
-                                    </div>
-                                    <div style="height: 9rem; width: 100%; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--clr-border); background: #f8fafc; display: flex; align-items: center; justify-content: center;">
-                                        <img id="paymentProofPreviewImg" src="" alt="Preview Bukti Bayar" style="max-height: 100%; max-width: 100%; object-fit: contain;">
-                                    </div>
-                                    <div id="paymentProofFileName" style="font-size: 0.7rem; color: var(--clr-text-subtle); margin-top: 0.35rem; font-family: monospace;"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- KETERANGAN PERMINTAAN PEMBAYARAN VIA WHATSAPP -->
-                    <div id="whatsappPaymentRequestNotice" style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: var(--radius-md); padding: 0.75rem 0.9rem; font-size: 0.75rem; color: #065f46; line-height: 1.5; display: flex; align-items: flex-start; gap: 0.6rem;">
-                        <i class="fa-brands fa-whatsapp" style="font-size: 1.15rem; color: #10b981; margin-top: 0.1rem; flex-shrink: 0;"></i>
-                        <div id="whatsappPaymentNoticeText">
-                            <strong>Informasi & Permintaan Pembayaran via WhatsApp:</strong><br>
-                            Pesanan Anda akan otomatis menyertakan rincian permintaan pembayaran ke WhatsApp Admin. Jika belum mengunggah bukti bayar di form ini, Anda dapat meminta instruksi/konfirmasi pembayaran langsung melalui WhatsApp.
                         </div>
                     </div>
 

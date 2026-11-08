@@ -29,14 +29,147 @@ function getTodayLocalStr() {
     return getRelativeDateStr(0);
 }
 
-// Cek apakah booking sudah lewat tanggal peminjaman (otomatis masuk Riwayat Pemesanan secara real-time)
+// Cek apakah booking sudah berstatus 'completed' (hanya masuk Riwayat Pemesanan jika diselesaikan via tombol checklist oleh Admin)
 function isBookingExpired(b) {
     if (!b) return false;
     const st = String(b.status || '').toLowerCase();
-    if (st === 'completed') return true;
-    if (!b.end_date) return false;
-    const endDateClean = String(b.end_date).split('T')[0];
-    return endDateClean < getTodayLocalStr();
+    return st === 'completed';
+}
+
+// Helper parsing tanggal & jam sewa
+function parseBookingDateTime(dateStr, timeStr, defaultTime = '23:59:00') {
+    if (!dateStr) return null;
+    const cleanDate = String(dateStr).split('T')[0];
+    let cleanTime = String(timeStr || defaultTime).trim();
+    if (cleanTime.length === 5) cleanTime += ':00';
+    if (!cleanTime) cleanTime = defaultTime;
+
+    const isoStr = `${cleanDate}T${cleanTime}`;
+    const parsed = new Date(isoStr);
+    if (!isNaN(parsed.getTime())) {
+        return parsed;
+    }
+    const dParts = cleanDate.split('-');
+    const tParts = cleanTime.split(':');
+    if (dParts.length === 3) {
+        return new Date(
+            parseInt(dParts[0], 10),
+            parseInt(dParts[1], 10) - 1,
+            parseInt(dParts[2], 10),
+            parseInt(tParts[0] || 0, 10),
+            parseInt(tParts[1] || 0, 10),
+            parseInt(tParts[2] || 0, 10)
+        );
+    }
+    return null;
+}
+
+// Hitung status sisa jam pemakaian real-time dan denda keterlambatan (Rp 50.000/jam jika lewat >= 1 jam)
+function getBookingRentalTimerInfo(b) {
+    if (!b || !b.end_date) {
+        return {
+            hasEnd: false,
+            isStarted: false,
+            isOverdue: false,
+            overdueSeconds: 0,
+            overdueHours: 0,
+            hasPenalty: false,
+            penaltyAmount: 0,
+            countdownText: '-',
+            isPenaltyPaid: false
+        };
+    }
+
+    const startDateTime = parseBookingDateTime(b.start_date, b.start_time || '09:00', '00:00:00');
+    const endDateTime = parseBookingDateTime(b.end_date, b.end_time || b.start_time, '23:59:00');
+    if (!endDateTime) {
+        return {
+            hasEnd: false,
+            isStarted: false,
+            isOverdue: false,
+            overdueSeconds: 0,
+            overdueHours: 0,
+            hasPenalty: false,
+            penaltyAmount: 0,
+            countdownText: '-',
+            isPenaltyPaid: false
+        };
+    }
+
+    const now = Date.now();
+
+    // 1. Cek apakah jam & tanggal pemakaian sudah dimulai secara real-time
+    // "dia akan nyala jika jam tanggal sewanya mulai"
+    const isStarted = !startDateTime || (now >= startDateTime.getTime());
+
+    if (!isStarted) {
+        return {
+            hasEnd: true,
+            isStarted: false,
+            isOverdue: false,
+            overdueSeconds: 0,
+            overdueHours: 0,
+            hasPenalty: false,
+            penaltyAmount: 0,
+            countdownText: 'Belum Mulai',
+            isPenaltyPaid: false
+        };
+    }
+
+    // 2. Jika waktu sewa telah mulai ("nyala"): hitung countdown ke batas pengembalian
+    const diffMs = endDateTime.getTime() - now;
+    const isOverdue = diffMs <= 0;
+    const absSeconds = Math.floor(Math.abs(diffMs) / 1000);
+
+    const d = Math.floor(absSeconds / 86400);
+    const h = Math.floor((absSeconds % 86400) / 3600);
+    const m = Math.floor((absSeconds % 3600) / 60);
+    const s = absSeconds % 60;
+
+    const pad = (n) => String(n).padStart(2, '0');
+    let timeFormatted = '';
+    if (d > 0) {
+        timeFormatted = `${d} hari ${pad(h)}:${pad(m)}:${pad(s)}`;
+    } else {
+        timeFormatted = `${pad(h)}:${pad(m)}:${pad(s)}`;
+    }
+
+    if (isOverdue) {
+        timeFormatted = `-${timeFormatted}`;
+    }
+
+    const overdueSeconds = isOverdue ? absSeconds : 0;
+    const overdueHours = Math.floor(overdueSeconds / 3600);
+    // Melewati 1 jam dari jam pengembalian dikenakan denda Rp 50.000 / jam
+    const hasPenalty = overdueHours >= 1;
+    let penaltyAmount = hasPenalty ? overdueHours * 50000 : 0;
+    if (b.penalty_amount && parseFloat(b.penalty_amount) > penaltyAmount) {
+        penaltyAmount = parseFloat(b.penalty_amount);
+    }
+
+    const isPenaltyPaid = Boolean(b.penalty_proof && String(b.penalty_proof).length > 20);
+
+    // Ketika pembayaran denda telah selesai/diverifikasi -> jam berhenti (freeze)
+    if (isPenaltyPaid) {
+        if (!b.penalty_stopped_time) {
+            b.penalty_stopped_time = timeFormatted;
+        } else {
+            timeFormatted = b.penalty_stopped_time;
+        }
+    }
+
+    return {
+        hasEnd: true,
+        isStarted: true,
+        diffMs,
+        isOverdue,
+        overdueSeconds,
+        overdueHours,
+        hasPenalty,
+        penaltyAmount,
+        countdownText: timeFormatted,
+        isPenaltyPaid
+    };
 }
 
 // Cek apakah pembayaran booking sudah diverifikasi (hanya yang terverifikasi yang menaikkan Pendapatan)
@@ -46,125 +179,8 @@ function isBookingVerified(b) {
     return st === 'confirmed' || st === 'verifikasi' || st === 'terverifikasi' || st === 'dikonfirmasi' || st === 'completed';
 }
 
-const DEFAULT_BOOKINGS = [
-    {
-        id: "1",
-        booking_code: "RCM-89A12B",
-        car_id: "1",
-        customer_name: "Irfan Pratama",
-        customer_phone: "082196984912",
-        car_name: "Toyota Avanza Veloz",
-        start_date: getRelativeDateStr(0),
-        end_date: getRelativeDateStr(2),
-        start_time: "09:00",
-        end_time: "18:00",
-        driver_label: "+Supir",
-        with_driver: true,
-        total_price: 1800000,
-        payment_type: "lunas_awal",
-        payment_method: "transfer",
-        status: "confirmed"
-    },
-    {
-        id: "7",
-        booking_code: "RCM-62P19X",
-        car_id: "5",
-        customer_name: "Nadia Putri",
-        customer_phone: "081355667788",
-        car_name: "Innova Zenix Hybrid",
-        start_date: getRelativeDateStr(1),
-        end_date: getRelativeDateStr(3),
-        start_time: "08:30",
-        end_time: "18:00",
-        driver_label: "+Supir",
-        with_driver: true,
-        total_price: 2200000,
-        payment_type: "dp",
-        payment_method: "qris",
-        dp_amount: 1100000,
-        status: "pending"
-    },
-    {
-        id: "2",
-        booking_code: "RCM-VIP99C",
-        car_id: "2",
-        customer_name: "H. Andi Muhammad",
-        customer_phone: "08114455889",
-        car_name: "Toyota Alphard Gen 4",
-        start_date: getRelativeDateStr(-4),
-        end_date: getRelativeDateStr(-1),
-        start_time: "08:00",
-        end_time: "20:00",
-        driver_label: "+Supir",
-        with_driver: true,
-        total_price: 8100000,
-        status: "confirmed"
-    },
-    {
-        id: "3",
-        booking_code: "RCM-44D12F",
-        car_id: "4",
-        customer_name: "Siti Rahmawati",
-        customer_phone: "085299887766",
-        car_name: "Toyota Fortuner GR",
-        start_date: getRelativeDateStr(-10),
-        end_date: getRelativeDateStr(-7),
-        start_time: "10:00",
-        end_time: "10:00",
-        driver_label: "Lepas Kunci",
-        with_driver: false,
-        total_price: 3900000,
-        status: "confirmed"
-    },
-    {
-        id: "4",
-        booking_code: "RCM-77K88Z",
-        car_id: "3",
-        customer_name: "Budi Santoso",
-        customer_phone: "081233445566",
-        car_name: "Toyota Alphard Gen 3",
-        start_date: getRelativeDateStr(-25),
-        end_date: getRelativeDateStr(-22),
-        start_time: "09:00",
-        end_time: "17:00",
-        driver_label: "+Supir",
-        with_driver: true,
-        total_price: 6600000,
-        status: "confirmed"
-    },
-    {
-        id: "5",
-        booking_code: "RCM-55M22P",
-        car_id: "5",
-        customer_name: "Dr. Hendra Wijaya",
-        customer_phone: "081988776655",
-        car_name: "Innova Zenix Hybrid",
-        start_date: getRelativeDateStr(-45),
-        end_date: getRelativeDateStr(-41),
-        start_time: "08:00",
-        end_time: "18:00",
-        driver_label: "+Supir",
-        with_driver: true,
-        total_price: 4400000,
-        status: "confirmed"
-    },
-    {
-        id: "6",
-        booking_code: "RCM-33B11L",
-        car_id: "1",
-        customer_name: "Rian Fauzi",
-        customer_phone: "082199881122",
-        car_name: "Toyota Avanza",
-        start_date: getRelativeDateStr(-80),
-        end_date: getRelativeDateStr(-78),
-        start_time: "09:00",
-        end_time: "19:00",
-        driver_label: "Lepas Kunci",
-        with_driver: false,
-        total_price: 1200000,
-        status: "confirmed"
-    }
-];
+// Data booking dikosongkan (tanpa seeder/dummy data) sesuai instruksi pengguna
+const DEFAULT_BOOKINGS = [];
 
 function escapeHtml(text) {
     if (!text) return '';
@@ -453,6 +469,11 @@ function handleAdminLogout() {
 
 // Ganti Tab Halaman
 function switchTab(tabName) {
+    if (tabName === 'history') {
+        openBookingHistoryModal();
+        return;
+    }
+
     adminState.currentTab = tabName;
     closeAdminSidebar();
     if (typeof closeStatusDropdownPortal === 'function') {
@@ -480,7 +501,6 @@ function switchTab(tabName) {
     const titles = {
         overview: { title: 'Ringkasan Bisnis & Armada', subtitle: 'Pantau ketersediaan armada dan pendapatan terverifikasi hari ini.' },
         bookings: { title: 'Kelola Data Booking & Pesanan Aktif', subtitle: 'Pantau pesanan aktif, verifikasi pembayaran, dan input booking manual.' },
-        history: { title: 'Riwayat Pemesanan Selesai', subtitle: 'Data pesanan yang sudah lewat tanggal peminjaman secara real-time & siap diunduh ke Excel.' },
         cars: { title: 'Kelola Seluruh Unit Armada Mobil', subtitle: 'Atur ketersediaan unit (Ready/Digunakan), tarif normal, dan tarif libur.' },
         reviews: { title: 'Moderasi & Verifikasi Ulasan Pelanggan', subtitle: 'Verifikasi ulasan dari pelanggan untuk ditampilkan di halaman utama website.' },
         pricing: { title: 'Pengaturan Tarif Khusus Musim Liburan', subtitle: 'Aktifkan atau nonaktifkan harga libur secara serentak dengan satu sakelar.' },
@@ -497,14 +517,6 @@ function switchTab(tabName) {
     // Render ulang konten tab spesifik
     if (tabName === 'bookings') {
         renderBookingsTable();
-        renderHistoryTable();
-        fetchAdminBookings().then(() => {
-            renderBookingsTable();
-            renderHistoryTable();
-            renderOverviewMetrics();
-        });
-    }
-    if (tabName === 'history') {
         renderHistoryTable();
         fetchAdminBookings().then(() => {
             renderBookingsTable();
@@ -2097,6 +2109,12 @@ function formatBookingDateRange(startDateStr, endDateStr, startTimeStr, endTimeS
 async function fetchAdminBookings() {
     let loadedBookings = [];
 
+    // Reset dummy cache jika belum dikosongkan sesuai instruksi user
+    if (!localStorage.getItem('rcm_empty_bookings_clean_v6')) {
+        localStorage.removeItem('rcm_rent_bookings');
+        localStorage.setItem('rcm_empty_bookings_clean_v6', 'true');
+    }
+
     // 1. Try reading from LocalStorage
     const savedBookings = localStorage.getItem('rcm_rent_bookings');
     if (savedBookings) {
@@ -2133,7 +2151,8 @@ async function fetchAdminBookings() {
                     status: b.status || 'pending',
                     notes: b.notes || '',
                     ktp_image: b.ktp_image || '',
-                    payment_proof: b.payment_proof || ''
+                    payment_proof: b.payment_proof || '',
+                    payment_proof_settlement: b.payment_proof_settlement || ''
                 }));
 
                 const apiIds = new Set(apiBookings.map(a => a.id));
@@ -2159,10 +2178,8 @@ function saveBookingsData() {
 function updateBookingCounters() {
     const all = adminState.bookings || [];
     const activeList = all.filter(b => !isBookingExpired(b));
-    const historyList = all.filter(b => isBookingExpired(b));
-    const historyVerifiedTotal = historyList
-        .filter(isBookingVerified)
-        .reduce((sum, b) => sum + (parseFloat(b.total_price) || 0), 0);
+    const historyList = all.filter(isBookingExpired);
+    const lunasVerifiedTotal = all.filter(isBookingVerified).reduce((sum, b) => sum + (parseFloat(b.total_price) || 0), 0);
 
     const activeBadge = document.getElementById('sidebarActiveBookingCount');
     const sidebarHistBadge = document.getElementById('sidebarHistoryCount');
@@ -2173,13 +2190,19 @@ function updateBookingCounters() {
     if (activeBadge) activeBadge.textContent = activeList.length;
     if (sidebarHistBadge) sidebarHistBadge.textContent = historyList.length;
     if (headerHistBadge) headerHistBadge.textContent = historyList.length;
-    if (histTotalStat) histTotalStat.textContent = `${historyList.length} Pesanan`;
-    if (histRevStat) histRevStat.textContent = formatRupiah(historyVerifiedTotal);
+    if (histTotalStat) histTotalStat.textContent = `${historyList.length} Pesanan Selesai`;
+    if (histRevStat) histRevStat.textContent = formatRupiah(lunasVerifiedTotal);
 }
 
 function normalizeBookingStatusKey(rawStatus) {
     const st = String(rawStatus || 'pending').toLowerCase();
-    if (st === 'confirmed' || st === 'verifikasi' || st === 'terverifikasi' || st === 'dikonfirmasi' || st === 'completed') {
+    if (st === 'completed' || st === 'selesai') {
+        return 'completed';
+    }
+    if (st === 'confirmed_pending' || st === 'verifikasi_menunggu' || st.includes('verifikasi + menunggu') || st.includes('verifikasi+menunggu')) {
+        return 'confirmed_pending';
+    }
+    if (st === 'confirmed' || st === 'verifikasi' || st === 'terverifikasi' || st === 'dikonfirmasi') {
         return 'confirmed';
     }
     if (st === 'cancelled' || st === 'dibatalkan' || st === 'dibatalakn' || st === 'batal') {
@@ -2192,89 +2215,201 @@ function buildBookingRowHtml(b, isHistoryRow = false) {
     const normStatus = normalizeBookingStatusKey(b.status);
     let triggerClass = 'custom-status-pending';
     let statusIcon = 'fa-clock';
-    let statusLabel = 'Menunggu Pembayaran';
+    let statusLabel = 'Menunggu';
 
     if (normStatus === 'confirmed') {
         triggerClass = 'custom-status-confirmed';
         statusIcon = 'fa-circle-check';
         statusLabel = 'Verifikasi';
+    } else if (normStatus === 'confirmed_pending') {
+        triggerClass = 'custom-status-confirmed-pending';
+        statusIcon = 'fa-file-circle-check';
+        statusLabel = 'Verifikasi + Menunggu';
     } else if (normStatus === 'cancelled') {
         triggerClass = 'custom-status-cancelled';
         statusIcon = 'fa-circle-xmark';
         statusLabel = 'Dibatalkan';
+    } else if (normStatus === 'completed') {
+        triggerClass = 'custom-status-gray';
+        statusIcon = 'fa-circle-check';
+        statusLabel = 'Selesai';
     }
 
     const dateDisplay = formatBookingDateRange(b.start_date, b.end_date, b.start_time, b.end_time);
     const driverDisplay = b.driver_label || (b.with_driver ? '+Supir' : 'Tanpa Supir');
     const carDisplay = b.car_name || 'Toyota Avanza Veloz';
+    const timerInfo = getBookingRentalTimerInfo(b);
 
-    const statusDropdownHtml = `
-        <button type="button" onclick="toggleStatusDropdownPortal(event, '${b.id}')" class="custom-status-trigger ${triggerClass}" data-status-trigger-id="${b.id}">
-            <span class="status-trigger-left">
-                <i class="fa-solid ${statusIcon}"></i>
-                <span>${statusLabel}</span>
-            </span>
-            <i class="fa-solid fa-chevron-down status-trigger-chevron"></i>
-        </button>
-    `;
-
-    const payType = b.payment_type || 'lunas_awal';
-    const payMethod = (b.payment_method || '').toUpperCase();
-    const hasProof = b.payment_proof && b.payment_proof.length > 50;
-    let payBadgeHtml = '';
-    if (payType === 'dp') {
-        const dpVal = parseFloat(b.dp_amount) || Math.round((parseFloat(b.total_price) || 0) * 0.5);
-        payBadgeHtml = `<div style="margin-top: 0.25rem; font-size: 0.68rem; font-weight: 700; color: #b45309; background: #fffbeb; border: 1px solid #fde68a; padding: 0.1rem 0.4rem; border-radius: 4px; display: inline-block;">DP: ${formatRupiah(dpVal)} ${payMethod ? `(${escapeHtml(payMethod)})` : ''}</div>`;
-    } else if (payType === 'bayar_akhir') {
-        payBadgeHtml = `<div style="margin-top: 0.25rem; font-size: 0.68rem; font-weight: 700; color: #475569; background: #f1f5f9; border: 1px solid #cbd5e1; padding: 0.1rem 0.4rem; border-radius: 4px; display: inline-block;">Bayar di Akhir</div>`;
+    // Status Column
+    let statusColHtml = '';
+    if (isHistoryRow) {
+        statusColHtml = `
+            <div class="custom-status-trigger custom-status-gray" title="Status pesanan selesai tersimpan di riwayat">
+                <span class="status-trigger-left">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <span>Selesai</span>
+                </span>
+            </div>
+        `;
+    } else if (normStatus === 'confirmed') {
+        if (timerInfo.hasPenalty && !timerInfo.isPenaltyPaid) {
+            // Status terverifikasi berubah menjadi Denda
+            statusColHtml = `
+                <button type="button" onclick="viewBookingDocument('${b.id}', false)" class="custom-status-trigger is-locked" style="background: #fef2f2; color: #dc2626; border: 1px solid #fca5a5; cursor: pointer; width: 100%; box-shadow: 0 1px 3px rgba(220, 38, 38, 0.15);" title="Terlambat melewati 1 jam - Dikenakan Denda Rp 50.000/jam. Klik untuk mengunggah bukti pembayaran denda">
+                    <span class="status-trigger-left" style="font-weight: 800;">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        <span>Denda</span>
+                    </span>
+                    <i class="fa-solid fa-cloud-arrow-up" style="font-size: 0.72rem; margin-left: 0.35rem; color: #dc2626;" title="Upload Bukti Bayar Denda"></i>
+                </button>
+            `;
+        } else if (timerInfo.hasPenalty && timerInfo.isPenaltyPaid) {
+            statusColHtml = `
+                <div class="custom-status-trigger custom-status-confirmed is-locked" style="width: 100%;" title="Status Terverifikasi">
+                    <span class="status-trigger-left" style="font-weight: 800;">
+                        <i class="fa-solid fa-circle-check"></i>
+                        <span>Verifikasi</span>
+                    </span>
+                    <i class="fa-solid fa-lock status-lock-icon" title="Terkunci"></i>
+                </div>
+            `;
+        } else {
+            statusColHtml = `
+                <div class="custom-status-trigger custom-status-confirmed is-locked" style="width: 100%;" title="Status sudah Terverifikasi dan terkunci permanen (tidak dapat diubah)">
+                    <span class="status-trigger-left">
+                        <i class="fa-solid fa-circle-check"></i>
+                        <span>Verifikasi</span>
+                    </span>
+                    <i class="fa-solid fa-lock status-lock-icon" title="Terkunci (Sudah Terverifikasi)"></i>
+                </div>
+            `;
+        }
+    } else if (normStatus === 'confirmed_pending') {
+        if (timerInfo.hasPenalty && !timerInfo.isPenaltyPaid) {
+            statusColHtml = `
+                <button type="button" onclick="viewBookingDocument('${b.id}', false)" class="custom-status-trigger is-locked" style="background: #fef2f2; color: #dc2626; border: 1px solid #fca5a5; cursor: pointer; width: 100%; box-shadow: 0 1px 3px rgba(220, 38, 38, 0.15);" title="Terlambat melewati 1 jam - Dikenakan Denda Rp 50.000/jam. Klik untuk mengunggah bukti pembayaran denda">
+                    <span class="status-trigger-left" style="font-weight: 800;">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        <span>Denda</span>
+                    </span>
+                    <i class="fa-solid fa-cloud-arrow-up" style="font-size: 0.72rem; margin-left: 0.35rem; color: #dc2626;" title="Upload Bukti Bayar Denda"></i>
+                </button>
+            `;
+        } else {
+            statusColHtml = `
+                <button type="button" onclick="toggleStatusDropdownPortal(event, '${b.id}')" class="custom-status-trigger custom-status-confirmed-pending" data-status-trigger-id="${b.id}" style="width: 100%;">
+                    <span class="status-trigger-left">
+                        <i class="fa-solid fa-file-circle-check" style="color: #2563eb;"></i>
+                        <span style="font-size: 0.73rem;">Verifikasi + Menunggu</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-down status-trigger-chevron"></i>
+                </button>
+            `;
+        }
+    } else if (normStatus === 'cancelled') {
+        statusColHtml = `
+            <div class="custom-status-trigger custom-status-cancelled" style="width: 100%;">
+                <span class="status-trigger-left">
+                    <i class="fa-solid fa-circle-xmark"></i>
+                    <span>Dibatalkan</span>
+                </span>
+            </div>
+        `;
     } else {
-        payBadgeHtml = `<div style="margin-top: 0.25rem; font-size: 0.68rem; font-weight: 700; color: #047857; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 0.1rem 0.4rem; border-radius: 4px; display: inline-block;">Lunas di Awal ${payMethod ? `(${escapeHtml(payMethod)})` : ''}</div>`;
+        statusColHtml = `
+            <button type="button" onclick="toggleStatusDropdownPortal(event, '${b.id}')" class="custom-status-trigger ${triggerClass}" data-status-trigger-id="${b.id}" style="width: 100%;">
+                <span class="status-trigger-left">
+                    <i class="fa-solid ${statusIcon}"></i>
+                    <span>${statusLabel}</span>
+                </span>
+                <i class="fa-solid fa-chevron-down status-trigger-chevron"></i>
+            </button>
+        `;
     }
-    const proofBadgeHtml = hasProof
-        ? `<div style="margin-top: 0.2rem; font-size: 0.65rem; font-weight: 800; color: #059669;">✓ Bukti Bayar Ada</div>`
-        : (payType !== 'bayar_akhir' ? `<div style="margin-top: 0.2rem; font-size: 0.65rem; color: #94a3b8;">Belum ada bukti bayar</div>` : '');
 
-    const expiredTagHtml = isHistoryRow
-        ? `<div style="margin-top: 0.25rem;"><span style="font-size: 0.62rem; font-weight: 800; background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; padding: 0.1rem 0.4rem; border-radius: 999px;">✓ Selesai / Lewat Jadwal</span></div>`
-        : '';
+    // Aksi Column: Ditambahkan tombol Checklist (✔) untuk menyelesaikan peminjaman dan memindahkannya ke Riwayat
+    let actionsHtml = '';
+    if (isHistoryRow) {
+        actionsHtml = `
+            <div class="booking-action-group">
+                <button type="button" onclick="viewBookingDocument('${b.id}', true)" class="booking-action-icon-btn btn-icon-history-doc" title="Lihat Dokumen & Bukti Bayar (Riwayat)" aria-label="Lihat Dokumen">
+                    <i class="fa-solid fa-file-lines"></i>
+                </button>
+                <button type="button" onclick="deleteBooking('${b.id}')" class="booking-action-icon-btn btn-icon-history-delete" title="Hapus Data Riwayat" aria-label="Hapus">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
+            </div>
+        `;
+    } else {
+        actionsHtml = `
+            <div class="booking-action-group">
+                <button type="button" onclick="completeBookingRental('${b.id}')" class="booking-action-icon-btn btn-icon-complete" title="Selesaikan Peminjaman (Pindahkan ke Riwayat)" aria-label="Selesaikan Peminjaman" style="background: #ecfdf5; border: 1px solid #a7f3d0; color: #059669; font-size: 0.85rem;">
+                    <i class="fa-solid fa-check"></i>
+                </button>
+                <button type="button" onclick="viewBookingDocument('${b.id}', false)" class="booking-action-icon-btn btn-icon-doc" title="Dokumen KTP & Bukti Pembayaran" aria-label="Dokumen">
+                    <i class="fa-solid fa-file-lines"></i>
+                </button>
+                <button type="button" onclick="openEditAdminBookingModal('${b.id}')" class="booking-action-icon-btn btn-icon-edit" title="Edit Data Booking" aria-label="Edit">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                </button>
+                <button type="button" onclick="deleteBooking('${b.id}')" class="booking-action-icon-btn btn-icon-delete" title="Hapus Data Booking" aria-label="Hapus">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
+            </div>
+        `;
+    }
+
+    const rowBg = isHistoryRow ? '#f8fafc' : '#ffffff';
+    const rowHoverBg = isHistoryRow ? '#f1f5f9' : '#f8fafc';
+    const rowClass = isHistoryRow ? 'is-history-row' : '';
 
     return `
-        <tr style="border-bottom: 1px solid var(--clr-border); background: #ffffff; transition: background 0.15s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#ffffff'">
-            <td style="padding: 1rem 1.25rem;">
-                <div style="font-weight: 700; color: var(--clr-text-main); font-size: 0.875rem;">${escapeHtml(b.customer_name)}</div>
-                <div style="font-size: 0.75rem; color: #64748b; margin-top: 0.15rem;">${escapeHtml(b.customer_phone)}</div>
-                ${b.booking_code ? `<span style="display:inline-block; font-size: 0.65rem; background: #f1f5f9; color: #475569; padding: 0.1rem 0.35rem; border-radius: 4px; margin-top: 0.25rem; font-family: monospace;">${escapeHtml(b.booking_code)}</span>` : ''}
+        <tr class="${rowClass}" style="border-bottom: 1px solid #e2e8f0; background: ${rowBg}; transition: background 0.15s;" onmouseover="this.style.background='${rowHoverBg}'" onmouseout="this.style.background='${rowBg}'">
+            <td style="padding: 1rem 1.25rem; font-family: monospace; font-weight: 700; color: #2563eb; white-space: nowrap;">
+                <span style="background: ${isHistoryRow ? '#f1f5f9' : '#eff6ff'}; border: 1px solid ${isHistoryRow ? '#cbd5e1' : '#bfdbfe'}; padding: 0.2rem 0.5rem; border-radius: 6px; font-size: 0.8rem; letter-spacing: 0.05em;">
+                    ${escapeHtml(b.booking_code || '-')}
+                </span>
             </td>
-            <td style="padding: 1rem 1.25rem; color: var(--clr-text-main); font-weight: 600;">
+            <td style="padding: 1rem 1.25rem;">
+                <div style="font-weight: 700; color: ${isHistoryRow ? '#475569' : 'var(--clr-text-main)'}; font-size: 0.875rem;">${escapeHtml(b.customer_name)}</div>
+            </td>
+            <td style="padding: 1rem 1.25rem; color: ${isHistoryRow ? '#475569' : 'var(--clr-text-main)'}; font-weight: 600;">
                 ${escapeHtml(carDisplay)}
             </td>
-            <td style="padding: 1rem 1.25rem; white-space: nowrap;">
-                ${dateDisplay}
-                ${expiredTagHtml}
+            <td style="padding: 1rem 1.25rem; white-space: nowrap; color: ${isHistoryRow ? '#64748b' : 'inherit'};">
+                <div style="font-weight: 600;">${dateDisplay}</div>
             </td>
-            <td style="padding: 1rem 1.25rem; color: #059669; font-weight: 600;">
+            <td style="padding: 1rem 1.25rem; color: ${isHistoryRow ? '#64748b' : '#059669'}; font-weight: 600;">
                 ${escapeHtml(driverDisplay)}
             </td>
-            <td style="padding: 1rem 1.25rem; font-weight: 800; color: var(--clr-text-main); white-space: nowrap;">
+            <td style="padding: 1rem 1.25rem; font-weight: 800; color: ${isHistoryRow ? '#475569' : 'var(--clr-text-main)'}; white-space: nowrap;">
                 <div>${formatRupiah(b.total_price)}</div>
-                ${payBadgeHtml}
-                ${proofBadgeHtml}
+                ${!isHistoryRow ? `
+                    <div class="booking-total-penalty-sub" data-penalty-total-id="${b.id}" style="${timerInfo.hasPenalty ? 'display: block;' : 'display: none;'} color: #dc2626; font-size: 0.75rem; font-weight: 800; margin-top: 0.15rem; font-family: monospace;">
+                        ${timerInfo.hasPenalty ? `+${formatRupiah(timerInfo.penaltyAmount)}` : ''}
+                    </div>
+                ` : (b.penalty_amount && parseFloat(b.penalty_amount) > 0 ? `
+                    <div style="color: #dc2626; font-size: 0.7rem; font-weight: 700; margin-top: 0.15rem;">+${formatRupiah(b.penalty_amount)}</div>
+                ` : '')}
+            </td>
+            <td style="padding: 1rem 1.25rem; white-space: nowrap;">
+                ${!isHistoryRow && timerInfo.hasEnd ? `
+                    <div class="booking-timer-badge" data-timer-booking-id="${b.id}" style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.25rem 0.6rem; border-radius: 6px; font-family: monospace; font-size: 0.75rem; font-weight: 700; ${!timerInfo.isStarted ? 'background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1;' : (timerInfo.isOverdue ? 'background: #fef2f2; color: #dc2626; border: 1px solid #fecaca;' : 'background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0;')}">
+                        <i class="${!timerInfo.isStarted ? 'fa-regular fa-clock' : 'fa-solid fa-clock'}"></i>
+                        <span class="booking-timer-val" data-timer-val-id="${b.id}">${timerInfo.countdownText}</span>
+                    </div>
+                ` : (isHistoryRow ? `
+                    <span style="display: inline-flex; align-items: center; gap: 0.3rem; background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; padding: 0.2rem 0.5rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600;">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                        <span>Selesai</span>
+                    </span>
+                ` : '<span style="color: #94a3b8; font-size: 0.75rem;">-</span>')}
             </td>
             <td style="padding: 1rem 1.25rem;">
-                ${statusDropdownHtml}
+                ${statusColHtml}
             </td>
             <td style="padding: 1rem 1.25rem; text-align: center;">
-                <div class="booking-action-group">
-                    <button type="button" onclick="viewBookingDocument('${b.id}')" class="booking-action-icon-btn btn-icon-doc" title="Dokumen KTP & Bukti Pembayaran" aria-label="Dokumen">
-                        <i class="fa-solid fa-file-lines"></i>
-                    </button>
-                    <button type="button" onclick="openEditAdminBookingModal('${b.id}')" class="booking-action-icon-btn btn-icon-edit" title="Edit Data Booking" aria-label="Edit">
-                        <i class="fa-solid fa-pen-to-square"></i>
-                    </button>
-                    <button type="button" onclick="deleteBooking('${b.id}')" class="booking-action-icon-btn btn-icon-delete" title="Hapus Data Booking" aria-label="Hapus">
-                        <i class="fa-solid fa-trash-can"></i>
-                    </button>
-                </div>
+                ${actionsHtml}
             </td>
         </tr>
     `;
@@ -2288,7 +2423,7 @@ function renderBookingsTable() {
     const searchQuery = (document.getElementById('adminBookingSearch')?.value || adminState.bookingSearchQuery || '').toLowerCase();
     const filterStatus = document.getElementById('adminBookingFilterStatus')?.value || adminState.bookingFilterStatus || 'all';
 
-    // Hanya tampilkan booking yang MASIH AKTIF (belum lewat tanggal peminjaman)
+    // Hanya tampilkan booking yang MASIH AKTIF (belum diselesaikan via checklist)
     let filtered = (adminState.bookings || []).filter(b => {
         if (isBookingExpired(b)) return false;
 
@@ -2309,8 +2444,8 @@ function renderBookingsTable() {
     if (filtered.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="7" style="padding: 2.5rem; text-align: center; color: var(--clr-text-muted);">
-                    Belum ada data booking aktif, atau pesanan yang sudah lewat tanggal telah berpindah otomatis ke <strong>Riwayat Pemesanan</strong>.
+                <td colspan="9" style="padding: 2.5rem; text-align: center; color: var(--clr-text-muted);">
+                    Belum ada data booking aktif. Pesanan yang telah diselesaikan dapat dilihat di <strong>Riwayat Pemesanan</strong>.
                 </td>
             </tr>
         `;
@@ -2328,7 +2463,7 @@ function renderHistoryTable() {
     const searchQuery = (document.getElementById('adminHistorySearch')?.value || adminState.historySearchQuery || '').toLowerCase();
     const filterStatus = document.getElementById('adminHistoryFilterStatus')?.value || adminState.historyFilterStatus || 'all';
 
-    // Hanya tampilkan booking yang SUDAH LEWAT tanggal peminjaman
+    // Tampilkan booking yang sudah selesai dan masuk riwayat
     let filtered = (adminState.bookings || []).filter(b => {
         if (!isBookingExpired(b)) return false;
 
@@ -2338,19 +2473,19 @@ function renderHistoryTable() {
             (b.car_name && b.car_name.toLowerCase().includes(searchQuery)) ||
             (b.booking_code && b.booking_code.toLowerCase().includes(searchQuery));
 
-        let matchesStatus = true;
-        if (filterStatus !== 'all') {
-            matchesStatus = (normalizeBookingStatusKey(b.status) === filterStatus);
-        }
-
-        return matchesSearch && matchesStatus;
+        return matchesSearch;
     });
+
+    const footerInfo = document.getElementById('historyModalFooterInfo');
+    if (footerInfo) {
+        footerInfo.textContent = `Menampilkan ${filtered.length} data pemesanan`;
+    }
 
     if (filtered.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="7" style="padding: 2.5rem; text-align: center; color: var(--clr-text-muted);">
-                    Belum ada riwayat pemesanan yang melewati tanggal sewa atau sesuai filter pencarian.
+                <td colspan="9" style="padding: 2.5rem; text-align: center; color: var(--clr-text-muted);">
+                    Belum ada data pemesanan di Riwayat. Tekan tombol checklist (✔) di kolom Aksi Dashboard untuk menyelesaikan peminjaman dan memindahkannya ke sini.
                 </td>
             </tr>
         `;
@@ -2372,6 +2507,159 @@ function filterHistoryTable() {
     renderHistoryTable();
 }
 
+// Selesaikan peminjaman armada mobil dan pindahkan data ke Riwayat Pemesanan (Aksi Tombol Checklist ✔)
+async function completeBookingRental(id) {
+    const booking = (adminState.bookings || []).find(b => b.id == id);
+    if (!booking) return;
+
+    const timerInfo = getBookingRentalTimerInfo(booking);
+
+    // 1. Validasi: Blokir jika pembayaran pemesanan belum terverifikasi
+    const normStatus = normalizeBookingStatusKey(booking.status);
+    if (normStatus === 'confirmed_pending') {
+        const hasPaymentProof = Boolean(booking.payment_proof && String(booking.payment_proof).length > 20);
+        if (!hasPaymentProof) {
+            alert(`❌ Tidak Dapat Menyelesaikan Peminjaman!\n\nPelanggan "${booking.customer_name}" memilih skema "Bayar di Akhir" dan status masih "Verifikasi + Menunggu Pembayaran".\n\nHarap ubah status menjadi Verifikasi atau upload bukti pembayaran di menu Dokumen terlebih dahulu sebelum menyelesaikan peminjaman.`);
+            return;
+        }
+    } else if (!isBookingVerified(booking)) {
+        alert(`❌ Tidak Dapat Menyelesaikan Peminjaman!\n\nPesanan pelanggan "${booking.customer_name}" belum melakukan pembayaran atau status belum diverifikasi.\n\nHarap verifikasi pembayaran pesanan terlebih dahulu.`);
+        return;
+    }
+
+    // 2. Validasi: Blokir jika skema DP belum melunasi sisa tagihan
+    if (booking.payment_type === 'dp' && (!booking.payment_proof_settlement || String(booking.payment_proof_settlement).length < 20)) {
+        alert(`❌ Tidak Dapat Menyelesaikan Peminjaman!\n\nPelanggan "${booking.customer_name}" memilih skema DP dan BELUM menyelesaikan bukti pembayaran Pelunasan.\n\nHarap upload bukti pelunasan di menu Dokumen terlebih dahulu.`);
+        return;
+    }
+
+    // 3. Validasi: Blokir jika pemakaian melewati batas waktu dan denda belum dibayar/diverifikasi
+    if (timerInfo.hasPenalty && !timerInfo.isPenaltyPaid) {
+        alert(`❌ Tidak Dapat Menyelesaikan Peminjaman!\n\nPemakaian armada telah melewati batas waktu dan terdapat Denda Keterlambatan sebesar ${formatRupiah(timerInfo.penaltyAmount)} yang BELUM dibayar/diverifikasi.\n\nSilakan unggah bukti bayar denda pada menu Dokumen terlebih dahulu.`);
+        return;
+    }
+
+    let confirmMsg = `Selesaikan peminjaman armada mobil untuk pelanggan "${booking.customer_name}" (Kode: ${booking.booking_code || '-'})?\n\nPeminjaman ini akan ditandai Selesai dan dipindahkan ke Riwayat Pemesanan.`;
+    if (!confirm(confirmMsg)) {
+        return;
+    }
+
+    booking.status = 'completed';
+    if (timerInfo.hasPenalty) {
+        booking.penalty_amount = timerInfo.penaltyAmount;
+    }
+
+    saveBookingsData();
+
+    try {
+        const payload = {
+            status: 'completed'
+        };
+        if (booking.penalty_amount) {
+            payload.penalty_amount = booking.penalty_amount;
+        }
+        await fetch(`/api/bookings/${booking.id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+    } catch (err) {
+        console.error('Gagal sinkronisasi status selesai ke server:', err);
+    }
+
+    renderBookingsTable();
+    renderHistoryTable();
+    renderOverviewMetrics();
+
+    showAdminToast(
+        'Peminjaman Selesai',
+        `Peminjaman untuk ${booking.customer_name} (${booking.booking_code || ''}) telah berhasil diselesaikan & dipindahkan ke Riwayat Pemesanan!`,
+        'success'
+    );
+}
+
+// Update realtime countdown jam pemakaian & denda keterlambatan setiap detik
+function updateBookingRealtimeTimers() {
+    if (!adminState.isLoggedIn) return;
+    const timerBadges = document.querySelectorAll('.booking-timer-badge[data-timer-booking-id]');
+    if (!timerBadges || timerBadges.length === 0) return;
+
+    let needsStatusReRender = false;
+
+    timerBadges.forEach(badge => {
+        const id = badge.getAttribute('data-timer-booking-id');
+        const b = (adminState.bookings || []).find(item => item.id == id);
+        if (!b) return;
+
+        const timerInfo = getBookingRentalTimerInfo(b);
+        const valEl = badge.querySelector('.booking-timer-val');
+        if (valEl) {
+            valEl.textContent = timerInfo.countdownText;
+        }
+
+        const iconEl = badge.querySelector('i');
+        if (!timerInfo.isStarted) {
+            badge.style.background = '#f1f5f9';
+            badge.style.color = '#64748b';
+            badge.style.borderColor = '#cbd5e1';
+            if (iconEl) iconEl.className = 'fa-regular fa-clock';
+        } else if (timerInfo.isOverdue) {
+            badge.style.background = '#fef2f2';
+            badge.style.color = '#dc2626';
+            badge.style.borderColor = '#fecaca';
+            if (iconEl) iconEl.className = 'fa-solid fa-clock';
+        } else {
+            badge.style.background = '#ecfdf5';
+            badge.style.color = '#059669';
+            badge.style.borderColor = '#a7f3d0';
+            if (iconEl) iconEl.className = 'fa-solid fa-clock';
+        }
+
+        const subEl = document.querySelector(`.booking-penalty-timer-sub[data-penalty-sub-id="${id}"]`);
+        if (subEl) {
+            subEl.innerHTML = '';
+            subEl.style.display = 'none';
+        }
+
+        const totalSubEl = document.querySelector(`.booking-total-penalty-sub[data-penalty-total-id="${id}"]`);
+        if (totalSubEl) {
+            if (timerInfo.hasPenalty) {
+                totalSubEl.innerHTML = `+${formatRupiah(timerInfo.penaltyAmount)}`;
+                totalSubEl.style.display = 'block';
+            } else {
+                totalSubEl.innerHTML = '';
+                totalSubEl.style.display = 'none';
+            }
+        }
+
+        // Cek jika status Verifikasi perlu berubah jadi Denda (atau sebaliknya jika bukti denda diunggah)
+        const row = badge.closest('tr');
+        if (row) {
+            const statusCell = row.cells ? row.cells[7] : null;
+            if (statusCell) {
+                const normStatus = normalizeBookingStatusKey(b.status);
+                if (normStatus === 'confirmed') {
+                    const isShowingDenda = statusCell.textContent.includes('Denda');
+                    const shouldShowDenda = timerInfo.hasPenalty && !timerInfo.isPenaltyPaid;
+                    if (isShowingDenda !== shouldShowDenda) {
+                        needsStatusReRender = true;
+                    }
+                }
+            }
+        }
+    });
+
+    if (needsStatusReRender) {
+        renderBookingsTable();
+    }
+}
+
+// Interval timer realtime berjalan setiap 1 detik
+setInterval(updateBookingRealtimeTimers, 1000);
+
 // =========================================================================
 // CUSTOM FLOATING STATUS DROPDOWN PORTAL
 // =========================================================================
@@ -2388,6 +2676,15 @@ function toggleStatusDropdownPortal(event, bookingId) {
     event.stopPropagation();
     const btn = event.currentTarget;
 
+    const booking = (adminState.bookings || []).find(b => b.id == bookingId);
+    const currentStatus = normalizeBookingStatusKey(booking ? booking.status : 'pending');
+
+    // Jika sudah diverifikasi, status terkunci permanen dan tidak dapat diubah
+    if (currentStatus === 'confirmed') {
+        showAdminToast('Status Terkunci', 'Pesanan yang telah Terverifikasi terkunci permanen dan tidak dapat diubah lagi.', 'info');
+        return;
+    }
+
     if (activeStatusDropdownBookingId == bookingId && document.getElementById('globalStatusDropdownPortal')) {
         closeStatusDropdownPortal();
         return;
@@ -2397,13 +2694,28 @@ function toggleStatusDropdownPortal(event, bookingId) {
     activeStatusDropdownBookingId = bookingId;
     btn.classList.add('is-open');
 
-    const booking = (adminState.bookings || []).find(b => b.id == bookingId);
-    const currentStatus = normalizeBookingStatusKey(booking ? booking.status : 'pending');
-
     const portal = document.createElement('div');
     portal.id = 'globalStatusDropdownPortal';
     portal.className = 'status-dd-portal';
     portal.onclick = (e) => e.stopPropagation();
+
+    const isBayarAkhir = (booking && booking.payment_type === 'bayar_akhir') || currentStatus === 'confirmed_pending';
+
+    let confirmedPendingOptionHtml = '';
+    if (isBayarAkhir) {
+        confirmedPendingOptionHtml = `
+            <button type="button" class="status-dd-item opt-confirmed-pending ${currentStatus === 'confirmed_pending' ? 'is-selected' : ''}" onclick="selectBookingStatusFromPortal('${bookingId}', 'confirmed_pending')">
+                <span class="status-dd-item-left">
+                    <span class="status-dd-icon"><i class="fa-solid fa-file-circle-check"></i></span>
+                    <span>
+                        <div class="status-dd-title">Verifikasi + Menunggu Pembayaran</div>
+                        <div class="status-dd-sub">Unit diverifikasi, pelunasan saat selesai sewa</div>
+                    </span>
+                </span>
+                <i class="fa-solid fa-check status-dd-check"></i>
+            </button>
+        `;
+    }
 
     portal.innerHTML = `
         <div class="status-dd-header">Ubah Status Pesanan</div>
@@ -2417,11 +2729,12 @@ function toggleStatusDropdownPortal(event, bookingId) {
             </span>
             <i class="fa-solid fa-check status-dd-check"></i>
         </button>
+        ${confirmedPendingOptionHtml}
         <button type="button" class="status-dd-item opt-pending ${currentStatus === 'pending' ? 'is-selected' : ''}" onclick="selectBookingStatusFromPortal('${bookingId}', 'pending')">
             <span class="status-dd-item-left">
                 <span class="status-dd-icon"><i class="fa-solid fa-clock"></i></span>
                 <span>
-                    <div class="status-dd-title">Menunggu Pembayaran</div>
+                    <div class="status-dd-title">Menunggu</div>
                     <div class="status-dd-sub">Belum masuk hitungan pendapatan</div>
                 </span>
             </span>
@@ -2465,12 +2778,29 @@ async function selectBookingStatusFromPortal(bookingId, newStatus) {
     await updateBookingStatus(bookingId, newStatus);
 }
 
-document.addEventListener('click', () => {
+document.addEventListener('click', (e) => {
     closeStatusDropdownPortal();
+    const docModal = document.getElementById('documentViewModal');
+    if (docModal && e.target === docModal) {
+        closeDocumentViewModal();
+        return;
+    }
+    const histModal = document.getElementById('bookingHistoryModal');
+    if (histModal && e.target === histModal) {
+        closeBookingHistoryModal();
+    }
 });
 
 document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeStatusDropdownPortal();
+    if (e.key === 'Escape') {
+        closeStatusDropdownPortal();
+        const docModal = document.getElementById('documentViewModal');
+        if (docModal && !docModal.classList.contains('hidden')) {
+            closeDocumentViewModal();
+            return;
+        }
+        closeBookingHistoryModal();
+    }
 });
 
 window.addEventListener('resize', closeStatusDropdownPortal);
@@ -2483,6 +2813,12 @@ async function handleBookingStatusChange(id, newStatus) {
 async function updateBookingStatus(id, newStatus) {
     const idx = adminState.bookings.findIndex(b => b.id == id);
     if (idx !== -1) {
+        const currentStatusKey = normalizeBookingStatusKey(adminState.bookings[idx].status);
+        if (currentStatusKey === 'confirmed') {
+            showAdminToast('Status Terkunci', 'Pesanan yang telah Terverifikasi terkunci permanen dan tidak dapat diubah lagi statusnya.', 'warning');
+            return;
+        }
+
         adminState.bookings[idx].status = newStatus;
         saveBookingsData();
         renderBookingsTable();
@@ -2491,13 +2827,16 @@ async function updateBookingStatus(id, newStatus) {
 
         const statusLabels = {
             confirmed: 'Verifikasi',
-            pending: 'Menunggu Pembayaran',
+            confirmed_pending: 'Verifikasi + Menunggu Pembayaran',
+            pending: 'Menunggu',
             cancelled: 'Dibatalkan'
         };
-        const toastType = newStatus === 'confirmed' ? 'success' : (newStatus === 'cancelled' ? 'error' : 'warning');
+        const toastType = (newStatus === 'confirmed' || newStatus === 'confirmed_pending') ? 'success' : (newStatus === 'cancelled' ? 'error' : 'warning');
         const extraMsg = newStatus === 'confirmed'
             ? 'Pembayaran terverifikasi — Pendapatan otomatis bertambah!'
-            : `Status pesanan diubah menjadi: ${statusLabels[newStatus] || newStatus}`;
+            : (newStatus === 'confirmed_pending'
+                ? 'Unit berhasil diverifikasi (Bayar di Akhir) — Menunggu pelunasan sewa!'
+                : `Status pesanan diubah menjadi: ${statusLabels[newStatus] || newStatus}`);
         showAdminToast('Status Booking Diperbarui', extraMsg, toastType);
 
         try {
@@ -2527,42 +2866,57 @@ async function deleteBooking(id) {
 }
 
 // =========================================================================
-// DOWNLOAD EXCEL RIWAYAT PEMESANAN (.XLSX / FALLBACK .XLS)
+// MODAL POPUP RIWAYAT PEMESANAN (PEMBAYARAN LUNAS) & EXCEL EXPORT
 // =========================================================================
+function openBookingHistoryModal() {
+    closeStatusDropdownPortal();
+    const modal = document.getElementById('bookingHistoryModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        renderHistoryTable();
+    }
+}
+
+function closeBookingHistoryModal() {
+    closeStatusDropdownPortal();
+    const modal = document.getElementById('bookingHistoryModal');
+    if (modal) modal.classList.add('hidden');
+}
+
 function exportBookingHistoryExcel() {
     const searchQuery = (document.getElementById('adminHistorySearch')?.value || adminState.historySearchQuery || '').toLowerCase();
-    const filterStatus = document.getElementById('adminHistoryFilterStatus')?.value || adminState.historyFilterStatus || 'all';
+    const filterStatus = document.getElementById('adminHistoryFilterStatus')?.value || adminState.historyFilterStatus || 'lunas';
 
     const historyList = (adminState.bookings || []).filter(b => {
         if (!isBookingExpired(b)) return false;
+
         const matchesSearch = !searchQuery ||
             (b.customer_name && b.customer_name.toLowerCase().includes(searchQuery)) ||
             (b.customer_phone && b.customer_phone.toLowerCase().includes(searchQuery)) ||
             (b.car_name && b.car_name.toLowerCase().includes(searchQuery)) ||
             (b.booking_code && b.booking_code.toLowerCase().includes(searchQuery));
 
-        let matchesStatus = true;
-        if (filterStatus !== 'all') {
-            matchesStatus = (normalizeBookingStatusKey(b.status) === filterStatus);
-        }
-        return matchesSearch && matchesStatus;
+        return matchesSearch;
     });
 
     if (historyList.length === 0) {
-        showAdminToast('Riwayat Kosong', 'Belum ada data riwayat pemesanan untuk diunduh ke Excel.', 'warning');
+        showAdminToast('Data Kosong', 'Belum ada data riwayat pemesanan lunas untuk diunduh ke Excel.', 'warning');
         return;
     }
 
     const statusLabelMap = {
         confirmed: 'Terverifikasi',
-        pending: 'Menunggu Pembayaran',
+        confirmed_pending: 'Verifikasi + Menunggu',
+        completed: 'Selesai',
+        pending: 'Menunggu',
         cancelled: 'Dibatalkan'
     };
 
     const payTypeLabelMap = {
         dp: 'DP (Uang Muka)',
         lunas_awal: 'Bayar Lunas di Awal',
-        bayar_akhir: 'Bayar di Akhir'
+        bayar_akhir: 'Bayar di Akhir',
+        transaksi_wa: 'Transaksi via WhatsApp'
     };
 
     let totalVerifiedIncome = 0;
@@ -2643,8 +2997,8 @@ function exportBookingHistoryExcel() {
         ];
         const workbook = window.XLSX.utils.book_new();
         window.XLSX.utils.book_append_sheet(workbook, worksheet, 'Riwayat Pemesanan');
-        window.XLSX.writeFile(workbook, `Riwayat_Pemesanan_RCM_${fileDate}.xlsx`);
-        showAdminToast('Excel Berhasil Diunduh', `File Riwayat_Pemesanan_RCM_${fileDate}.xlsx berhasil disimpan.`, 'success');
+        window.XLSX.writeFile(workbook, `Riwayat_Pemesanan_Lunas_RCM_${fileDate}.xlsx`);
+        showAdminToast('Excel Berhasil Diunduh', `File Riwayat_Pemesanan_Lunas_RCM_${fileDate}.xlsx berhasil disimpan.`, 'success');
     } else {
         // Fallback Offline ke format Excel .xls berbasis tabel HTML
         const headers = Object.keys(excelRows[0]);
@@ -2658,15 +3012,69 @@ function exportBookingHistoryExcel() {
         const blob = new Blob(['\ufeff', tableHtml], { type: 'application/vnd.ms-excel;charset=utf-8;' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
-        link.download = `Riwayat_Pemesanan_RCM_${fileDate}.xls`;
+        link.download = `Riwayat_Pemesanan_Lunas_RCM_${fileDate}.xls`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        showAdminToast('Excel Berhasil Diunduh', `File Riwayat_Pemesanan_RCM_${fileDate}.xls berhasil disimpan.`, 'success');
+        showAdminToast('Excel Berhasil Diunduh', `File Riwayat_Pemesanan_Lunas_RCM_${fileDate}.xls berhasil disimpan.`, 'success');
     }
 }
 
 let currentViewingBookingId = null;
+let currentViewingIsHistory = false;
+let pendingDocChanges = {
+    payment_proof: null,
+    payment_proof_settlement: null,
+    ktp_image: null
+};
+
+// Fungsi aman untuk membuka dokumen (gambar biasa atau base64) di tab baru tanpa diblokir browser
+function openDocumentImagePreview(el) {
+    if (!el) return;
+    const src = el.src || el.href || el.getAttribute('data-src');
+    if (!src || src === '#' || src.length < 10) return;
+
+    if (src.startsWith('data:')) {
+        const win = window.open('');
+        if (win) {
+            win.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Preview Dokumen</title>
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <style>
+                        body {
+                            margin: 0;
+                            background: #0f172a;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            min-height: 100vh;
+                            padding: 1rem;
+                            box-sizing: border-box;
+                        }
+                        img {
+                            max-width: 100%;
+                            max-height: 95vh;
+                            object-fit: contain;
+                            border-radius: 8px;
+                            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+                        }
+                    </style>
+                </head>
+                <body>
+                    <img src="${src}" alt="Dokumen Penuh" />
+                </body>
+                </html>
+            `);
+            win.document.close();
+        }
+    } else {
+        window.open(src, '_blank');
+    }
+}
+window.openDocumentImagePreview = openDocumentImagePreview;
 
 // Buat URL Pesan Permintaan Pembayaran via WhatsApp untuk Pelanggan
 function buildPaymentRequestWaUrl(booking) {
@@ -2688,6 +3096,8 @@ function buildPaymentRequestWaUrl(booking) {
         tagihanLines = `• Skema Pembayaran: *DP (Uang Muka)*\n• Total Biaya Sewa: ${formatRupiah(totalPrice)}\n• *Nominal DP yang Perlu Dibayar: ${formatRupiah(dpAmount)}*\n• Sisa Pelunasan: ${formatRupiah(remAmount)}`;
     } else if (payType === 'bayar_akhir') {
         tagihanLines = `• Skema Pembayaran: *Bayar di Akhir / Pelunasan*\n• *Total Tagihan Pembayaran: ${formatRupiah(totalPrice)}*`;
+    } else if (payType === 'transaksi_wa') {
+        tagihanLines = `• Skema Transaksi: *Transaksi Langsung via WhatsApp*\n• *Total Tagihan Biaya Sewa: ${formatRupiah(totalPrice)}*`;
     } else {
         tagihanLines = `• Skema Pembayaran: *Bayar Lunas di Awal*\n• *Total Tagihan Pembayaran: ${formatRupiah(totalPrice)}*`;
     }
@@ -2724,18 +3134,73 @@ function sendPaymentRequestWhatsApp(id) {
     window.open(url, '_blank');
 }
 
-function viewBookingDocument(id) {
+function viewBookingDocument(id, isHistory = false) {
     currentViewingBookingId = id;
+    currentViewingIsHistory = Boolean(isHistory);
     const booking = (adminState.bookings || []).find(b => b.id == id);
     if (!booking) return;
 
+    // Reset pending perubahan dokumen yang belum disubmit
+    pendingDocChanges = {
+        payment_proof: null,
+        payment_proof_settlement: null,
+        penalty_proof: null,
+        ktp_image: null
+    };
+
+    const submitBtn = document.getElementById('docSubmitAllBtn');
+    const submitBtnText = document.getElementById('docSubmitAllBtnText');
+    if (submitBtn) submitBtn.disabled = false;
+    if (submitBtnText) submitBtnText.textContent = 'Submit & Simpan Semua Dokumen';
+
     const modal = document.getElementById('documentViewModal');
     if (!modal) return;
+
+    // Header modal titles
+    const modalTitle = document.getElementById('docModalTitle');
+    const modalSubtitle = document.getElementById('docModalSubtitle');
+    const modalIcon = document.getElementById('docModalIcon');
+    const ktpSection = document.getElementById('docKtpSectionWrapper');
+    const waSection = document.getElementById('docPaymentWaSection');
+    const openFullBtn = document.getElementById('docOpenFullBtn');
+
+    if (modalTitle) {
+        modalTitle.textContent = currentViewingIsHistory
+            ? 'Dokumen & Bukti Bayar (Riwayat)'
+            : 'Dokumen KTP & Bukti Pembayaran';
+    }
+    if (modalSubtitle) {
+        modalSubtitle.textContent = currentViewingIsHistory
+            ? 'Rincian pesanan dan verifikasi bukti transfer / pembayaran'
+            : 'Verifikasi identitas, bukti bayar & permintaan pembayaran via WhatsApp';
+    }
+    if (modalIcon) {
+        modalIcon.textContent = currentViewingIsHistory ? '🧾' : '📄';
+    }
+
+    // Bagian KTP tidak ada sama sekali jika dilihat dari Riwayat Pemesanan
+    if (ktpSection) {
+        if (currentViewingIsHistory) {
+            ktpSection.classList.add('hidden');
+        } else {
+            ktpSection.classList.remove('hidden');
+        }
+    }
+    // Bagian permintaan WhatsApp disembunyikan jika riwayat sudah lunas/selesai
+    if (waSection) {
+        if (currentViewingIsHistory) {
+            waSection.classList.add('hidden');
+        } else {
+            waSection.classList.remove('hidden');
+        }
+    }
 
     const nameEl = document.getElementById('docCustomerName');
     const phoneEl = document.getElementById('docCustomerPhone');
     const carEl = document.getElementById('docCarName');
     const codeEl = document.getElementById('docBookingCode');
+    const datesEl = document.getElementById('docBookingDates');
+    const driverEl = document.getElementById('docDriverService');
     const payTypeEl = document.getElementById('docPaymentType');
     const payDetailEl = document.getElementById('docPaymentDetail');
 
@@ -2744,21 +3209,45 @@ function viewBookingDocument(id) {
     if (carEl) carEl.textContent = booking.car_name || '-';
     if (codeEl) codeEl.textContent = booking.booking_code || '-';
 
+    if (datesEl) {
+        const dateRange = formatBookingDateRange(booking.start_date, booking.end_date, booking.start_time, booking.end_time);
+        datesEl.innerHTML = dateRange || `${escapeHtml(booking.start_date || '-')} s/d ${escapeHtml(booking.end_date || '-')}`;
+    }
+
+    if (driverEl) {
+        const isWithDriver = Boolean(booking.with_driver) ||
+            booking.driver_option === 'with_driver' ||
+            booking.driver_option === 'luar_kota' ||
+            String(booking.driver_label || '').toLowerCase().includes('supir');
+
+        if (isWithDriver) {
+            driverEl.textContent = booking.driver_label ? `Dengan Supir (${booking.driver_label})` : 'Dengan Supir (+Supir)';
+            driverEl.style.color = '#059669';
+        } else {
+            driverEl.textContent = 'Tanpa Supir (Lepas Kunci)';
+            driverEl.style.color = '#475569';
+        }
+    }
+
     const payType = booking.payment_type || 'lunas_awal';
     const payMethod = booking.payment_method ? booking.payment_method.toUpperCase() : '-';
     const totalPrice = parseFloat(booking.total_price) || 0;
     const dpAmount = parseFloat(booking.dp_amount) || Math.round(totalPrice * 0.5);
+    const remAmount = Math.max(0, totalPrice - dpAmount);
 
     if (payTypeEl) {
         if (payType === 'dp') payTypeEl.textContent = 'DP (Uang Muka)';
         else if (payType === 'bayar_akhir') payTypeEl.textContent = 'Bayar di Akhir';
+        else if (payType === 'transaksi_wa') payTypeEl.textContent = 'Transaksi via WA';
         else payTypeEl.textContent = 'Bayar Lunas di Awal';
     }
     if (payDetailEl) {
         if (payType === 'dp') {
-            payDetailEl.textContent = `${payMethod} • DP ${formatRupiah(dpAmount)} (Total ${formatRupiah(totalPrice)})`;
+            payDetailEl.textContent = `${payMethod} • DP ${formatRupiah(dpAmount)} (Sisa ${formatRupiah(remAmount)})`;
         } else if (payType === 'bayar_akhir') {
             payDetailEl.textContent = `Tagihan Akhir: ${formatRupiah(totalPrice)}`;
+        } else if (payType === 'transaksi_wa') {
+            payDetailEl.textContent = `Tagihan: ${formatRupiah(totalPrice)} (Transaksi via WhatsApp)`;
         } else {
             payDetailEl.textContent = `${payMethod} • Lunas ${formatRupiah(totalPrice)}`;
         }
@@ -2771,7 +3260,34 @@ function viewBookingDocument(id) {
     if (reqPayWaBtn) reqPayWaBtn.href = reqPayWaUrl;
     if (reqPayWaBtnInner) reqPayWaBtnInner.href = reqPayWaUrl;
 
-    // Preview Bukti Pembayaran Pelanggan
+    // Preview Bukti Pembayaran Pelanggan (Bagian 1: DP Awal / Lunas)
+    const proofTitleEl = document.getElementById('docPaymentProofTitle');
+    const proofBadgeEl = document.getElementById('docPaymentProofBadge');
+    const uploadBtnTextEl = document.getElementById('docUploadProofBtnText');
+    const noProofTitleEl = document.getElementById('docNoProofTitle');
+    const noProofDescEl = document.getElementById('docNoProofDesc');
+    const innerUploadBtnTextEl = document.getElementById('docUploadProofInnerBtnText');
+
+    if (payType === 'dp') {
+        if (proofTitleEl) proofTitleEl.textContent = '💰 Bukti Pembayaran DP Awal (Uang Muka):';
+        if (proofBadgeEl) {
+            proofBadgeEl.textContent = `Nominal DP: ${formatRupiah(dpAmount)}`;
+            proofBadgeEl.className = 'inline-block';
+            proofBadgeEl.style.cssText = 'font-size: 0.68rem; font-weight: 800; padding: 0.1rem 0.4rem; border-radius: 4px; background: #fffbeb; color: #b45309; border: 1px solid #fde68a;';
+        }
+        if (uploadBtnTextEl) uploadBtnTextEl.textContent = 'Upload Bukti DP (Admin)';
+        if (noProofTitleEl) noProofTitleEl.textContent = 'Bukti DP Awal Belum Diunggah';
+        if (noProofDescEl) noProofDescEl.textContent = 'Pelanggan belum mengunggah bukti transfer DP awal, atau membayar DP langsung ke Admin.';
+        if (innerUploadBtnTextEl) innerUploadBtnTextEl.textContent = '📷 Upload Bukti DP Awal';
+    } else {
+        if (proofTitleEl) proofTitleEl.textContent = (payType === 'bayar_akhir') ? '💳 Bukti Pembayaran Pelunasan Akhir:' : (payType === 'transaksi_wa' ? '💳 Bukti Pembayaran Transaksi WA:' : '💳 Bukti Pembayaran Lunas di Awal:');
+        if (proofBadgeEl) proofBadgeEl.className = 'hidden';
+        if (uploadBtnTextEl) uploadBtnTextEl.textContent = 'Upload Bukti Bayar (Admin)';
+        if (noProofTitleEl) noProofTitleEl.textContent = 'Bukti Pembayaran Belum Diunggah';
+        if (noProofDescEl) noProofDescEl.textContent = (payType === 'transaksi_wa') ? 'Pelanggan melakukan transaksi via WhatsApp. Admin dapat mengunggah bukti transfer/bayar yang dikirim pelanggan melalui tombol upload di atas.' : 'Pelanggan belum mengunggah bukti transfer/QRIS pada form, atau melakukan transaksi secara langsung dengan Admin.';
+        if (innerUploadBtnTextEl) innerUploadBtnTextEl.textContent = '📷 Upload Bukti Pembayaran';
+    }
+
     const proofImg = document.getElementById('docPaymentProofImage');
     const noProofMsg = document.getElementById('docNoPaymentProofMsg');
     const openProofFullBtn = document.getElementById('docOpenProofFullBtn');
@@ -2795,34 +3311,128 @@ function viewBookingDocument(id) {
         if (openProofFullBtn) openProofFullBtn.classList.add('hidden');
     }
 
-    const img = document.getElementById('docKtpImage');
-    const noImgMsg = document.getElementById('docNoImageMsg');
-    const openFullBtn = document.getElementById('docOpenFullBtn');
-    const chatWaBtn = document.getElementById('docChatWaBtn');
+    // Preview Bukti Pembayaran Pelunasan (Bagian 2: Khusus jika Skema DP)
+    const settlementSection = document.getElementById('docSettlementProofSection');
+    const settlementBadge = document.getElementById('docSettlementAmountBadge');
+    const settlementImg = document.getElementById('docSettlementProofImage');
+    const noSettlementMsg = document.getElementById('docNoSettlementProofMsg');
+    const openSettlementFullBtn = document.getElementById('docOpenSettlementProofFullBtn');
 
-    const cleanPhone = (booking.customer_phone || '').replace(/[^0-9]/g, '');
-    let targetPhone = cleanPhone.startsWith('0') ? '62' + cleanPhone.substring(1) : cleanPhone;
-    if (chatWaBtn) {
-        chatWaBtn.href = `https://wa.me/${targetPhone}?text=${encodeURIComponent(`Halo Kak ${booking.customer_name}, mohon kirimkan foto KTP untuk verifikasi pesanan rental mobil ${booking.car_name || ''} (Kode: ${booking.booking_code || ''}). Terima kasih!`)}`;
-    }
+    if (payType === 'dp') {
+        if (settlementSection) settlementSection.classList.remove('hidden');
+        if (settlementBadge) settlementBadge.textContent = `Sisa Pelunasan: ${formatRupiah(remAmount)}`;
 
-    if (booking.ktp_image && booking.ktp_image.length > 50) {
-        if (img) {
-            img.src = booking.ktp_image;
-            img.classList.remove('hidden');
-        }
-        if (noImgMsg) noImgMsg.classList.add('hidden');
-        if (openFullBtn) {
-            openFullBtn.href = booking.ktp_image;
-            openFullBtn.classList.remove('hidden');
+        if (booking.payment_proof_settlement && booking.payment_proof_settlement.length > 50) {
+            if (settlementImg) {
+                settlementImg.src = booking.payment_proof_settlement;
+                settlementImg.classList.remove('hidden');
+            }
+            if (noSettlementMsg) noSettlementMsg.classList.add('hidden');
+            if (openSettlementFullBtn) {
+                openSettlementFullBtn.href = booking.payment_proof_settlement;
+                openSettlementFullBtn.classList.remove('hidden');
+            }
+        } else {
+            if (settlementImg) {
+                settlementImg.src = '';
+                settlementImg.classList.add('hidden');
+            }
+            if (noSettlementMsg) noSettlementMsg.classList.remove('hidden');
+            if (openSettlementFullBtn) openSettlementFullBtn.classList.add('hidden');
         }
     } else {
-        if (img) {
-            img.src = '';
-            img.classList.add('hidden');
+        if (settlementSection) settlementSection.classList.add('hidden');
+    }
+
+    // Preview Bukti Pembayaran Denda Keterlambatan
+    const penaltySection = document.getElementById('docPenaltyProofSection');
+    const penaltyBadge = document.getElementById('docPenaltyAmountBadge');
+    const penaltyImg = document.getElementById('docPenaltyProofImage');
+    const noPenaltyMsg = document.getElementById('docNoPenaltyProofMsg');
+    const openPenaltyFullBtn = document.getElementById('docOpenPenaltyProofFullBtn');
+    const timerInfo = getBookingRentalTimerInfo(booking);
+
+    const calculatedPenalty = timerInfo.hasPenalty ? timerInfo.penaltyAmount : 0;
+    const currentPenalty = Math.max(calculatedPenalty, parseFloat(booking.penalty_amount || 0));
+    const hasPenaltyProof = Boolean(booking.penalty_proof && String(booking.penalty_proof).length > 20);
+
+    // Tampilan denda HANYA muncul pada saat jam pemakaian melewati batas (isOverdue) atau ada denda/bukti denda
+    const shouldShowPenalty = Boolean(timerInfo.isOverdue || timerInfo.hasPenalty || currentPenalty > 0 || hasPenaltyProof);
+
+    if (penaltySection) {
+        if (shouldShowPenalty) {
+            penaltySection.classList.remove('hidden');
+        } else {
+            penaltySection.classList.add('hidden');
         }
-        if (noImgMsg) noImgMsg.classList.remove('hidden');
+    }
+
+    if (penaltyBadge) {
+        if (currentPenalty > 0) {
+            const hrText = timerInfo.overdueHours > 0 ? ` (${timerInfo.overdueHours} Jam)` : '';
+            penaltyBadge.textContent = `Denda: ${formatRupiah(currentPenalty)}${hrText}`;
+            penaltyBadge.style.color = '#dc2626';
+            penaltyBadge.style.background = '#fef2f2';
+            penaltyBadge.style.borderColor = '#fecaca';
+        } else {
+            penaltyBadge.textContent = 'Lewat Batas Waktu (< 1 Jam)';
+            penaltyBadge.style.color = '#d97706';
+            penaltyBadge.style.background = '#fffbeb';
+            penaltyBadge.style.borderColor = '#fde68a';
+        }
+    }
+
+    if (booking.penalty_proof && booking.penalty_proof.length > 50) {
+        if (penaltyImg) {
+            penaltyImg.src = booking.penalty_proof;
+            penaltyImg.classList.remove('hidden');
+        }
+        if (noPenaltyMsg) noPenaltyMsg.classList.add('hidden');
+        if (openPenaltyFullBtn) {
+            openPenaltyFullBtn.href = booking.penalty_proof;
+            openPenaltyFullBtn.classList.remove('hidden');
+        }
+    } else {
+        if (penaltyImg) {
+            penaltyImg.src = '';
+            penaltyImg.classList.add('hidden');
+        }
+        if (noPenaltyMsg) noPenaltyMsg.classList.remove('hidden');
+        if (openPenaltyFullBtn) openPenaltyFullBtn.classList.add('hidden');
+    }
+
+    // Preview KTP (hanya jika bukan history)
+    const img = document.getElementById('docKtpImage');
+    const noImgMsg = document.getElementById('docNoImageMsg');
+    const chatWaBtn = document.getElementById('docChatWaBtn');
+
+    if (currentViewingIsHistory) {
         if (openFullBtn) openFullBtn.classList.add('hidden');
+    } else {
+        const cleanPhone = (booking.customer_phone || '').replace(/[^0-9]/g, '');
+        let targetPhone = cleanPhone.startsWith('0') ? '62' + cleanPhone.substring(1) : cleanPhone;
+        if (chatWaBtn) {
+            chatWaBtn.href = `https://wa.me/${targetPhone}?text=${encodeURIComponent(`Halo Kak ${booking.customer_name}, mohon kirimkan foto KTP untuk verifikasi pesanan rental mobil ${booking.car_name || ''} (Kode: ${booking.booking_code || ''}). Terima kasih!`)}`;
+        }
+
+        if (booking.ktp_image && booking.ktp_image.length > 50) {
+            if (img) {
+                img.src = booking.ktp_image;
+                img.classList.remove('hidden');
+            }
+            if (noImgMsg) noImgMsg.classList.add('hidden');
+            if (openFullBtn) {
+                openFullBtn.href = booking.ktp_image;
+                openFullBtn.classList.remove('hidden');
+            }
+        } else {
+            if (img) {
+                img.src = '';
+                img.classList.add('hidden');
+            }
+            if (noImgMsg) noImgMsg.classList.remove('hidden');
+            if (openFullBtn) openFullBtn.classList.add('hidden');
+        }
     }
 
     modal.classList.remove('hidden');
@@ -2837,10 +3447,10 @@ async function handleAdminUploadPaymentProof(event) {
     if (!booking) return;
 
     const reader = new FileReader();
-    reader.onload = async function(e) {
+    reader.onload = function(e) {
         const rawBase64 = e.target.result;
         const tempImg = new Image();
-        tempImg.onload = async function() {
+        tempImg.onload = function() {
             const canvas = document.createElement('canvas');
             let width = tempImg.width;
             let height = tempImg.height;
@@ -2860,28 +3470,139 @@ async function handleAdminUploadPaymentProof(event) {
             ctx.drawImage(tempImg, 0, 0, width, height);
             const compressedBase64 = canvas.toDataURL('image/jpeg', 0.85);
 
-            booking.payment_proof = compressedBase64;
-            saveBookingsData();
+            pendingDocChanges.payment_proof = compressedBase64;
 
-            try {
-                await fetch(`/api/bookings/${booking.id}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        payment_proof: compressedBase64
-                    })
-                });
-            } catch (err) {
-                console.error(err);
+            // Update preview di modal secara langsung
+            const proofImg = document.getElementById('docPaymentProofImage');
+            const noProofMsg = document.getElementById('docNoPaymentProofMsg');
+            const openProofFullBtn = document.getElementById('docOpenProofFullBtn');
+
+            if (proofImg) {
+                proofImg.src = compressedBase64;
+                proofImg.classList.remove('hidden');
+            }
+            if (noProofMsg) noProofMsg.classList.add('hidden');
+            if (openProofFullBtn) {
+                openProofFullBtn.href = compressedBase64;
+                openProofFullBtn.classList.remove('hidden');
             }
 
-            viewBookingDocument(booking.id);
-            renderBookingsTable();
-            renderHistoryTable();
-            showAdminToast('Bukti Pembayaran Disimpan', 'Bukti pembayaran pelanggan berhasil diunggah oleh Admin.', 'success');
+            const msgLabel = booking.payment_type === 'dp' ? 'Bukti DP awal' : 'Bukti pembayaran';
+            showAdminToast('File Dipilih', `${msgLabel} siap disimpan. Silakan klik tombol "Submit & Simpan Semua Dokumen" di bawah untuk menyimpan perubahan.`, 'info');
+            event.target.value = '';
+        };
+        tempImg.src = rawBase64;
+    };
+    reader.readAsDataURL(file);
+}
+
+// Upload atau ganti Bukti Pembayaran Pelunasan Pelanggan oleh Admin (Khusus skema DP)
+async function handleAdminUploadSettlementProof(event) {
+    const file = event.target.files[0];
+    if (!file || !currentViewingBookingId) return;
+
+    const booking = (adminState.bookings || []).find(b => b.id == currentViewingBookingId);
+    if (!booking) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const rawBase64 = e.target.result;
+        const tempImg = new Image();
+        tempImg.onload = function() {
+            const canvas = document.createElement('canvas');
+            let width = tempImg.width;
+            let height = tempImg.height;
+            const maxDim = 1280;
+            if (width > maxDim || height > maxDim) {
+                if (width > height) {
+                    height = Math.round((height * maxDim) / width);
+                    width = maxDim;
+                } else {
+                    width = Math.round((width * maxDim) / height);
+                    height = maxDim;
+                }
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(tempImg, 0, 0, width, height);
+            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.85);
+
+            pendingDocChanges.payment_proof_settlement = compressedBase64;
+
+            // Update preview di modal secara langsung
+            const settlementImg = document.getElementById('docSettlementProofImage');
+            const noSettlementMsg = document.getElementById('docNoSettlementProofMsg');
+            const openSettlementFullBtn = document.getElementById('docOpenSettlementProofFullBtn');
+
+            if (settlementImg) {
+                settlementImg.src = compressedBase64;
+                settlementImg.classList.remove('hidden');
+            }
+            if (noSettlementMsg) noSettlementMsg.classList.add('hidden');
+            if (openSettlementFullBtn) {
+                openSettlementFullBtn.href = compressedBase64;
+                openSettlementFullBtn.classList.remove('hidden');
+            }
+
+            showAdminToast('File Dipilih', 'Bukti pelunasan siap disimpan. Silakan klik tombol "Submit & Simpan Semua Dokumen" di bawah untuk menyimpan perubahan.', 'info');
+            event.target.value = '';
+        };
+        tempImg.src = rawBase64;
+    };
+    reader.readAsDataURL(file);
+}
+
+// Upload atau ganti Bukti Pembayaran Denda Keterlambatan oleh Admin
+async function handleAdminUploadPenaltyProof(event) {
+    const file = event.target.files[0];
+    if (!file || !currentViewingBookingId) return;
+
+    const booking = (adminState.bookings || []).find(b => b.id == currentViewingBookingId);
+    if (!booking) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const rawBase64 = e.target.result;
+        const tempImg = new Image();
+        tempImg.onload = function() {
+            const canvas = document.createElement('canvas');
+            let width = tempImg.width;
+            let height = tempImg.height;
+            const maxDim = 1280;
+            if (width > maxDim || height > maxDim) {
+                if (width > height) {
+                    height = Math.round((height * maxDim) / width);
+                    width = maxDim;
+                } else {
+                    width = Math.round((width * maxDim) / height);
+                    height = maxDim;
+                }
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(tempImg, 0, 0, width, height);
+            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.85);
+
+            pendingDocChanges.penalty_proof = compressedBase64;
+
+            // Update preview di modal secara langsung
+            const penaltyImg = document.getElementById('docPenaltyProofImage');
+            const noPenaltyMsg = document.getElementById('docNoPenaltyProofMsg');
+            const openPenaltyFullBtn = document.getElementById('docOpenPenaltyProofFullBtn');
+
+            if (penaltyImg) {
+                penaltyImg.src = compressedBase64;
+                penaltyImg.classList.remove('hidden');
+            }
+            if (noPenaltyMsg) noPenaltyMsg.classList.add('hidden');
+            if (openPenaltyFullBtn) {
+                openPenaltyFullBtn.href = compressedBase64;
+                openPenaltyFullBtn.classList.remove('hidden');
+            }
+
+            showAdminToast('File Dipilih', 'Bukti pembayaran denda siap disimpan. Silakan klik tombol "Submit & Simpan Semua Dokumen" di bawah untuk menyimpan perubahan.', 'info');
             event.target.value = '';
         };
         tempImg.src = rawBase64;
@@ -2898,12 +3619,12 @@ async function handleAdminUploadKtp(event) {
     if (!booking) return;
 
     const reader = new FileReader();
-    reader.onload = async function(e) {
+    reader.onload = function(e) {
         const rawBase64 = e.target.result;
 
         // Kompres via Canvas (max 1280px)
         const tempImg = new Image();
-        tempImg.onload = async function() {
+        tempImg.onload = function() {
             const canvas = document.createElement('canvas');
             let width = tempImg.width;
             let height = tempImg.height;
@@ -2923,28 +3644,24 @@ async function handleAdminUploadKtp(event) {
             ctx.drawImage(tempImg, 0, 0, width, height);
             const compressedBase64 = canvas.toDataURL('image/jpeg', 0.85);
 
-            booking.ktp_image = compressedBase64;
-            saveBookingsData();
+            pendingDocChanges.ktp_image = compressedBase64;
 
-            try {
-                await fetch(`/api/bookings/${booking.id}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        ktp_image: compressedBase64
-                    })
-                });
-            } catch (err) {
-                console.error(err);
+            // Update preview foto KTP dan tombol Lihat KTP Penuh di bagian atas
+            const img = document.getElementById('docKtpImage');
+            const noImgMsg = document.getElementById('docNoImageMsg');
+            const openFullBtn = document.getElementById('docOpenFullBtn');
+
+            if (img) {
+                img.src = compressedBase64;
+                img.classList.remove('hidden');
+            }
+            if (noImgMsg) noImgMsg.classList.add('hidden');
+            if (openFullBtn) {
+                openFullBtn.href = compressedBase64;
+                openFullBtn.classList.remove('hidden');
             }
 
-            viewBookingDocument(booking.id);
-            renderBookingsTable();
-            renderHistoryTable();
-            showAdminToast('Foto KTP Disimpan', 'Foto KTP pelanggan berhasil disimpan.', 'success');
+            showAdminToast('File Dipilih', 'Foto KTP pelanggan siap disimpan. Silakan klik tombol "Submit & Simpan Semua Dokumen" di bawah untuk menyimpan perubahan.', 'info');
             event.target.value = '';
         };
         tempImg.src = rawBase64;
@@ -2952,99 +3669,182 @@ async function handleAdminUploadKtp(event) {
     reader.readAsDataURL(file);
 }
 
+// Submit dan simpan semua dokumen booking sekaligus ke server & database
+async function submitAllDocuments() {
+    if (!currentViewingBookingId) return;
+
+    const booking = (adminState.bookings || []).find(b => b.id == currentViewingBookingId);
+    if (!booking) return;
+
+    const submitBtn = document.getElementById('docSubmitAllBtn');
+    const submitBtnText = document.getElementById('docSubmitAllBtnText');
+    const originalText = submitBtnText ? submitBtnText.textContent : 'Submit & Simpan Semua Dokumen';
+
+    if (submitBtn) submitBtn.disabled = true;
+    if (submitBtnText) submitBtnText.textContent = 'Menyimpan...';
+
+    const payload = {};
+    let hasChanges = false;
+
+    if (pendingDocChanges.payment_proof !== null) {
+        booking.payment_proof = pendingDocChanges.payment_proof;
+        payload.payment_proof = pendingDocChanges.payment_proof;
+        hasChanges = true;
+    }
+    if (pendingDocChanges.payment_proof_settlement !== null) {
+        booking.payment_proof_settlement = pendingDocChanges.payment_proof_settlement;
+        payload.payment_proof_settlement = pendingDocChanges.payment_proof_settlement;
+        hasChanges = true;
+    }
+    if (pendingDocChanges.penalty_proof !== null) {
+        booking.penalty_proof = pendingDocChanges.penalty_proof;
+        payload.penalty_proof = pendingDocChanges.penalty_proof;
+        const timerInfo = getBookingRentalTimerInfo(booking);
+        const curPenalty = (timerInfo.hasPenalty ? timerInfo.penaltyAmount : 0) || parseFloat(booking.penalty_amount || 0);
+        if (curPenalty > 0) {
+            booking.penalty_amount = curPenalty;
+            payload.penalty_amount = curPenalty;
+        }
+        hasChanges = true;
+    }
+    if (pendingDocChanges.ktp_image !== null) {
+        booking.ktp_image = pendingDocChanges.ktp_image;
+        payload.ktp_image = pendingDocChanges.ktp_image;
+        hasChanges = true;
+    }
+
+    // Otomatis verifikasi pesanan saat menyimpan dokumen KTP / bukti pembayaran
+    if (booking.status !== 'confirmed' && (booking.payment_proof || booking.ktp_image || booking.payment_proof_settlement)) {
+        booking.status = 'confirmed';
+        payload.status = 'confirmed';
+        hasChanges = true;
+    }
+
+    // Simpan ke local state/storage
+    saveBookingsData();
+
+    // Kirim sinkronisasi ke backend API
+    try {
+        if (hasChanges && Object.keys(payload).length > 0) {
+            await fetch(`/api/bookings/${booking.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+        }
+    } catch (err) {
+        console.error('Gagal sinkronisasi dokumen booking ke server:', err);
+    } finally {
+        if (submitBtn) submitBtn.disabled = false;
+        if (submitBtnText) submitBtnText.textContent = originalText;
+    }
+
+    // Reset pending changes
+    pendingDocChanges = {
+        payment_proof: null,
+        payment_proof_settlement: null,
+        penalty_proof: null,
+        ktp_image: null
+    };
+
+    renderBookingsTable();
+    renderHistoryTable();
+    renderOverviewMetrics();
+
+    showAdminToast(
+        'Dokumen Berhasil Disimpan',
+        'Semua dokumen pesanan berhasil disimpan & status pesanan telah diverifikasi!',
+        'success'
+    );
+
+    closeDocumentViewModal();
+}
+
 function closeDocumentViewModal() {
+    pendingDocChanges = {
+        payment_proof: null,
+        payment_proof_settlement: null,
+        penalty_proof: null,
+        ktp_image: null
+    };
     const modal = document.getElementById('documentViewModal');
     if (modal) modal.classList.add('hidden');
 }
 
 window.viewBookingDocument = viewBookingDocument;
 window.closeDocumentViewModal = closeDocumentViewModal;
+window.submitAllDocuments = submitAllDocuments;
 window.handleAdminUploadKtp = handleAdminUploadKtp;
 window.handleAdminUploadPaymentProof = handleAdminUploadPaymentProof;
+window.handleAdminUploadSettlementProof = handleAdminUploadSettlementProof;
+window.handleAdminUploadPenaltyProof = handleAdminUploadPenaltyProof;
+window.completeBookingRental = completeBookingRental;
 window.sendPaymentRequestWhatsApp = sendPaymentRequestWhatsApp;
 window.handleOwnerQrisUpload = handleOwnerQrisUpload;
 window.removeOwnerQrisImage = removeOwnerQrisImage;
 
-function handleAdminBookingPaymentTypeChange() {
-    const payType = document.getElementById('abPaymentType')?.value || 'lunas_awal';
-    const methodWrap = document.getElementById('abPaymentMethodWrap');
+function setAdminPaymentType(type) {
+    const hiddenInput = document.getElementById('abPaymentType');
+    if (hiddenInput) hiddenInput.value = type;
+
+    const cards = ['lunas_awal', 'dp', 'bayar_akhir'];
+    cards.forEach(c => {
+        const cardEl = document.getElementById(`abPayCard_${c}`);
+        const radio = cardEl ? cardEl.querySelector('input[type="radio"]') : null;
+        if (cardEl) {
+            if (c === type) {
+                cardEl.style.border = '1.5px solid #2563eb';
+                cardEl.style.background = '#eff6ff';
+                if (radio) radio.checked = true;
+            } else {
+                cardEl.style.border = '1.5px solid #e2e8f0';
+                cardEl.style.background = '#ffffff';
+                if (radio) radio.checked = false;
+            }
+        }
+    });
+
     const dpWrap = document.getElementById('abDpAmountWrap');
-    const proofWrap = document.getElementById('abPaymentProofWrap');
     const totalPrice = parseFloat(document.getElementById('abTotalPrice')?.value) || 0;
     const dpInput = document.getElementById('abDpAmount');
 
-    if (payType === 'dp') {
+    if (type === 'dp') {
         if (dpWrap) dpWrap.classList.remove('hidden');
-        if (methodWrap) methodWrap.classList.remove('hidden');
-        if (proofWrap) proofWrap.classList.remove('hidden');
-        if (dpInput && !dpInput.value) {
+        if (dpInput && (!dpInput.value || parseFloat(dpInput.value) === 0)) {
             dpInput.value = Math.round(totalPrice * 0.5);
         }
-    } else if (payType === 'bayar_akhir') {
-        if (dpWrap) dpWrap.classList.add('hidden');
-        if (methodWrap) methodWrap.classList.add('hidden');
-        if (proofWrap) proofWrap.classList.add('hidden');
     } else {
         if (dpWrap) dpWrap.classList.add('hidden');
-        if (methodWrap) methodWrap.classList.remove('hidden');
-        if (proofWrap) proofWrap.classList.remove('hidden');
     }
 }
 
-function handleAdminBookingProofFile(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const rawBase64 = e.target.result;
-        const tempImg = new Image();
-        tempImg.onload = function() {
-            const canvas = document.createElement('canvas');
-            let width = tempImg.width;
-            let height = tempImg.height;
-            const maxDim = 1200;
-            if (width > maxDim || height > maxDim) {
-                if (width > height) {
-                    height = Math.round((height * maxDim) / width);
-                    width = maxDim;
-                } else {
-                    width = Math.round((width * maxDim) / height);
-                    height = maxDim;
-                }
-            }
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(tempImg, 0, 0, width, height);
-            const compressed = canvas.toDataURL('image/jpeg', 0.85);
-
-            const hiddenEl = document.getElementById('abPaymentProofBase64');
-            const prevBox = document.getElementById('abPaymentProofPreviewBox');
-            const prevImg = document.getElementById('abPaymentProofPreviewImg');
-            if (hiddenEl) hiddenEl.value = compressed;
-            if (prevImg) prevImg.src = compressed;
-            if (prevBox) prevBox.classList.remove('hidden');
-        };
-        tempImg.src = rawBase64;
-    };
-    reader.readAsDataURL(file);
+function setAdminQuickDp(percentage) {
+    const totalPrice = parseFloat(document.getElementById('abTotalPrice')?.value) || 0;
+    const dpInput = document.getElementById('abDpAmount');
+    if (dpInput) {
+        dpInput.value = Math.round(totalPrice * percentage);
+    }
 }
 
-function removeAdminBookingProof() {
-    const fileEl = document.getElementById('abPaymentProofFile');
-    const hiddenEl = document.getElementById('abPaymentProofBase64');
-    const prevBox = document.getElementById('abPaymentProofPreviewBox');
-    const prevImg = document.getElementById('abPaymentProofPreviewImg');
-    if (fileEl) fileEl.value = '';
-    if (hiddenEl) hiddenEl.value = '';
-    if (prevImg) prevImg.src = '';
-    if (prevBox) prevBox.classList.add('hidden');
+function handleAdminStartDateChange() {
+    const startDateEl = document.getElementById('abStartDate');
+    const endDateEl = document.getElementById('abEndDate');
+    if (startDateEl && endDateEl) {
+        endDateEl.min = startDateEl.value;
+        if (endDateEl.value && endDateEl.value < startDateEl.value) {
+            endDateEl.value = startDateEl.value;
+        }
+    }
+    calculateAdminBookingPrice();
 }
 
-window.handleAdminBookingPaymentTypeChange = handleAdminBookingPaymentTypeChange;
-window.handleAdminBookingProofFile = handleAdminBookingProofFile;
-window.removeAdminBookingProof = removeAdminBookingProof;
+function handleAdminBookingPaymentTypeChange() {
+    const payType = document.getElementById('abPaymentType')?.value || 'lunas_awal';
+    setAdminPaymentType(payType);
+}
 
 function populateAdminBookingCarSelect(selectedCarId = null) {
     const carSelect = document.getElementById('abCarId');
@@ -3068,11 +3868,24 @@ function openAdminBookingModal() {
     const titleIconEl = document.getElementById('adminBookingModalIcon');
     const titleTextEl = document.getElementById('adminBookingModalTitleText');
     const submitBtnEl = document.getElementById('abSubmitBtn');
-    if (titleIconEl) titleIconEl.innerHTML = '+';
+    if (titleIconEl) titleIconEl.innerHTML = '<i class="fa-solid fa-plus" style="font-size: 0.95rem;"></i>';
     if (titleTextEl) titleTextEl.textContent = 'Input Booking Manual';
     if (submitBtnEl) submitBtnEl.textContent = 'Simpan Booking';
 
     populateAdminBookingCarSelect();
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const startDateInput = document.getElementById('abStartDate');
+    const endDateInput = document.getElementById('abEndDate');
+
+    if (startDateInput) {
+        startDateInput.min = todayStr;
+        startDateInput.value = todayStr;
+    }
+    if (endDateInput) {
+        endDateInput.min = todayStr;
+        endDateInput.value = getRelativeDateStr(1);
+    }
 
     const nameEl = document.getElementById('abCustomerName');
     const phoneEl = document.getElementById('abCustomerPhone');
@@ -3080,8 +3893,8 @@ function openAdminBookingModal() {
     const startTimeEl = document.getElementById('abStartTime');
     const endTimeEl = document.getElementById('abEndTime');
     const driverOptEl = document.getElementById('abDriverOption');
+    const eventTypeEl = document.getElementById('abEventType');
     const statusEl = document.getElementById('abStatus');
-    const payMethodEl = document.getElementById('abPaymentMethod');
 
     if (nameEl) nameEl.value = '';
     if (phoneEl) phoneEl.value = '';
@@ -3089,25 +3902,19 @@ function openAdminBookingModal() {
     if (startTimeEl) startTimeEl.value = '09:00';
     if (endTimeEl) endTimeEl.value = '09:00';
     if (driverOptEl) driverOptEl.value = 'with_driver';
-    if (statusEl) statusEl.value = 'confirmed';
-    if (payMethodEl) payMethodEl.value = 'transfer';
+    if (eventTypeEl) eventTypeEl.value = 'Wisata / Liburan Keluarga';
+    if (statusEl) {
+        statusEl.value = 'confirmed';
+        statusEl.disabled = false;
+    }
+    const lockedHint = document.getElementById('abStatusLockedHint');
+    if (lockedHint) lockedHint.classList.add('hidden');
 
-    const today = getRelativeDateStr(0);
-    const tomorrow = getRelativeDateStr(1);
-
-    const startDateInput = document.getElementById('abStartDate');
-    const endDateInput = document.getElementById('abEndDate');
-    if (startDateInput) startDateInput.value = today;
-    if (endDateInput) endDateInput.value = tomorrow;
-
-    const payTypeEl = document.getElementById('abPaymentType');
-    if (payTypeEl) payTypeEl.value = 'lunas_awal';
     const dpEl = document.getElementById('abDpAmount');
     if (dpEl) dpEl.value = '';
-    removeAdminBookingProof();
 
+    setAdminPaymentType('lunas_awal');
     calculateAdminBookingPrice();
-    handleAdminBookingPaymentTypeChange();
     modal.classList.remove('hidden');
 }
 
@@ -3137,19 +3944,26 @@ function openEditAdminBookingModal(id) {
     const startTimeEl = document.getElementById('abStartTime');
     const endTimeEl = document.getElementById('abEndTime');
     const driverOptEl = document.getElementById('abDriverOption');
+    const eventTypeEl = document.getElementById('abEventType');
     const statusEl = document.getElementById('abStatus');
     const totalPriceEl = document.getElementById('abTotalPrice');
-    const payTypeEl = document.getElementById('abPaymentType');
-    const payMethodEl = document.getElementById('abPaymentMethod');
     const dpEl = document.getElementById('abDpAmount');
     const notesEl = document.getElementById('abNotes');
 
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (startDateEl) startDateEl.min = todayStr;
+    if (endDateEl) endDateEl.min = todayStr;
+
     if (nameEl) nameEl.value = booking.customer_name || '';
     if (phoneEl) phoneEl.value = booking.customer_phone || '';
-    if (startDateEl) startDateEl.value = booking.start_date ? String(booking.start_date).split('T')[0] : getRelativeDateStr(0);
-    if (endDateEl) endDateEl.value = booking.end_date ? String(booking.end_date).split('T')[0] : getRelativeDateStr(1);
+    if (startDateEl) startDateEl.value = booking.start_date ? String(booking.start_date).split('T')[0] : todayStr;
+    if (endDateEl) {
+        endDateEl.value = booking.end_date ? String(booking.end_date).split('T')[0] : getRelativeDateStr(1);
+        if (startDateEl && startDateEl.value) endDateEl.min = startDateEl.value;
+    }
     if (startTimeEl) startTimeEl.value = booking.start_time || '09:00';
     if (endTimeEl) endTimeEl.value = booking.end_time || '09:00';
+    if (eventTypeEl) eventTypeEl.value = booking.event_type || 'Wisata / Liburan Keluarga';
 
     if (driverOptEl) {
         const dLabel = String(booking.driver_label || '').toLowerCase();
@@ -3159,26 +3973,23 @@ function openEditAdminBookingModal(id) {
     }
 
     if (statusEl) {
-        statusEl.value = normalizeBookingStatusKey(booking.status);
+        const norm = normalizeBookingStatusKey(booking.status);
+        statusEl.value = norm;
+        const lockedHint = document.getElementById('abStatusLockedHint');
+        if (norm === 'confirmed') {
+            statusEl.disabled = true;
+            if (lockedHint) lockedHint.classList.remove('hidden');
+        } else {
+            statusEl.disabled = false;
+            if (lockedHint) lockedHint.classList.add('hidden');
+        }
     }
 
     if (totalPriceEl) totalPriceEl.value = parseFloat(booking.total_price) || 0;
-    if (payTypeEl) payTypeEl.value = booking.payment_type || 'lunas_awal';
-    if (payMethodEl) payMethodEl.value = booking.payment_method || 'transfer';
     if (dpEl) dpEl.value = booking.dp_amount ? parseFloat(booking.dp_amount) : '';
     if (notesEl) notesEl.value = booking.notes || '';
 
-    removeAdminBookingProof();
-    if (booking.payment_proof && booking.payment_proof.length > 50) {
-        const hiddenEl = document.getElementById('abPaymentProofBase64');
-        const prevBox = document.getElementById('abPaymentProofPreviewBox');
-        const prevImg = document.getElementById('abPaymentProofPreviewImg');
-        if (hiddenEl) hiddenEl.value = booking.payment_proof;
-        if (prevImg) prevImg.src = booking.payment_proof;
-        if (prevBox) prevBox.classList.remove('hidden');
-    }
-
-    handleAdminBookingPaymentTypeChange();
+    setAdminPaymentType(booking.payment_type || 'lunas_awal');
     modal.classList.remove('hidden');
 }
 
@@ -3229,13 +4040,18 @@ async function handleSaveAdminBooking(e) {
     const startTime = document.getElementById('abStartTime')?.value || '09:00';
     const endTime = document.getElementById('abEndTime')?.value || '09:00';
     const driverOpt = document.getElementById('abDriverOption').value;
-    const status = document.getElementById('abStatus').value;
+    const eventType = document.getElementById('abEventType')?.value || 'Wisata / Liburan Keluarga';
+    let status = document.getElementById('abStatus')?.value || 'confirmed';
+    if (editingId) {
+        const existing = (adminState.bookings || []).find(b => b.id == editingId);
+        if (existing && normalizeBookingStatusKey(existing.status) === 'confirmed') {
+            status = 'confirmed';
+        }
+    }
     const totalPrice = parseFloat(document.getElementById('abTotalPrice').value) || 0;
     const notes = document.getElementById('abNotes').value.trim();
     const paymentType = document.getElementById('abPaymentType')?.value || 'lunas_awal';
-    const paymentMethod = paymentType === 'bayar_akhir' ? null : (document.getElementById('abPaymentMethod')?.value || 'transfer');
     const dpAmount = paymentType === 'dp' ? (parseFloat(document.getElementById('abDpAmount')?.value) || Math.round(totalPrice * 0.5)) : 0;
-    const paymentProof = paymentType === 'bayar_akhir' ? null : (document.getElementById('abPaymentProofBase64')?.value || null);
 
     if (endDate < startDate) {
         showAdminToast('Tanggal Tidak Valid', 'Tanggal selesai tidak boleh lebih awal dari tanggal mulai.', 'error');
@@ -3252,6 +4068,7 @@ async function handleSaveAdminBooking(e) {
         car_id: carId,
         customer_name: name,
         customer_phone: phone,
+        event_type: eventType,
         start_date: startDate,
         end_date: endDate,
         start_time: startTime,
@@ -3260,9 +4077,7 @@ async function handleSaveAdminBooking(e) {
         driver_option: driverOpt,
         total_price: totalPrice,
         payment_type: paymentType,
-        payment_method: paymentMethod,
         dp_amount: dpAmount,
-        payment_proof: paymentProof,
         status: status,
         notes: notes
     };
@@ -3276,6 +4091,7 @@ async function handleSaveAdminBooking(e) {
                 customer_name: name,
                 customer_phone: phone,
                 car_name: carName,
+                event_type: eventType,
                 start_date: startDate,
                 end_date: endDate,
                 start_time: startTime,
@@ -3284,9 +4100,7 @@ async function handleSaveAdminBooking(e) {
                 with_driver: withDriver,
                 total_price: totalPrice,
                 payment_type: paymentType,
-                payment_method: paymentMethod,
                 dp_amount: dpAmount,
-                payment_proof: paymentProof,
                 status: status,
                 notes: notes
             };
@@ -3319,6 +4133,7 @@ async function handleSaveAdminBooking(e) {
         customer_name: name,
         customer_phone: phone,
         car_name: carName,
+        event_type: eventType,
         start_date: startDate,
         end_date: endDate,
         start_time: startTime,
@@ -3327,9 +4142,7 @@ async function handleSaveAdminBooking(e) {
         with_driver: withDriver,
         total_price: totalPrice,
         payment_type: paymentType,
-        payment_method: paymentMethod,
         dp_amount: dpAmount,
-        payment_proof: paymentProof,
         status: status,
         notes: notes
     };
@@ -3434,8 +4247,17 @@ window.toggleStatusDropdownPortal = toggleStatusDropdownPortal;
 window.closeStatusDropdownPortal = closeStatusDropdownPortal;
 window.selectBookingStatusFromPortal = selectBookingStatusFromPortal;
 window.openEditAdminBookingModal = openEditAdminBookingModal;
+window.setAdminPaymentType = setAdminPaymentType;
+window.setAdminQuickDp = setAdminQuickDp;
+window.handleAdminStartDateChange = handleAdminStartDateChange;
+window.openBookingHistoryModal = openBookingHistoryModal;
+window.closeBookingHistoryModal = closeBookingHistoryModal;
 window.filterHistoryTable = filterHistoryTable;
 window.renderHistoryTable = renderHistoryTable;
+window.completeBookingRental = completeBookingRental;
+window.handleAdminUploadPenaltyProof = handleAdminUploadPenaltyProof;
+window.getBookingRentalTimerInfo = getBookingRentalTimerInfo;
+window.updateBookingRealtimeTimers = updateBookingRealtimeTimers;
 window.exportBookingHistoryExcel = exportBookingHistoryExcel;
 window.formatBookingDateRange = formatBookingDateRange;
 window.showAdminToast = showAdminToast;

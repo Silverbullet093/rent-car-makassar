@@ -28,6 +28,9 @@ class Booking extends Model
         'notes',
         'ktp_image',
         'payment_proof',
+        'payment_proof_settlement',
+        'penalty_amount',
+        'penalty_proof',
     ];
 
     protected $casts = [
@@ -36,6 +39,7 @@ class Booking extends Model
         'with_driver' => 'boolean',
         'total_price' => 'float',
         'dp_amount' => 'float',
+        'penalty_amount' => 'float',
     ];
 
     public function car()

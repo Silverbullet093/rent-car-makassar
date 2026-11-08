@@ -1203,12 +1203,38 @@ function toggleBookingCalendar(type) {
 }
 
 function changeBookingMonth(direction, type) {
+    const now = new Date();
+    const currYear = now.getFullYear();
+    const currMonth = now.getMonth();
+
     if (type === 'start') {
+        const nextMonth = calMonthStart + direction;
+        const testDate = new Date(calYearStart, nextMonth, 1);
+        const minDate = new Date(currYear, currMonth, 1);
+        if (direction < 0 && testDate < minDate) {
+            return; // Tidak dapat memilih bulan yang sudah lewat
+        }
         calMonthStart += direction;
         if (calMonthStart > 11) { calMonthStart = 0; calYearStart++; }
         else if (calMonthStart < 0) { calMonthStart = 11; calYearStart--; }
         renderBookingCalendar('start');
     } else {
+        const startVal = document.getElementById('bookStartDate')?.value;
+        let minYear = currYear;
+        let minMonth = currMonth;
+        if (startVal) {
+            const sParts = startVal.split('-');
+            if (sParts.length === 3) {
+                minYear = parseInt(sParts[0], 10);
+                minMonth = parseInt(sParts[1], 10) - 1;
+            }
+        }
+        const nextMonth = calMonthEnd + direction;
+        const testDate = new Date(calYearEnd, nextMonth, 1);
+        const minDate = new Date(minYear, minMonth, 1);
+        if (direction < 0 && testDate < minDate) {
+            return; // Tidak dapat memilih bulan sebelum tanggal mulai
+        }
         calMonthEnd += direction;
         if (calMonthEnd > 11) { calMonthEnd = 0; calYearEnd++; }
         else if (calMonthEnd < 0) { calMonthEnd = 11; calYearEnd--; }
@@ -1233,6 +1259,11 @@ function renderBookingCalendar(type) {
 
     const schedules = getCarBookedSchedules();
 
+    // Hari ini (Local time string YYYY-MM-DD)
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const startVal = document.getElementById('bookStartDate')?.value || '';
+
     // Spasi hari kosong sebelum tanggal 1
     for (let i = 0; i < firstDay; i++) {
         const emptyDiv = document.createElement('div');
@@ -1249,6 +1280,12 @@ function renderBookingCalendar(type) {
         dayBtn.type = 'button';
         dayBtn.textContent = d;
         dayBtn.className = "cal-day-btn";
+
+        // 1. Cek apakah tanggal sudah lewat dari hari ini (real-time: tidak dapat memilih tanggal lampau)
+        const isPast = dateStr < todayStr;
+
+        // 2. Jika memilih tanggal selesai sewa (end), tidak dapat memilih tanggal di belakang tanggal mulai
+        const isBeforeStart = (type === 'end' && startVal && dateStr < startVal);
 
         let isBooked = false;
         let isFinish = false;
@@ -1268,7 +1305,15 @@ function renderBookingCalendar(type) {
             }
         });
 
-        if (isBooked) {
+        if (isPast) {
+            dayBtn.classList.add('cal-past');
+            dayBtn.title = `Tanggal sudah lewat (${dateStr})`;
+            dayBtn.disabled = true;
+        } else if (isBeforeStart) {
+            dayBtn.classList.add('cal-past');
+            dayBtn.title = `Tidak dapat memilih tanggal sebelum tanggal mulai (${startVal})`;
+            dayBtn.disabled = true;
+        } else if (isBooked) {
             dayBtn.classList.add('cal-booked');
             dayBtn.title = `Sudah Dibooking (${dateStr})`;
             dayBtn.disabled = true;
@@ -1291,10 +1336,22 @@ function selectBookingDate(dateStr, type) {
 
     const startVal = document.getElementById('bookStartDate')?.value;
     const endVal = document.getElementById('bookEndDate')?.value;
-    if (startVal && endVal && endVal < startVal) {
-        if (type === 'start') {
-            document.getElementById('bookEndDate').value = startVal;
+    if (type === 'start') {
+        if (!endVal || endVal < dateStr) {
+            const endInput = document.getElementById('bookEndDate');
+            if (endInput) endInput.value = dateStr;
         }
+        // Sinkronkan kalender selesai jika bulan/tahunnya di bawah tanggal mulai
+        const sParts = dateStr.split('-');
+        if (sParts.length === 3) {
+            const sY = parseInt(sParts[0], 10);
+            const sM = parseInt(sParts[1], 10) - 1;
+            if (calYearEnd < sY || (calYearEnd === sY && calMonthEnd < sM)) {
+                calYearEnd = sY;
+                calMonthEnd = sM;
+            }
+        }
+        renderBookingCalendar('end');
     }
 
     calculateBookingPrice();
@@ -1388,22 +1445,20 @@ async function openBookingModal(carId) {
     state.selectedCar = car;
     state.ktpImageBase64 = null;
     state.paymentProofBase64 = null;
+    state.settlementProofBase64 = null;
     resetKtpPreview();
     resetPaymentProofPreview();
+    resetCustomerSettlementProofPreview();
 
-    // Reset Opsi Pembayaran ke default (Bayar Lunas di Awal + Transfer)
+    // Reset Opsi Pembayaran ke default (Bayar Lunas di Awal)
     const defaultPayType = document.querySelector('input[name="paymentType"][value="lunas_awal"]');
     if (defaultPayType) defaultPayType.checked = true;
-    const defaultPayMethod = document.querySelector('input[name="paymentMethod"][value="transfer"]');
-    if (defaultPayMethod) defaultPayMethod.checked = true;
     const dpInput = document.getElementById('bookDpAmount');
     if (dpInput) {
         dpInput.value = '';
         delete dpInput.dataset.userEdited;
     }
-    renderPaymentConfigInModal();
     handlePaymentTypeChange();
-    handlePaymentMethodChange();
 
     const modal = document.getElementById('bookingModal');
 
@@ -1444,6 +1499,7 @@ async function openBookingModal(carId) {
             eventSelect.innerHTML = EVENT_OPTIONS.map(opt => `<option value="${opt.value}">${opt.label}</option>`).join('');
         }
     }
+    selectCustomEventOption('Wisata / Liburan', 'Wisata / Liburan Keluarga', '🏖️', 'Liburan bersama keluarga, kerabat, atau rekan wisata');
 
     // Inisialisasi Kalender ke Bulan & Tahun Berjalan Secara Real-Time
     const currentDate = new Date();
@@ -1650,10 +1706,12 @@ function copyBankAccountNumber() {
 
 // Handler Perubahan Opsi Pembayaran (DP / Bayar Lunas di Awal / Bayar di Akhir)
 function handlePaymentTypeChange() {
-    const payType = document.querySelector('input[name="paymentType"]:checked')?.value || 'lunas_awal';
+    const payTypeRadio = document.querySelector('input[name="paymentType"]:checked');
+    if (!payTypeRadio) return;
+    const payType = payTypeRadio.value || 'lunas_awal';
     const dpAmountBox = document.getElementById('dpAmountBox');
-    const paymentMethodSection = document.getElementById('paymentMethodSection');
     const waNoticeText = document.getElementById('whatsappPaymentNoticeText');
+    const waNoticeTitle = document.getElementById('whatsappNoticeTitle');
 
     // Update highlight border radio cards
     const lblDp = document.getElementById('labelPayTypeDp');
@@ -1673,22 +1731,21 @@ function handlePaymentTypeChange() {
 
     if (payType === 'dp') {
         if (dpAmountBox) dpAmountBox.classList.remove('hidden');
-        if (paymentMethodSection) paymentMethodSection.classList.remove('hidden');
+        if (waNoticeTitle) waNoticeTitle.textContent = 'Pembayaran DP Awal via WhatsApp Admin';
         if (waNoticeText) {
-            waNoticeText.innerHTML = '<strong>Permintaan Pembayaran DP via WhatsApp:</strong><br>Silakan lakukan pembayaran DP melalui Transfer Bank atau QRIS di atas. Upload bukti bayar bersifat <strong>opsional</strong> (Anda juga dapat meminta instruksi atau mengirim bukti bayar langsung via WhatsApp Admin).';
+            waNoticeText.innerHTML = 'Anda memilih opsi <strong>DP (Uang Muka)</strong>. Rincian DP akan dikirimkan ke WhatsApp Admin. Admin akan mengirimkan nomor rekening resmi / QRIS untuk pembayaran transfer DP guna mengunci jadwal pesanan Anda.';
         }
     } else if (payType === 'lunas_awal') {
         if (dpAmountBox) dpAmountBox.classList.add('hidden');
-        if (paymentMethodSection) paymentMethodSection.classList.remove('hidden');
+        if (waNoticeTitle) waNoticeTitle.textContent = 'Pembayaran Lunas di Awal via WhatsApp Admin';
         if (waNoticeText) {
-            waNoticeText.innerHTML = '<strong>Permintaan Pembayaran Lunas di Awal via WhatsApp:</strong><br>Silakan lakukan pembayaran melalui Transfer Bank atau QRIS di atas. Upload bukti bayar bersifat <strong>opsional</strong> (Anda juga dapat meminta instruksi atau mengirim bukti bayar langsung via WhatsApp Admin).';
+            waNoticeText.innerHTML = 'Anda memilih opsi <strong>Bayar Lunas di Awal</strong>. Admin akan mengirimkan invoice total tagihan pelunasan penuh dan nomor rekening/QRIS resmi langsung melalui chat WhatsApp.';
         }
     } else {
-        // bayar_akhir: sembunyikan metode pembayaran (TF/QRIS) dan upload bukti bayar
         if (dpAmountBox) dpAmountBox.classList.add('hidden');
-        if (paymentMethodSection) paymentMethodSection.classList.add('hidden');
+        if (waNoticeTitle) waNoticeTitle.textContent = 'Pembayaran di Akhir (Saat Selesai / Serah Terima)';
         if (waNoticeText) {
-            waNoticeText.innerHTML = '<strong>Keterangan Permintaan Pembayaran via WhatsApp (Bayar di Akhir):</strong><br>Anda memilih opsi <strong>Bayar di Akhir</strong>. Tidak perlu transfer atau upload bukti bayar sekarang. Permintaan konfirmasi jadwal & rincian tagihan pembayaran akan dikirimkan melalui WhatsApp Admin.';
+            waNoticeText.innerHTML = 'Anda memilih opsi <strong>Bayar di Akhir</strong>. Tidak perlu transfer sekarang. Tagihan sewa akan diselesaikan saat serah terima unit / selesai sewa.';
         }
     }
 
@@ -1697,7 +1754,9 @@ function handlePaymentTypeChange() {
 
 // Handler Perubahan Metode Pembayaran (Transfer Bank / QRIS)
 function handlePaymentMethodChange() {
-    const method = document.querySelector('input[name="paymentMethod"]:checked')?.value || 'transfer';
+    const methodRadio = document.querySelector('input[name="paymentMethod"]:checked');
+    if (!methodRadio) return;
+    const method = methodRadio.value || 'transfer';
     const tfInfo = document.getElementById('paymentTransferInfo');
     const qrisInfo = document.getElementById('paymentQrisInfo');
     const lblTf = document.getElementById('labelMethodTf');
@@ -1796,6 +1855,75 @@ function resetPaymentProofPreview() {
     if (fileNameEl) fileNameEl.textContent = '';
 }
 
+// Upload Bukti Pelunasan oleh Pelanggan (Khusus DP, Opsional)
+function handleCustomerSettlementProofUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+        alert("Ukuran file bukti pelunasan terlalu besar. Maksimal 10MB.");
+        e.target.value = '';
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function (event) {
+        const rawBase64 = event.target.result;
+        const tempImg = new Image();
+        tempImg.onload = function () {
+            const canvas = document.createElement('canvas');
+            let width = tempImg.width;
+            let height = tempImg.height;
+            const maxDim = 1200;
+            if (width > maxDim || height > maxDim) {
+                if (width > height) {
+                    height = Math.round((height * maxDim) / width);
+                    width = maxDim;
+                } else {
+                    width = Math.round((width * maxDim) / height);
+                    height = maxDim;
+                }
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(tempImg, 0, 0, width, height);
+            const compressed = canvas.toDataURL('image/jpeg', 0.85);
+
+            state.settlementProofBase64 = compressed;
+
+            const promptEl = document.getElementById('customerSettlementProofUploadPrompt');
+            const containerEl = document.getElementById('customerSettlementProofPreviewContainer');
+            const previewImg = document.getElementById('customerSettlementProofPreviewImg');
+            const fileNameEl = document.getElementById('customerSettlementProofFileName');
+
+            if (promptEl) promptEl.classList.add('hidden');
+            if (containerEl) containerEl.classList.remove('hidden');
+            if (previewImg) previewImg.src = compressed;
+            if (fileNameEl) fileNameEl.textContent = `${file.name} (Bukti Pelunasan Terlampir)`;
+        };
+        tempImg.src = rawBase64;
+    };
+    reader.readAsDataURL(file);
+}
+
+// Reset Preview Bukti Pelunasan Pelanggan
+function resetCustomerSettlementProofPreview() {
+    state.settlementProofBase64 = null;
+    const input = document.getElementById('bookCustomerSettlementProofInput');
+    if (input) input.value = '';
+
+    const promptEl = document.getElementById('customerSettlementProofUploadPrompt');
+    const containerEl = document.getElementById('customerSettlementProofPreviewContainer');
+    const previewImg = document.getElementById('customerSettlementProofPreviewImg');
+    const fileNameEl = document.getElementById('customerSettlementProofFileName');
+
+    if (promptEl) promptEl.classList.remove('hidden');
+    if (containerEl) containerEl.classList.add('hidden');
+    if (previewImg) previewImg.src = '';
+    if (fileNameEl) fileNameEl.textContent = '';
+}
+
 // Kalkulasi Total Harga Sewa & Supir
 function calculateBookingPrice() {
     const selectedId = document.getElementById('bookCarSelect')?.value;
@@ -1858,14 +1986,12 @@ function calculateBookingPrice() {
     const grandTotalEl = document.getElementById('calcGrandTotal');
     if (grandTotalEl) grandTotalEl.textContent = formatRupiah(grandTotal);
 
-    // Hitung Nominal Pembayaran (DP vs Lunas di Awal vs Bayar di Akhir)
+    // Hitung Nominal Pembayaran DP vs Lunas di Awal vs Bayar di Akhir
     const payType = document.querySelector('input[name="paymentType"]:checked')?.value || 'lunas_awal';
     const dpInput = document.getElementById('bookDpAmount');
     const dpSummaryRow = document.getElementById('calcDpSummaryRow');
     const dpDisplayEl = document.getElementById('calcDpDisplay');
     const remDisplayEl = document.getElementById('calcRemainingDisplay');
-    const tfAmountEl = document.getElementById('displayTransferAmount');
-    const qrisAmountEl = document.getElementById('displayQrisAmount');
 
     if (payType === 'dp') {
         if (dpInput && (!dpInput.value || !dpInput.dataset.userEdited)) {
@@ -1877,12 +2003,8 @@ function calculateBookingPrice() {
         if (dpSummaryRow) dpSummaryRow.classList.remove('hidden');
         if (dpDisplayEl) dpDisplayEl.textContent = formatRupiah(dpVal);
         if (remDisplayEl) remDisplayEl.textContent = formatRupiah(remainingVal);
-        if (tfAmountEl) tfAmountEl.textContent = `${formatRupiah(dpVal)} (DP)`;
-        if (qrisAmountEl) qrisAmountEl.textContent = `${formatRupiah(dpVal)} (DP)`;
     } else {
         if (dpSummaryRow) dpSummaryRow.classList.add('hidden');
-        if (tfAmountEl) tfAmountEl.textContent = `${formatRupiah(grandTotal)} (Lunas)`;
-        if (qrisAmountEl) qrisAmountEl.textContent = `${formatRupiah(grandTotal)} (Lunas)`;
     }
 }
 
@@ -1920,7 +2042,7 @@ async function handleBookingSubmit(e) {
         return;
     }
 
-    // Pastikan foto KTP terunggah untuk verifikasi
+    // Pastikan foto KTP terunggah untuk verifikasi identitas penyewa
     if (!state.ktpImageBase64) {
         alert('⚠️ Harap pilih dan upload foto KTP / Kartu Identitas Penyewa terlebih dahulu.');
         const ktpPrompt = document.getElementById('ktpUploadPrompt');
@@ -1958,16 +2080,17 @@ async function handleBookingSubmit(e) {
     const grandTotal = carTotal + driverTotal;
     const generatedCode = 'RCM-' + Math.random().toString(36).substring(2, 8).toUpperCase();
 
-    // Ambil data opsi pembayaran, metode pembayaran, nominal DP, dan bukti bayar
+    // Ambil data opsi pembayaran (DP / Lunas di Awal / Bayar di Akhir)
     const paymentType = document.querySelector('input[name="paymentType"]:checked')?.value || 'lunas_awal';
-    const paymentMethod = paymentType === 'bayar_akhir'
-        ? null
-        : (document.querySelector('input[name="paymentMethod"]:checked')?.value || 'transfer');
     const dpAmountVal = paymentType === 'dp'
         ? (parseFloat(document.getElementById('bookDpAmount')?.value) || Math.round(grandTotal * 0.5))
         : 0;
     const remainingAmountVal = paymentType === 'dp' ? Math.max(0, grandTotal - dpAmountVal) : 0;
-    const paymentProofData = paymentType === 'bayar_akhir' ? null : (state.paymentProofBase64 || null);
+    const paymentMethod = 'whatsapp';
+    const paymentProofData = null;
+    const settlementProofData = null;
+
+    const initialStatus = paymentType === 'bayar_akhir' ? 'confirmed_pending' : 'pending';
 
     const newBookingObj = {
         id: Date.now().toString(),
@@ -1986,10 +2109,11 @@ async function handleBookingSubmit(e) {
         payment_type: paymentType,
         payment_method: paymentMethod,
         dp_amount: dpAmountVal,
-        status: 'pending', // Status awal: Menunggu Konfirmasi
+        status: initialStatus,
         notes: notes,
         ktp_image: state.ktpImageBase64 || null,
-        payment_proof: paymentProofData
+        payment_proof: paymentProofData,
+        payment_proof_settlement: settlementProofData
     };
 
     // 1. Simpan ke LocalStorage agar langsung tampil di Dashboard Admin Data Booking
@@ -2029,10 +2153,11 @@ async function handleBookingSubmit(e) {
                 payment_type: paymentType,
                 payment_method: paymentMethod,
                 dp_amount: dpAmountVal,
-                status: 'pending',
+                status: initialStatus,
                 notes: notes,
                 ktp_image: state.ktpImageBase64 || null,
-                payment_proof: paymentProofData
+                payment_proof: paymentProofData,
+                payment_proof_settlement: settlementProofData
             })
         });
 
@@ -2064,32 +2189,30 @@ async function handleBookingSubmit(e) {
         console.warn('Simpan ke backend offline/fallback:', apiErr);
     }
 
-    // 3. Format Pesan WhatsApp Super Rapi & Menarik (Termasuk Rincian & Permintaan Pembayaran)
-    const cfg = state.ownerConfig;
-    const paymentTypeLabel = paymentType === 'dp'
-        ? 'DP (Uang Muka di Awal)'
-        : (paymentType === 'lunas_awal' ? 'Bayar Lunas di Awal' : 'Bayar di Akhir (Saat Selesai / Serah Terima)');
+    // 3. Format Pesan WhatsApp Super Rapi Sesuai Opsi Pembayaran (Transaksi & Pembayaran via Chat WhatsApp)
+    const cfg = state.ownerConfig || {};
+    let paymentDetailsWa = '';
+    let closingGreeting = '';
 
-    const bankInfoStr = `${cfg.bankName || 'BCA'} ${cfg.bankAccountNumber || '7890123456'} a.n ${cfg.bankAccountHolder || cfg.businessName || 'RPM Rent Car Makassar'}`;
-    const methodLabel = paymentMethod === 'qris'
-        ? 'QRIS (Scan Barcode Resmi)'
-        : `Transfer Bank (${bankInfoStr})`;
-
-    let paymentDetailsWa = `💳 *RINCIAN & PERMINTAAN PEMBAYARAN:*\n• Skema Pembayaran: *${paymentTypeLabel}*\n`;
     if (paymentType === 'dp') {
-        paymentDetailsWa += `• Nominal DP Awal: *${formatRupiah(dpAmountVal)}*\n`;
-        paymentDetailsWa += `• Sisa Pelunasan: *${formatRupiah(remainingAmountVal)}*\n`;
-        paymentDetailsWa += `• Metode Pembayaran: ${methodLabel}\n`;
-        paymentDetailsWa += `• Status Bukti Bayar: ${paymentProofData ? '✅ Sudah Diupload di Form Website' : '⏳ Belum Diupload (Mohon konfirmasi / kirim bukti via WhatsApp)'}\n`;
-        paymentDetailsWa += `• Keterangan: _Mohon konfirmasi permintaan pembayaran DP ini via WhatsApp._`;
+        paymentDetailsWa = `💳 *SKEMA PEMBAYARAN:*
+• Opsi Pembayaran: *DP (Uang Muka)*
+• Nominal DP Awal: *${formatRupiah(dpAmountVal)}*
+• Sisa Pelunasan: *${formatRupiah(remainingAmountVal)}*
+• Transaksi & Pembayaran: Dilakukan via chat WhatsApp Admin`;
+        closingGreeting = `Halo Admin ${cfg.businessName || 'Rent Car Makassar'}, saya ingin memesan unit rental mobil di atas dengan opsi DP (${formatRupiah(dpAmountVal)}). Mohon konfirmasi jadwal dan info nomor rekening transfer / QRIS untuk pembayaran DP via WhatsApp ini. Terima kasih!`;
     } else if (paymentType === 'lunas_awal') {
-        paymentDetailsWa += `• Total Dibayar Lunas: *${formatRupiah(grandTotal)}*\n`;
-        paymentDetailsWa += `• Metode Pembayaran: ${methodLabel}\n`;
-        paymentDetailsWa += `• Status Bukti Bayar: ${paymentProofData ? '✅ Sudah Diupload di Form Website' : '⏳ Belum Diupload (Mohon konfirmasi / kirim bukti via WhatsApp)'}\n`;
-        paymentDetailsWa += `• Keterangan: _Mohon konfirmasi permintaan pembayaran Lunas di Awal ini via WhatsApp._`;
+        paymentDetailsWa = `💳 *SKEMA PEMBAYARAN:*
+• Opsi Pembayaran: *Bayar Lunas di Awal*
+• Total Tagihan Lunas: *${formatRupiah(grandTotal)}*
+• Transaksi & Pembayaran: Dilakukan via chat WhatsApp Admin`;
+        closingGreeting = `Halo Admin ${cfg.businessName || 'Rent Car Makassar'}, saya ingin memesan unit rental mobil di atas dengan pembayaran Lunas di Awal (${formatRupiah(grandTotal)}). Mohon konfirmasi jadwal, invoice, dan nomor rekening transfer / QRIS via WhatsApp ini. Terima kasih!`;
     } else {
-        paymentDetailsWa += `• Total Tagihan Akhir: *${formatRupiah(grandTotal)}*\n`;
-        paymentDetailsWa += `• Keterangan: _Pembayaran dilakukan di akhir / saat serah terima unit. Mohon konfirmasi permintaan pembayaran & jadwal pesanan via WhatsApp._`;
+        paymentDetailsWa = `💳 *SKEMA PEMBAYARAN:*
+• Opsi Pembayaran: *Bayar di Akhir (Saat Selesai / Serah Terima)*
+• Total Tagihan Akhir: *${formatRupiah(grandTotal)}*
+• Transaksi & Pembayaran: Dibayarkan saat serah terima unit / selesai sewa`;
+        closingGreeting = `Halo Admin ${cfg.businessName || 'Rent Car Makassar'}, saya ingin memesan unit rental mobil di atas dengan opsi Bayar di Akhir. Mohon konfirmasi ketersediaan unit dan jadwal sewa via WhatsApp ini. Terima kasih!`;
     }
 
     const message = `
@@ -2107,20 +2230,21 @@ ${city ? `• Asal Kota/Alamat: ${city}\n` : ''}
 • Opsi Layanan: ${driverLabel}
 • Keperluan: ${event}
 
-📅 *JADWAL & LOKASI SEWA:*
+📅 *JADWAL SEWA:*
 • Mulai: ${startDate} (Pukul ${startTime} WITA)
 • Selesai: ${endDate} (Pukul ${endTime} WITA) — (${diffDays} Hari)
 ${pickupLoc ? `• Lokasi Penjemputan: ${pickupLoc}\n` : ''}
-💰 *ESTIMASI TOTAL BIAYA:*
+💰 *RINCIAN BIAYA SEWA:*
 • Tarif Sewa Unit (${diffDays} Hari): ${formatRupiah(carTotal)}
-${isWithDriver ? `• Biaya Supir (${diffDays} Hari): ${formatRupiah(driverTotal)}\n` : ''}• *GRAND TOTAL BIAYA: ${formatRupiah(grandTotal)}*
+${isWithDriver ? `• Biaya Supir (${diffDays} Hari): ${formatRupiah(driverTotal)}\n` : ''}• *TOTAL BIAYA: ${formatRupiah(grandTotal)}*
 ${isHoliday ? `_(Catatan: Menggunakan Tarif Peak Season / Liburan)_\n` : ''}
 ${paymentDetailsWa}
+• Identitas / Foto KTP: ✅ Sudah Terlampir di Sistem & Siap Diverifikasi
 
 📝 *CATATAN TAMBAHAN:*
 ${notes ? notes : '-'}
 
-Halo Admin ${cfg.businessName || 'Rent Car Makassar'}, mohon proses pesanan & permintaan pembayaran rental mobil saya di atas. KTP dan data pemesanan sudah siap dikonfirmasi. Terima kasih!
+${closingGreeting}
 `.trim();
 
     const encodedMsg = encodeURIComponent(message);
@@ -2344,12 +2468,94 @@ document.addEventListener('DOMContentLoaded', () => {
 
 state.cars = [...DEFAULT_CARS];
 
+// =========================================================================
+// Custom Modern Event Selector Component
+// =========================================================================
+function toggleCustomEventDropdown(e) {
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    const menu = document.getElementById('customEventDropdownMenu');
+    const chevron = document.getElementById('customEventChevron');
+    const trigger = document.getElementById('customEventSelectTrigger');
+    if (!menu) return;
+
+    const isHidden = menu.classList.contains('hidden');
+    if (isHidden) {
+        menu.classList.remove('hidden');
+        if (chevron) chevron.style.transform = 'rotate(180deg)';
+        if (trigger) trigger.setAttribute('aria-expanded', 'true');
+    } else {
+        menu.classList.add('hidden');
+        if (chevron) chevron.style.transform = 'rotate(0deg)';
+        if (trigger) trigger.setAttribute('aria-expanded', 'false');
+    }
+}
+
+function selectCustomEventOption(val, title, icon, desc) {
+    const hiddenSelect = document.getElementById('bookEvent');
+    if (hiddenSelect) {
+        hiddenSelect.value = val;
+        hiddenSelect.dispatchEvent(new Event('change'));
+    }
+
+    const titleEl = document.getElementById('customEventSelectedTitle');
+    const descEl = document.getElementById('customEventSelectedDesc');
+    const iconEl = document.getElementById('customEventSelectedIconBox');
+
+    if (titleEl) titleEl.textContent = title;
+    if (descEl) descEl.textContent = desc || '';
+    if (iconEl) iconEl.textContent = icon || '🏖️';
+
+    // Update active highlight & checkmark in list items
+    const items = document.querySelectorAll('.custom-event-item');
+    items.forEach(item => {
+        const itemVal = item.getAttribute('data-value');
+        const checkIcon = item.querySelector('.event-item-check');
+        if (itemVal === val) {
+            item.classList.add('active');
+            if (checkIcon) checkIcon.classList.remove('hidden');
+        } else {
+            item.classList.remove('active');
+            if (checkIcon) checkIcon.classList.add('hidden');
+        }
+    });
+
+    // Close menu
+    const menu = document.getElementById('customEventDropdownMenu');
+    const chevron = document.getElementById('customEventChevron');
+    const trigger = document.getElementById('customEventSelectTrigger');
+    if (menu) menu.classList.add('hidden');
+    if (chevron) chevron.style.transform = 'rotate(0deg)';
+    if (trigger) trigger.setAttribute('aria-expanded', 'false');
+}
+
+// Close custom event dropdown when clicking outside
+document.addEventListener('click', (e) => {
+    const wrapper = document.getElementById('customEventDropdownWrapper');
+    const menu = document.getElementById('customEventDropdownMenu');
+    const chevron = document.getElementById('customEventChevron');
+    const trigger = document.getElementById('customEventSelectTrigger');
+    if (wrapper && !wrapper.contains(e.target)) {
+        if (menu && !menu.classList.contains('hidden')) {
+            menu.classList.add('hidden');
+            if (chevron) chevron.style.transform = 'rotate(0deg)';
+            if (trigger) trigger.setAttribute('aria-expanded', 'false');
+        }
+    }
+});
+
 // Alias for form submission compatibility and global handlers
+window.toggleCustomEventDropdown = toggleCustomEventDropdown;
+window.selectCustomEventOption = selectCustomEventOption;
 window.submitBookingWhatsApp = handleBookingSubmit;
 window.handleBookingSubmit = handleBookingSubmit;
 window.resetKtpPreview = resetKtpPreview;
 window.resetPaymentProofPreview = resetPaymentProofPreview;
 window.handlePaymentProofUpload = handlePaymentProofUpload;
+window.resetCustomerSettlementProofPreview = resetCustomerSettlementProofPreview;
+window.handleCustomerSettlementProofUpload = handleCustomerSettlementProofUpload;
 window.handlePaymentTypeChange = handlePaymentTypeChange;
 window.handlePaymentMethodChange = handlePaymentMethodChange;
 window.setDpPercentage = setDpPercentage;

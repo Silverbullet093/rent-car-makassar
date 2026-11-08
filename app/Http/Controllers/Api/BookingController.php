@@ -26,9 +26,7 @@ class BookingController extends Controller
             }
 
             if ($request->boolean('active_only')) {
-                $todayStr = now('Asia/Makassar')->toDateString();
-                $query->whereDate('end_date', '>=', $todayStr)
-                      ->where('status', '!=', 'completed');
+                $query->where('status', '!=', 'completed');
             }
 
             $bookings = $query->latest()->get();
@@ -75,19 +73,22 @@ class BookingController extends Controller
             'payment_type' => 'nullable|string|max:50',
             'payment_method' => 'nullable|string|max:50',
             'dp_amount' => 'nullable|numeric',
-            'status' => 'nullable|in:pending,confirmed,completed,cancelled',
+            'status' => 'nullable|in:pending,confirmed,confirmed_pending,completed,cancelled',
             'notes' => 'nullable|string',
             'ktp_image' => 'nullable|string',
             'payment_proof' => 'nullable|string',
+            'payment_proof_settlement' => 'nullable|string',
+            'penalty_amount' => 'nullable|numeric',
+            'penalty_proof' => 'nullable|string',
         ]);
 
         $startDate = \Carbon\Carbon::parse($validated['start_date'])->toDateString();
         $endDate = \Carbon\Carbon::parse($validated['end_date'])->toDateString();
 
-        // Cegah booking mobil jika sudah berstatus 'confirmed' (dan belum lewat tanggal) pada tanggal yang sama / bentrok
+        // Cegah booking mobil jika sudah berstatus 'confirmed' atau 'confirmed_pending' (dan belum lewat tanggal) pada tanggal yang sama / bentrok
         $todayMakassar = now('Asia/Makassar')->toDateString();
         $conflict = Booking::where('car_id', $validated['car_id'])
-            ->where('status', 'confirmed')
+            ->whereIn('status', ['confirmed', 'confirmed_pending'])
             ->whereDate('end_date', '>=', $todayMakassar)
             ->where(function ($query) use ($startDate, $endDate) {
                 $query->where('start_date', '<=', $endDate)
@@ -128,6 +129,15 @@ class BookingController extends Controller
         }
         if ($request->filled('payment_proof')) {
             $validated['payment_proof'] = $request->payment_proof;
+        }
+        if ($request->filled('payment_proof_settlement')) {
+            $validated['payment_proof_settlement'] = $request->payment_proof_settlement;
+        }
+        if ($request->filled('penalty_amount')) {
+            $validated['penalty_amount'] = $request->penalty_amount;
+        }
+        if ($request->filled('penalty_proof')) {
+            $validated['penalty_proof'] = $request->penalty_proof;
         }
         if (empty($validated['payment_type'])) {
             $validated['payment_type'] = 'lunas_awal';
@@ -196,10 +206,13 @@ class BookingController extends Controller
             'payment_type' => 'nullable|string|max:50',
             'payment_method' => 'nullable|string|max:50',
             'dp_amount' => 'nullable|numeric',
-            'status' => 'nullable|in:pending,confirmed,completed,cancelled',
+            'status' => 'nullable|in:pending,confirmed,confirmed_pending,completed,cancelled',
             'notes' => 'nullable|string',
             'ktp_image' => 'nullable|string',
             'payment_proof' => 'nullable|string',
+            'payment_proof_settlement' => 'nullable|string',
+            'penalty_amount' => 'nullable|numeric',
+            'penalty_proof' => 'nullable|string',
         ]);
 
         if ($request->has('driver_option')) {
@@ -216,6 +229,11 @@ class BookingController extends Controller
         if (($updatePayload['payment_type'] ?? $booking->payment_type) === 'bayar_akhir') {
             $updatePayload['payment_method'] = null;
             $updatePayload['dp_amount'] = 0;
+        }
+
+        // Jika status pemesanan sudah 'confirmed' (Verifikasi), hanya izinkan perubahan status menjadi 'completed' (Selesai)
+        if ($booking->status === 'confirmed' && isset($updatePayload['status']) && !in_array($updatePayload['status'], ['confirmed', 'completed'])) {
+            $updatePayload['status'] = 'confirmed';
         }
 
         $booking->update($updatePayload);
@@ -235,6 +253,10 @@ class BookingController extends Controller
         $status = strtolower($request->input('status', ''));
         if ($status === 'verifikasi' || $status === 'terverifikasi' || $status === 'dikonfirmasi') {
             $status = 'confirmed';
+        } elseif ($status === 'confirmed_pending' || $status === 'verifikasi_menunggu' || str_contains($status, 'verifikasi + menunggu') || str_contains($status, 'verifikasi+menunggu')) {
+            $status = 'confirmed_pending';
+        } elseif ($status === 'selesai' || $status === 'completed') {
+            $status = 'completed';
         } elseif ($status === 'menunggu pembayaran' || $status === 'menunggu' || $status === 'pending') {
             $status = 'pending';
         } elseif ($status === 'dibatalkan' || $status === 'dibatalakn' || $status === 'batal' || $status === 'cancelled') {
@@ -244,10 +266,19 @@ class BookingController extends Controller
         $request->merge(['status' => $status]);
 
         $validated = $request->validate([
-            'status' => 'required|in:pending,confirmed,completed,cancelled',
+            'status' => 'required|in:pending,confirmed,confirmed_pending,completed,cancelled',
         ]);
 
         $booking = Booking::findOrFail($id);
+
+        // Jika status pemesanan sudah 'confirmed' (Verifikasi), hanya izinkan perubahan menjadi 'completed' (Selesai)
+        if ($booking->status === 'confirmed' && !in_array($validated['status'], ['confirmed', 'completed'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Status pemesanan yang telah Terverifikasi hanya dapat diubah menjadi Selesai.',
+            ], 422);
+        }
+
         $booking->status = $validated['status'];
         $booking->save();
 
