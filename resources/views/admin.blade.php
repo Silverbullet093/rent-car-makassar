@@ -833,18 +833,41 @@
 
     <!-- MODAL TAMBAH REVIEW MANUAL BY ADMIN -->
     <div id="adminReviewModal" class="modal-backdrop hidden">
-        <div class="modal-box max-w-lg">
-            <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--clr-border); display: flex; align-items: center; justify-content: space-between;">
+        <div class="modal-box max-w-lg" style="max-height: 90vh; display: flex; flex-direction: column; overflow: hidden;">
+            <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--clr-border); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;">
                 <h3 id="adminReviewModalTitle" style="font-size: 1.15rem; font-weight: 800; color: var(--clr-text-main);">Tambah Review Pelanggan Manual</h3>
                 <button onclick="closeAdminAddReviewModal()" class="btn btn-outline btn-sm" style="padding: 0.35rem 0.6rem;">✕</button>
             </div>
-            <div style="padding: 1.5rem;">
+            <div style="padding: 1.5rem; overflow-y: auto;">
                 <form id="adminReviewForm" onsubmit="handleAdminAddReviewSubmit(event)" class="flex flex-col gap-4">
                     <input type="hidden" id="adminRevId">
                     <div class="form-group">
                         <label class="form-label">Nama Pelanggan <span style="color: var(--clr-rose);">*</span></label>
                         <input type="text" id="adminRevName" required placeholder="Contoh: Ahmad Yani" class="form-input">
                     </div>
+
+                    <!-- Kategori Pelanggan (Reguler vs Artis) -->
+                    <div class="form-group">
+                        <label class="form-label" style="font-weight: 800;">Kategori Komentar (Tampilan Kartu &amp; Story)</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem;">
+                            <label id="adminRevTypeCardRegular" onclick="setAdminReviewUserType('regular')" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.7rem 0.85rem; border-radius: var(--radius-md); border: 2px solid #22c55e; background: #f0fdf4; cursor: pointer; transition: all 0.2s ease;">
+                                <input type="radio" name="adminRevUserTypeRadio" id="adminRevTypeRegular" value="regular" checked style="accent-color: #16a34a;">
+                                <div>
+                                    <div style="font-size: 0.82rem; font-weight: 800; color: #0f172a;">👤 Reguler</div>
+                                    <div style="font-size: 0.68rem; color: #64748b;">Kartu putih standar</div>
+                                </div>
+                            </label>
+                            <label id="adminRevTypeCardArtis" onclick="setAdminReviewUserType('artis')" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.7rem 0.85rem; border-radius: var(--radius-md); border: 2px solid #e2e8f0; background: #ffffff; cursor: pointer; transition: all 0.2s ease;">
+                                <input type="radio" name="adminRevUserTypeRadio" id="adminRevTypeArtis" value="artis" style="accent-color: #d97706;">
+                                <div>
+                                    <div style="font-size: 0.82rem; font-weight: 800; color: #b45309;">👑 Artis / VIP</div>
+                                    <div style="font-size: 0.68rem; color: #92400e;">Mahkota + warna berbeda</div>
+                                </div>
+                            </label>
+                        </div>
+                        <input type="hidden" id="adminRevUserType" value="regular">
+                    </div>
+
                     <div class="form-group">
                         <label class="form-label">Rating (1-5)</label>
                         <select id="adminRevRating" class="form-select">
@@ -869,7 +892,7 @@
                         <label class="form-label">Foto Profil / Avatar Pelanggan (Opsional)</label>
                         <div id="adminRevAvatarDropZone" ondragover="handleAdminRevAvatarDragOver(event)" ondragleave="handleAdminRevAvatarDragLeave(event)" ondrop="handleAdminRevAvatarDrop(event)" style="display: flex; flex-direction: column; gap: 0.5rem; background: #f8fafc; border: 2px dashed var(--clr-border); padding: 0.85rem; border-radius: var(--radius-md); transition: all 0.2s ease;">
                             <input type="file" id="adminRevAvatarFile" accept="image/*" class="form-input" style="padding: 0.35rem 0.5rem; font-size: 0.75rem; background: white;" onchange="handleAdminRevAvatarFile(event)">
-                            <span style="font-size: 0.75rem; color: #64748b; text-align: center; font-weight: 500;">💡 Klik <b>Choose File</b> atau <b>Tarik & Lepas</b> foto avatar</span>
+                            <span style="font-size: 0.75rem; color: #64748b; text-align: center; font-weight: 500;">💡 Klik <b>Choose File</b> atau <b>Tarik &amp; Lepas</b> foto avatar</span>
                             <input type="hidden" id="adminRevAvatar">
                             <div id="adminRevAvatarPreviewBox" style="margin-top: 0.25rem; display: none; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.6rem 0.75rem; background: #ffffff; border-radius: var(--radius-md); border: 1px solid var(--clr-border);">
                                 <div style="display: flex; align-items: center; gap: 0.75rem;">
@@ -886,35 +909,33 @@
                         </div>
                     </div>
 
-                    <!-- Upload Foto / Video Story Pengalaman (Story IG) -->
+                    <!-- Upload BANYAK Foto / Video Story Pengalaman (Story IG) -->
                     <div class="form-group" style="padding: 1rem; background: #fff1f2; border: 1.5px dashed #fecdd3; border-radius: var(--radius-lg);">
-                        <label class="form-label" style="display: flex; align-items: center; gap: 0.5rem; color: #9f1239; font-weight: 800; font-size: 0.875rem;">
-                            <span>📸</span>
-                            <span>Upload Media Story (Foto / Video Review Pelanggan)</span>
-                        </label>
-                        <p style="font-size: 0.72rem; color: #881337; margin-bottom: 0.5rem;">
-                            Foto atau video liburan/dinas pelanggan akan tampil di lingkaran <strong>Story Ulasan ala Instagram</strong> di halaman pelanggan! (Format JPG/PNG/MP4/WebM, Maks 15MB).
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.35rem; flex-wrap: wrap;">
+                            <label class="form-label" style="display: flex; align-items: center; gap: 0.5rem; color: #9f1239; font-weight: 800; font-size: 0.875rem; margin-bottom: 0;">
+                                <span>📸</span>
+                                <span>Upload Banyak Foto / Video Story IG</span>
+                            </label>
+                            <span id="adminRevMediaCountBadge" style="font-size: 0.68rem; font-weight: 800; background: #ffe4e6; color: #9f1239; padding: 0.15rem 0.55rem; border-radius: 999px;">0 Media</span>
+                        </div>
+                        <p style="font-size: 0.72rem; color: #881337; margin-bottom: 0.6rem;">
+                            Pilih <strong>banyak foto dan/atau video sekaligus</strong> (bisa tambah lagi berkali-kali). Seluruh foto &amp; video ini hanya akan tampil pada Story milik pengomentar ini!
                         </p>
-                        <input type="file" id="adminRevMediaFile" accept="image/*,video/*" class="form-input" style="padding: 0.45rem; background: #ffffff;" onchange="handleAdminRevMediaFile(event)">
-                        <input type="hidden" id="adminRevMedia">
-                        <input type="hidden" id="adminRevMediaType" value="image">
+                        <input type="file" id="adminRevMediaFile" accept="image/*,video/*" multiple class="form-input" style="padding: 0.45rem; background: #ffffff;" onchange="handleAdminRevMediaFile(event)">
 
-                        <!-- Preview Media Story -->
+                        <!-- Preview Grid Multi-Media Story -->
                         <div id="adminRevMediaPreviewBox" style="margin-top: 0.75rem; display: none; flex-direction: column; gap: 0.5rem; padding: 0.75rem; background: #ffffff; border-radius: var(--radius-md); border: 1px solid #fecdd3;">
                             <div style="display: flex; align-items: center; justify-content: space-between;">
-                                <span style="font-size: 0.75rem; font-weight: 700; color: #9f1239;">✅ Media Story Siap Dipublikasi</span>
-                                <button type="button" onclick="removeAdminRevMedia()" class="btn btn-outline btn-sm" style="padding: 0.2rem 0.5rem; font-size: 0.7rem; color: var(--clr-rose); border-color: #fecdd3;">Hapus Media</button>
+                                <span style="font-size: 0.75rem; font-weight: 700; color: #9f1239;">✅ Daftar Media Story Siap Dipublikasi</span>
+                                <button type="button" onclick="removeAdminRevMedia()" class="btn btn-outline btn-sm" style="padding: 0.2rem 0.5rem; font-size: 0.7rem; color: var(--clr-rose); border-color: #fecdd3;">Hapus Semua</button>
                             </div>
-                            <div style="max-height: 180px; overflow: hidden; border-radius: var(--radius-md); background: #0f172a; display: flex; align-items: center; justify-content: center;">
-                                <img id="adminRevMediaImgPreview" src="" alt="Story Preview" style="max-height: 180px; width: 100%; object-fit: contain; display: none;">
-                                <video id="adminRevMediaVidPreview" src="" controls style="max-height: 180px; width: 100%; display: none;"></video>
-                            </div>
+                            <div id="adminRevMediaPreviewGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 0.5rem;"></div>
                         </div>
                     </div>
 
                     <div style="padding-top: 0.5rem;">
                         <button type="submit" id="adminRevSubmitBtn" class="btn btn-emerald btn-lg" style="width: 100%; font-weight: 800;">
-                            Simpan & Publikasikan Ulasan
+                            Simpan &amp; Publikasikan Ulasan
                         </button>
                     </div>
                 </form>

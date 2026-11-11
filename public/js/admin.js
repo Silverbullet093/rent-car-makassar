@@ -6,6 +6,7 @@ let adminState = {
     cars: [],
     ownerConfig: {},
     reviews: [],
+    editingReviewStories: [],
     bookings: [],
     currentTab: 'overview',
     searchQuery: '',
@@ -942,6 +943,79 @@ function toggleCarStatus(carId) {
     renderAllDashboard();
 }
 
+function isArtistReviewAdmin(rev) {
+    const ut = String(rev?.user_type || '').toLowerCase().trim();
+    return ut === 'artis' || ut === 'artist' || ut === 'vip';
+}
+
+function isVideoUrlAdmin(url) {
+    if (!url) return false;
+    const lower = String(url).toLowerCase();
+    return lower.startsWith('data:video/') || /\.(mp4|webm|mov|avi|mkv|m4v)(\?|$)/.test(lower);
+}
+
+function getAdminReviewStories(rev) {
+    if (!rev) return [];
+    let list = [];
+    if (Array.isArray(rev.stories)) {
+        list = rev.stories;
+    } else if (typeof rev.stories === 'string' && rev.stories.trim()) {
+        try {
+            const parsed = JSON.parse(rev.stories);
+            if (Array.isArray(parsed)) list = parsed;
+        } catch (e) {}
+    }
+
+    const normalized = list
+        .filter(item => item && item.url)
+        .map((item, idx) => ({
+            id: `existing_${idx}_${Date.now()}`,
+            url: String(item.url),
+            type: item.type === 'video' || isVideoUrlAdmin(item.url) ? 'video' : 'image',
+            file: null
+        }));
+
+    if (normalized.length > 0) return normalized;
+
+    if (rev.media) {
+        const type = rev.media_type === 'video' || isVideoUrlAdmin(rev.media) ? 'video' : 'image';
+        return [{ id: `legacy_${Date.now()}`, url: String(rev.media), type, file: null }];
+    }
+
+    return [];
+}
+
+function compressAdminImageToBase64(file, maxDim = 1080, quality = 0.84) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = function (evt) {
+            const img = new Image();
+            img.onload = function () {
+                let width = img.width;
+                let height = img.height;
+                if (width > maxDim || height > maxDim) {
+                    if (width > height) {
+                        height = Math.round((height * maxDim) / width);
+                        width = maxDim;
+                    } else {
+                        width = Math.round((width * maxDim) / height);
+                        height = maxDim;
+                    }
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                resolve(canvas.toDataURL('image/jpeg', quality));
+            };
+            img.onerror = () => resolve(evt.target.result);
+            img.src = evt.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
 // Render Tabel & Moderasi Review Pelanggan
 function renderReviewsTable() {
     const tbody = document.getElementById('reviewsTableBody');
@@ -952,7 +1026,6 @@ function renderReviewsTable() {
     const approvedCount = adminState.reviews.filter(r => r.status === 'approved' || !r.status).length;
     const rejectedCount = adminState.reviews.filter(r => r.status === 'rejected').length;
 
-    // Update Counter Badges
     const badgeTotal = document.getElementById('reviewStatTotal');
     const badgePending = document.getElementById('reviewStatPending');
     const badgeApproved = document.getElementById('reviewStatApproved');
@@ -963,7 +1036,6 @@ function renderReviewsTable() {
     if (badgeApproved) badgeApproved.textContent = approvedCount;
     if (badgeRejected) badgeRejected.textContent = rejectedCount;
 
-    // Filter list
     let filtered = adminState.reviews;
     if (adminState.reviewsFilter !== 'all') {
         filtered = filtered.filter(r => {
@@ -984,9 +1056,11 @@ function renderReviewsTable() {
     }
 
     tbody.innerHTML = filtered.map(rev => {
+        const isArtis = isArtistReviewAdmin(rev);
+        const stories = getAdminReviewStories(rev);
         const rating = parseInt(rev.rating || 5);
         const starsHtml = Array.from({ length: 5 }, (_, i) =>
-            `<svg style="width:0.875rem;height:0.875rem;fill:${i < rating ? '#22c55e' : '#cbd5e1'};stroke:${i < rating ? '#22c55e' : '#cbd5e1'}" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`
+            `<svg style="width:0.875rem;height:0.875rem;fill:${i < rating ? (isArtis ? '#f59e0b' : '#22c55e') : '#cbd5e1'};stroke:${i < rating ? (isArtis ? '#f59e0b' : '#22c55e') : '#cbd5e1'}" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`
         ).join('');
 
         const status = rev.status || 'approved';
@@ -1000,34 +1074,48 @@ function renderReviewsTable() {
             statusBadge = `<span style="background: #ffe4e6; color: #e11d48; border: 1px solid #fecdd3; font-size: 0.7rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 999px; display: inline-flex; align-items: center; gap: 0.25rem;"><svg style="width:0.75rem;height:0.75rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> Ditolak</span>`;
         }
 
-        const avatarSrc = rev.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(rev.name)}&background=22c55e&color=fff&bold=true`;
+        const avatarSrc = rev.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(rev.name)}&background=${isArtis ? 'd97706' : '22c55e'}&color=fff&bold=true`;
 
         let mediaPreviewHtml = '<span style="color: #94a3b8; font-size: 0.72rem; font-style: italic;">Tidak ada media</span>';
-        if (rev.media) {
-            if (rev.media_type === 'video') {
-                mediaPreviewHtml = `
-                    <div style="display: flex; flex-direction: column; align-items: center; gap: 0.25rem;">
-                        <video src="${rev.media}" style="width: 2.75rem; height: 2.75rem; border-radius: 0.5rem; object-fit: cover; border: 1.5px solid #dc2626;"></video>
-                        <span style="font-size: 0.625rem; font-weight: 700; color: #dc2626; background: #fef2f2; padding: 0.1rem 0.35rem; border-radius: 4px;">🎬 Video</span>
+        if (stories.length > 0) {
+            const firstItem = stories[0];
+            const photoCount = stories.filter(s => s.type !== 'video').length;
+            const videoCount = stories.filter(s => s.type === 'video').length;
+            const countLabels = [];
+            if (photoCount > 0) countLabels.push(`📸 ${photoCount} Foto`);
+            if (videoCount > 0) countLabels.push(`🎬 ${videoCount} Video`);
+
+            mediaPreviewHtml = `
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 0.25rem;">
+                    <div style="position: relative; display: inline-flex;">
+                        ${firstItem.type === 'video'
+                            ? `<video src="${firstItem.url}" muted style="width: 2.75rem; height: 2.75rem; border-radius: 0.5rem; object-fit: cover; border: 1.5px solid #dc2626;"></video>`
+                            : `<img src="${firstItem.url}" alt="Story" style="width: 2.75rem; height: 2.75rem; border-radius: 0.5rem; object-fit: cover; border: 1.5px solid #dc2626;">`
+                        }
+                        ${stories.length > 1 ? `<span style="position:absolute; top:-6px; right:-6px; background:#0f172a; color:#fff; font-size:0.6rem; font-weight:800; padding:1px 5px; border-radius:999px; border:1.5px solid #fff;">+${stories.length - 1}</span>` : ''}
                     </div>
-                `;
-            } else {
-                mediaPreviewHtml = `
-                    <div style="display: flex; flex-direction: column; align-items: center; gap: 0.25rem;">
-                        <img src="${rev.media}" alt="Story" style="width: 2.75rem; height: 2.75rem; border-radius: 0.5rem; object-fit: cover; border: 1.5px solid #dc2626;">
-                        <span style="font-size: 0.625rem; font-weight: 700; color: #dc2626; background: #fef2f2; padding: 0.1rem 0.35rem; border-radius: 4px;">📸 Foto</span>
-                    </div>
-                `;
-            }
+                    <span style="font-size: 0.625rem; font-weight: 700; color: #dc2626; background: #fef2f2; padding: 0.1rem 0.4rem; border-radius: 4px; white-space: nowrap;">${countLabels.join(' • ')}</span>
+                </div>
+            `;
         }
 
+        const categoryBadge = isArtis
+            ? `<span style="background: linear-gradient(135deg, #fef3c7, #fde68a); color: #92400e; border: 1px solid #f59e0b; font-size: 0.625rem; font-weight: 800; padding: 0.1rem 0.45rem; border-radius: 999px; display: inline-flex; align-items: center; gap: 0.2rem;">👑 ARTIS</span>`
+            : `<span style="background: #f1f5f9; color: #64748b; font-size: 0.625rem; font-weight: 700; padding: 0.1rem 0.45rem; border-radius: 999px;">Reguler</span>`;
+
         return `
-            <tr style="border-bottom: 1px solid var(--clr-border);">
+            <tr style="border-bottom: 1px solid var(--clr-border); ${isArtis ? 'background: #fffdf5;' : ''}">
                 <td style="padding: 1rem;">
                     <div style="display: flex; align-items: center; gap: 0.75rem;">
-                        <img src="${avatarSrc}" alt="${rev.name}" style="width: 2.5rem; height: 2.5rem; border-radius: 50%; object-fit: cover; border: 1px solid var(--clr-border);">
+                        <div style="position: relative;">
+                            ${isArtis ? `<span style="position:absolute; top:-10px; left:50%; transform:translateX(-50%); font-size:0.75rem;">👑</span>` : ''}
+                            <img src="${avatarSrc}" alt="${rev.name}" style="width: 2.5rem; height: 2.5rem; border-radius: 50%; object-fit: cover; border: 2px solid ${isArtis ? '#f59e0b' : 'var(--clr-border)'};">
+                        </div>
                         <div>
-                            <div style="font-weight: 800; font-size: 0.875rem; color: var(--clr-text-main);">${rev.name}</div>
+                            <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+                                <span style="font-weight: 800; font-size: 0.875rem; color: var(--clr-text-main);">${rev.name}</span>
+                                ${categoryBadge}
+                            </div>
                             <div style="font-size: 0.7rem; color: var(--clr-primary); font-weight: 600;">${rev.car_name || 'Mobil Rental'}</div>
                         </div>
                     </div>
@@ -1047,7 +1135,10 @@ function renderReviewsTable() {
                     ${statusBadge}
                 </td>
                 <td style="padding: 1rem; text-align: right;">
-                    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 0.35rem;">
+                    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 0.35rem; flex-wrap: wrap;">
+                        <button onclick="toggleAdminReviewUserType('${rev.id}')" class="btn btn-outline btn-sm" style="padding: 0.3rem 0.55rem; font-size: 0.72rem; ${isArtis ? 'background:#fef3c7; color:#92400e; border-color:#f59e0b;' : 'color:#b45309; border-color:#fde68a;'}" title="Ubah Kategori Artis / Reguler">
+                            ${isArtis ? '👤 Set Reguler' : '👑 Jadikan Artis'}
+                        </button>
                         ${status !== 'approved' ? `
                             <button onclick="approveReview('${rev.id}')" class="btn btn-emerald btn-sm" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 0.25rem;" title="Verifikasi & Tampilkan di Website">
                                 <svg style="width:0.75rem;height:0.75rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
@@ -1060,7 +1151,7 @@ function renderReviewsTable() {
                                 Tolak
                             </button>
                         ` : ''}
-                        <button onclick="openAdminEditReviewModal('${rev.id}')" class="btn btn-outline btn-sm" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; color: #3b82f6; border-color: #bfdbfe; display: inline-flex; align-items: center; gap: 0.25rem;" title="Edit Ulasan & Foto">
+                        <button onclick="openAdminEditReviewModal('${rev.id}')" class="btn btn-outline btn-sm" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; color: #3b82f6; border-color: #bfdbfe; display: inline-flex; align-items: center; gap: 0.25rem;" title="Edit Ulasan, Kategori & Banyak Foto/Video">
                             <svg style="width:0.75rem;height:0.75rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                             Edit
                         </button>
@@ -1072,6 +1163,52 @@ function renderReviewsTable() {
             </tr>
         `;
     }).join('');
+}
+
+// Toggle 1-Klik Kategori Artis <-> Reguler dari Tabel Admin
+async function toggleAdminReviewUserType(reviewId) {
+    const rev = adminState.reviews.find(r => r.id == reviewId);
+    if (!rev) return;
+
+    const nextType = isArtistReviewAdmin(rev) ? 'regular' : 'artis';
+    rev.user_type = nextType;
+
+    try {
+        await fetch(`/api/reviews/${reviewId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({ user_type: nextType })
+        });
+    } catch (e) {}
+
+    saveReviewsData();
+    renderReviewsTable();
+    if (typeof showAdminToast === 'function') {
+        showAdminToast(nextType === 'artis' ? `👑 "${rev.name}" ditandai sebagai Artis / VIP!` : `👤 "${rev.name}" diubah ke kategori Reguler.`);
+    }
+}
+
+// Pilih Kategori di Modal Tambah/Edit Review
+function setAdminReviewUserType(type) {
+    const isArtis = type === 'artis';
+    const hiddenInput = document.getElementById('adminRevUserType');
+    const radioReg = document.getElementById('adminRevTypeRegular');
+    const radioArt = document.getElementById('adminRevTypeArtis');
+    const cardReg = document.getElementById('adminRevTypeCardRegular');
+    const cardArt = document.getElementById('adminRevTypeCardArtis');
+
+    if (hiddenInput) hiddenInput.value = isArtis ? 'artis' : 'regular';
+    if (radioReg) radioReg.checked = !isArtis;
+    if (radioArt) radioArt.checked = isArtis;
+
+    if (cardReg) {
+        cardReg.style.borderColor = !isArtis ? '#22c55e' : '#e2e8f0';
+        cardReg.style.background = !isArtis ? '#f0fdf4' : '#ffffff';
+    }
+    if (cardArt) {
+        cardArt.style.borderColor = isArtis ? '#f59e0b' : '#e2e8f0';
+        cardArt.style.background = isArtis ? '#fffbeb' : '#ffffff';
+    }
 }
 
 // Filter Status Review Admin
@@ -1098,7 +1235,6 @@ async function approveReview(reviewId) {
 
     rev.status = 'approved';
 
-    // API Call
     try {
         await fetch(`/api/reviews/${reviewId}/status`, {
             method: 'PATCH',
@@ -1119,7 +1255,6 @@ async function rejectReview(reviewId) {
 
     rev.status = 'rejected';
 
-    // API Call
     try {
         await fetch(`/api/reviews/${reviewId}/status`, {
             method: 'PATCH',
@@ -1140,7 +1275,6 @@ async function deleteReview(reviewId) {
     if (confirm(`Apakah Anda yakin ingin menghapus ulasan dari "${rev.name}"?`)) {
         adminState.reviews = adminState.reviews.filter(r => r.id != reviewId);
 
-        // API Call
         try {
             await fetch(`/api/reviews/${reviewId}`, { method: 'DELETE' });
         } catch (e) {}
@@ -1169,6 +1303,8 @@ function openAdminAddReviewModal() {
     const ratingEl = document.getElementById('adminRevRating');
     if (ratingEl) ratingEl.value = '5';
 
+    setAdminReviewUserType('regular');
+
     const avatarEl = document.getElementById('adminRevAvatar');
     if (avatarEl) avatarEl.value = '';
 
@@ -1178,15 +1314,10 @@ function openAdminAddReviewModal() {
     const previewBox = document.getElementById('adminRevAvatarPreviewBox');
     if (previewBox) previewBox.style.display = 'none';
 
-    // Reset Media Story
-    const mediaEl = document.getElementById('adminRevMedia');
-    if (mediaEl) mediaEl.value = '';
-    const mediaTypeEl = document.getElementById('adminRevMediaType');
-    if (mediaTypeEl) mediaTypeEl.value = 'image';
+    adminState.editingReviewStories = [];
     const mediaFileInput = document.getElementById('adminRevMediaFile');
     if (mediaFileInput) mediaFileInput.value = '';
-    const mediaPreviewBox = document.getElementById('adminRevMediaPreviewBox');
-    if (mediaPreviewBox) mediaPreviewBox.style.display = 'none';
+    renderAdminRevMediaGrid();
 }
 
 // Modal Admin Edit Review
@@ -1210,6 +1341,8 @@ function openAdminEditReviewModal(reviewId) {
     document.getElementById('adminRevComment').value = rev.comment || '';
     document.getElementById('adminRevAvatar').value = rev.avatar || '';
 
+    setAdminReviewUserType(isArtistReviewAdmin(rev) ? 'artis' : 'regular');
+
     const fileInput = document.getElementById('adminRevAvatarFile');
     if (fileInput) fileInput.value = '';
 
@@ -1222,91 +1355,100 @@ function openAdminEditReviewModal(reviewId) {
         if (previewBox) previewBox.style.display = 'none';
     }
 
-    // Media Story Edit Population
-    const mediaEl = document.getElementById('adminRevMedia');
-    const mediaTypeEl = document.getElementById('adminRevMediaType');
+    adminState.editingReviewStories = getAdminReviewStories(rev);
     const mediaFileInput = document.getElementById('adminRevMediaFile');
     if (mediaFileInput) mediaFileInput.value = '';
-
-    const mediaPreviewBox = document.getElementById('adminRevMediaPreviewBox');
-    const imgPreview = document.getElementById('adminRevMediaImgPreview');
-    const vidPreview = document.getElementById('adminRevMediaVidPreview');
-
-    if (mediaEl) mediaEl.value = rev.media || '';
-    if (mediaTypeEl) mediaTypeEl.value = rev.media_type || 'image';
-
-    if (rev.media) {
-        if (mediaPreviewBox) mediaPreviewBox.style.display = 'flex';
-        if (rev.media_type === 'video') {
-            if (vidPreview) {
-                vidPreview.src = rev.media;
-                vidPreview.style.display = 'block';
-            }
-            if (imgPreview) imgPreview.style.display = 'none';
-        } else {
-            if (imgPreview) {
-                imgPreview.src = rev.media;
-                imgPreview.style.display = 'block';
-            }
-            if (vidPreview) vidPreview.style.display = 'none';
-        }
-    } else {
-        if (mediaPreviewBox) mediaPreviewBox.style.display = 'none';
-    }
+    renderAdminRevMediaGrid();
 }
 
-// Media Story Upload Handler (Foto / Video)
-function handleAdminRevMediaFile(e) {
-    const file = e.target.files[0];
-    if (!file) return;
+// Multi-Media Story Upload Handler (Banyak Foto / Video)
+async function handleAdminRevMediaFile(e) {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
 
-    if (file.size > 15 * 1024 * 1024) {
-        alert("Ukuran file media story maksimal 15MB.");
-        e.target.value = '';
-        return;
-    }
+    for (const file of files) {
+        const isVideo = file.type.startsWith('video/');
+        const maxSize = isVideo ? 50 * 1024 * 1024 : 15 * 1024 * 1024;
+        if (file.size > maxSize) {
+            alert(`File "${file.name}" terlalu besar. Maksimal ${isVideo ? '50MB untuk video' : '15MB untuk foto'}.`);
+            continue;
+        }
 
-    const isVideo = file.type.startsWith('video/');
-    const reader = new FileReader();
-
-    reader.onload = function(evt) {
-        const base64 = evt.target.result;
-        const mediaInput = document.getElementById('adminRevMedia');
-        const mediaTypeInput = document.getElementById('adminRevMediaType');
-        const previewBox = document.getElementById('adminRevMediaPreviewBox');
-        const imgPreview = document.getElementById('adminRevMediaImgPreview');
-        const vidPreview = document.getElementById('adminRevMediaVidPreview');
-
-        if (mediaInput) mediaInput.value = base64;
-        if (mediaTypeInput) mediaTypeInput.value = isVideo ? 'video' : 'image';
-
-        if (previewBox) previewBox.style.display = 'flex';
+        const itemId = `adm_media_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 
         if (isVideo) {
-            if (vidPreview) {
-                vidPreview.src = base64;
-                vidPreview.style.display = 'block';
-            }
-            if (imgPreview) imgPreview.style.display = 'none';
+            const objectUrl = URL.createObjectURL(file);
+            adminState.editingReviewStories.push({
+                id: itemId,
+                url: objectUrl,
+                type: 'video',
+                file: file
+            });
         } else {
-            if (imgPreview) {
-                imgPreview.src = base64;
-                imgPreview.style.display = 'block';
-            }
-            if (vidPreview) vidPreview.style.display = 'none';
+            const compressed = await compressAdminImageToBase64(file, 1080, 0.84);
+            adminState.editingReviewStories.push({
+                id: itemId,
+                url: compressed,
+                type: 'image',
+                file: null
+            });
         }
-    };
+    }
 
-    reader.readAsDataURL(file);
+    e.target.value = '';
+    renderAdminRevMediaGrid();
+}
+
+function removeAdminRevMediaItem(itemId) {
+    const target = adminState.editingReviewStories.find(item => item.id === itemId);
+    if (target && target.type === 'video' && target.url && target.url.startsWith('blob:')) {
+        URL.revokeObjectURL(target.url);
+    }
+    adminState.editingReviewStories = adminState.editingReviewStories.filter(item => item.id !== itemId);
+    renderAdminRevMediaGrid();
 }
 
 function removeAdminRevMedia() {
-    const mediaInput = document.getElementById('adminRevMedia');
-    if (mediaInput) mediaInput.value = '';
+    adminState.editingReviewStories.forEach(item => {
+        if (item.type === 'video' && item.url && item.url.startsWith('blob:')) {
+            URL.revokeObjectURL(item.url);
+        }
+    });
+    adminState.editingReviewStories = [];
     const mediaFileInput = document.getElementById('adminRevMediaFile');
     if (mediaFileInput) mediaFileInput.value = '';
+    renderAdminRevMediaGrid();
+}
+
+function renderAdminRevMediaGrid() {
     const previewBox = document.getElementById('adminRevMediaPreviewBox');
-    if (previewBox) previewBox.style.display = 'none';
+    const grid = document.getElementById('adminRevMediaPreviewGrid');
+    const countBadge = document.getElementById('adminRevMediaCountBadge');
+
+    if (countBadge) {
+        countBadge.textContent = `${adminState.editingReviewStories.length} Media`;
+    }
+
+    if (!previewBox || !grid) return;
+
+    if (adminState.editingReviewStories.length === 0) {
+        previewBox.style.display = 'none';
+        grid.innerHTML = '';
+        return;
+    }
+
+    previewBox.style.display = 'flex';
+    grid.innerHTML = adminState.editingReviewStories.map(item => `
+        <div style="position: relative; aspect-ratio: 1/1; border-radius: 0.5rem; overflow: hidden; background: #0f172a; border: 1.5px solid #fecdd3;">
+            ${item.type === 'video'
+                ? `<video src="${item.url}" muted playsinline style="width:100%; height:100%; object-fit:cover;"></video>
+                   <span style="position:absolute; bottom:4px; left:4px; font-size:0.6rem; font-weight:800; background:rgba(0,0,0,0.75); color:#fff; padding:1px 5px; border-radius:4px;">🎬 Video</span>`
+                : `<img src="${item.url}" alt="Story" style="width:100%; height:100%; object-fit:cover;" />
+                   <span style="position:absolute; bottom:4px; left:4px; font-size:0.6rem; font-weight:800; background:rgba(0,0,0,0.75); color:#fff; padding:1px 5px; border-radius:4px;">📸 Foto</span>`
+            }
+            <button type="button" onclick="removeAdminRevMediaItem('${item.id}')" style="position:absolute; top:4px; right:4px; width:20px; height:20px; border-radius:50%; border:none; background:#e11d48; color:#fff; font-size:0.7rem; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center;" title="Hapus media ini">✕</button>
+        </div>
+    `).join('');
 }
 
 function closeAdminAddReviewModal() {
@@ -1323,9 +1465,7 @@ function processAdminRevAvatarFile(file) {
         return;
     }
 
-    const reader = new FileReader();
-    reader.onload = function (evt) {
-        const base64 = evt.target.result;
+    compressAdminImageToBase64(file, 400, 0.85).then((base64) => {
         const avatarInput = document.getElementById('adminRevAvatar');
         if (avatarInput) avatarInput.value = base64;
 
@@ -1333,8 +1473,7 @@ function processAdminRevAvatarFile(file) {
         const previewImg = document.getElementById('adminRevAvatarPreview');
         if (previewImg) previewImg.src = base64;
         if (previewBox) previewBox.style.display = 'flex';
-    };
-    reader.readAsDataURL(file);
+    });
 }
 
 function handleAdminRevAvatarFile(e) {
@@ -1392,14 +1531,12 @@ async function handleAdminAddReviewSubmit(e) {
 
     const id = document.getElementById('adminRevId').value;
     const name = document.getElementById('adminRevName').value.trim();
+    const userType = document.getElementById('adminRevUserType') ? document.getElementById('adminRevUserType').value : 'regular';
     const rating = parseInt(document.getElementById('adminRevRating').value) || 5;
     const carName = document.getElementById('adminRevCar').value.trim();
     const comment = document.getElementById('adminRevComment').value.trim();
     const avatarVal = document.getElementById('adminRevAvatar').value.trim();
     const fileInput = document.getElementById('adminRevAvatarFile');
-    const mediaVal = document.getElementById('adminRevMedia') ? document.getElementById('adminRevMedia').value : '';
-    const mediaTypeVal = document.getElementById('adminRevMediaType') ? document.getElementById('adminRevMediaType').value : 'image';
-    const mediaFileInput = document.getElementById('adminRevMediaFile');
 
     if (!name || !comment) {
         alert("Nama dan ulasan wajib diisi.");
@@ -1408,25 +1545,30 @@ async function handleAdminAddReviewSubmit(e) {
 
     const formData = new FormData();
     formData.append('name', name);
+    formData.append('user_type', userType);
     formData.append('rating', rating);
     formData.append('car_name', carName);
     formData.append('comment', comment);
 
-    if (fileInput && fileInput.files && fileInput.files[0]) {
+    if (avatarVal && avatarVal.startsWith('data:image')) {
+        formData.append('avatar', avatarVal);
+    } else if (fileInput && fileInput.files && fileInput.files[0]) {
         formData.append('avatar_file', fileInput.files[0]);
     } else if (avatarVal) {
         formData.append('avatar', avatarVal);
     } else if (!id) {
-        formData.append('avatar', `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=22c55e&color=fff&bold=true`);
+        formData.append('avatar', `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=${userType === 'artis' ? 'd97706' : '22c55e'}&color=fff&bold=true`);
     }
 
-    if (mediaFileInput && mediaFileInput.files && mediaFileInput.files[0]) {
-        formData.append('media_file', mediaFileInput.files[0]);
-        formData.append('media_type', mediaTypeVal);
-    } else if (mediaVal) {
-        formData.append('media', mediaVal);
-        formData.append('media_type', mediaTypeVal);
-    }
+    const inlineStories = [];
+    adminState.editingReviewStories.forEach(item => {
+        if (item.file) {
+            formData.append('story_files[]', item.file);
+        } else if (item.url) {
+            inlineStories.push({ url: item.url, type: item.type });
+        }
+    });
+    formData.append('stories', JSON.stringify(inlineStories));
 
     const submitBtn = document.getElementById('adminRevSubmitBtn');
     const origBtnText = submitBtn ? submitBtn.textContent : '';
@@ -1481,28 +1623,32 @@ async function handleAdminAddReviewSubmit(e) {
                 adminState.reviews[idx] = {
                     ...adminState.reviews[idx],
                     name,
+                    user_type: userType,
                     rating,
                     car_name: carName,
                     comment,
                     avatar: avatarVal || adminState.reviews[idx].avatar,
-                    media: mediaVal || adminState.reviews[idx].media,
-                    media_type: mediaTypeVal || adminState.reviews[idx].media_type || 'image'
+                    stories: inlineStories,
+                    media: inlineStories[0]?.url || null,
+                    media_type: inlineStories[0]?.type || null
                 };
             }
         }
-        alert("Ulasan & Media Story berhasil diperbarui.");
+        alert("Ulasan, Kategori & Media Story berhasil diperbarui.");
     } else {
         if (!savedRev) {
             savedRev = {
                 id: Date.now(),
                 name,
+                user_type: userType,
                 rating,
                 car_name: carName,
                 comment,
                 status: 'approved',
-                avatar: avatarVal || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=22c55e&color=fff&bold=true`,
-                media: mediaVal || null,
-                media_type: mediaTypeVal || 'image',
+                avatar: avatarVal || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=${userType === 'artis' ? 'd97706' : '22c55e'}&color=fff&bold=true`,
+                stories: inlineStories,
+                media: inlineStories[0]?.url || null,
+                media_type: inlineStories[0]?.type || null,
                 created_at: new Date().toISOString()
             };
         }
@@ -4235,6 +4381,11 @@ window.addEventListener('storage', (e) => {
 window.openAdminAddReviewModal = openAdminAddReviewModal;
 window.openAdminEditReviewModal = openAdminEditReviewModal;
 window.closeAdminAddReviewModal = closeAdminAddReviewModal;
+window.setAdminReviewUserType = setAdminReviewUserType;
+window.toggleAdminReviewUserType = toggleAdminReviewUserType;
+window.handleAdminRevMediaFile = handleAdminRevMediaFile;
+window.removeAdminRevMediaItem = removeAdminRevMediaItem;
+window.removeAdminRevMedia = removeAdminRevMedia;
 window.handleAdminRevAvatarFile = handleAdminRevAvatarFile;
 window.handleAdminRevAvatarDragOver = handleAdminRevAvatarDragOver;
 window.handleAdminRevAvatarDragLeave = handleAdminRevAvatarDragLeave;

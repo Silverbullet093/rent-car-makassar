@@ -12,6 +12,7 @@ let state = {
     ktpImageBase64: null,
     paymentProofBase64: null,
     reviewAvatarBase64: null,
+    reviewStories: [],
     selectedReviewRating: 5,
     currentCategoryFilter: 'all',
     searchQuery: ''
@@ -545,18 +546,65 @@ function initIntervalReviewScroller(containerId, options = {}) {
     };
 }
 
-// Global state untuk Instagram Story Viewer
-let currentStoriesList = [];
-let currentStoryIndex = 0;
-let storyTimer = null;
-let storyProgressInterval = null;
+// Helper Kategori Artis & Multi-Media Stories
+function isArtistReview(rev) {
+    const ut = String(rev?.user_type || '').toLowerCase().trim();
+    return ut === 'artis' || ut === 'artist' || ut === 'vip';
+}
 
-// Render Review & Testimoni Pelanggan
+function isVideoMediaUrl(url) {
+    if (!url) return false;
+    const lower = String(url).toLowerCase();
+    return lower.startsWith('data:video/') || /\.(mp4|webm|mov|avi|mkv|m4v)(\?|$)/.test(lower);
+}
+
+function getReviewStories(rev) {
+    if (!rev) return [];
+    let list = [];
+    if (Array.isArray(rev.stories)) {
+        list = rev.stories;
+    } else if (typeof rev.stories === 'string' && rev.stories.trim()) {
+        try {
+            const parsed = JSON.parse(rev.stories);
+            if (Array.isArray(parsed)) list = parsed;
+        } catch (e) {}
+    }
+
+    const normalized = list
+        .filter(item => item && item.url)
+        .map(item => ({
+            url: String(item.url),
+            type: item.type === 'video' || isVideoMediaUrl(item.url) ? 'video' : 'image'
+        }));
+
+    if (normalized.length > 0) return normalized;
+
+    if (rev.media) {
+        const type = rev.media_type === 'video' || isVideoMediaUrl(rev.media) ? 'video' : 'image';
+        return [{ url: String(rev.media), type }];
+    }
+
+    return [];
+}
+
+// Global state untuk Instagram Story Viewer (1 Komentar = 1 Orang Tersebut)
+let activeStoryReview = null;
+let activeStorySlides = [];
+let currentSlideIndex = 0;
+let storyProgressInterval = null;
+let storyIsPaused = false;
+let storyIsMuted = true;
+let storyElapsedMs = 0;
+let storyLastTickTime = 0;
+const STORY_IMAGE_DURATION_MS = 5500;
+
+const CROWN_SVG_ICON = `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M2 19h20v2H2v-2zm1.5-2L2 7l6 4 4-7 4 7 6-4-1.5 10h-17z"/></svg>`;
+
+// Render Review & Testimoni Pelanggan (Layout Baru: Avatar -> Nama -> 5 Bintang -> Komentar -> "review")
 function renderReviews() {
     const container = document.getElementById('reviewsContainer');
     if (!container) return;
 
-    // Filter only approved reviews for public site
     const approved = state.reviews.filter(r => r.status === 'approved' || !r.status);
 
     if (approved.length === 0) {
@@ -568,7 +616,6 @@ function renderReviews() {
                 <h4 style="font-size: 1rem; font-weight: 700; color: var(--clr-text-main);">Belum ada ulasan publik</h4>
                 <p style="font-size: 0.8125rem; color: var(--clr-text-muted); margin-bottom: 1rem;">Jadilah pelanggan pertama yang memberikan ulasan untuk layanan kami!</p>
                 <button onclick="openReviewModal()" class="btn btn-primary btn-sm">
-                    <svg style="width:0.875rem;height:0.875rem;display:inline-block;vertical-align:-1px;margin-right:0.25rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
                     Tulis Ulasan Pertama
                 </button>
             </div>
@@ -576,82 +623,85 @@ function renderReviews() {
         return;
     }
 
-    // Siapkan daftar stories dari approved list
-    currentStoriesList = [...approved];
-
-    // Multiply reviews so track can smoothly and endlessly loop
+    // Duplicate reviews smoothly for continuous horizontal scroller
     let displayList = [...approved];
     while (displayList.length < 6) {
         displayList = [...displayList, ...approved];
     }
-    // Duplicate once more so halfWidth is exactly one full cycle
     displayList = [...displayList, ...displayList];
 
-    container.innerHTML = displayList.map((rev, idx) => {
+    container.innerHTML = displayList.map((rev) => {
+        const isArtis = isArtistReview(rev);
+        const stories = getReviewStories(rev);
+        const hasMedia = stories.length > 0;
         const rating = parseInt(rev.rating || 5);
+        const starActiveColor = isArtis ? '#ef4444' : '#22c55e';
+        const starInactiveColor = isArtis ? '#4c262b' : '#cbd5e1';
+
         const starsHtml = Array.from({ length: 5 }, (_, i) =>
-            `<svg style="width:1rem;height:1rem;fill:${i < rating ? '#22c55e' : '#cbd5e1'};stroke:${i < rating ? '#22c55e' : '#cbd5e1'}" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`
+            `<svg style="width:1.35rem;height:1.35rem;fill:${i < rating ? starActiveColor : starInactiveColor};stroke:${i < rating ? starActiveColor : starInactiveColor}" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`
         ).join('');
 
-        const avatarSrc = rev.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(rev.name)}&background=22c55e&color=fff&bold=true`;
-        const hasMedia = rev.media && rev.media.length > 0;
+        const safeName = escapeHtml(rev.name || 'Pelanggan');
+        const safeComment = escapeHtml(rev.comment || '');
+        const safeCar = escapeHtml(rev.car_name || '');
+        const avatarSrc = rev.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(rev.name || 'P')}&background=${isArtis ? 'dc2626' : '64748b'}&color=fff&bold=true`;
+
+        const ringClass = isArtis
+            ? 'review-avatar-ring is-artist'
+            : (hasMedia ? 'review-avatar-ring has-story' : 'review-avatar-ring');
+
+        const storyBadgeCount = stories.length > 0
+            ? `<span style="font-size: 0.7rem; font-weight: 800; padding: 0.1rem 0.45rem; border-radius: 9999px; background: ${isArtis ? 'rgba(239,68,68,0.22)' : '#f1f5f9'}; color: ${isArtis ? '#f87171' : '#475569'};">▶ ${stories.length}</span>`
+            : '';
 
         return `
-            <div class="review-card-item" onclick="openStoryByReviewId('${rev.id}')" title="Klik komentar untuk membuka Story & Ulasan lengkap">
+            <div class="review-card-item ${isArtis ? 'review-card-artist' : ''}" onclick="openStoryByReviewId('${rev.id}')" title="Klik untuk melihat Story & ulasan lengkap ${safeName}">
                 <div>
-                    <!-- Header Bar: Green Quote Icon & Media/Story Badge -->
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
-                        <div style="color: #22c55e; font-size: 2.25rem; line-height: 1; font-family: Georgia, serif; font-weight: bold;">
-                            “
+                    <!-- Top Centered Avatar (+ Mahkota jika Artis) -->
+                    <div class="review-card-top">
+                        <div class="review-avatar-wrap">
+                            ${isArtis ? `<span class="review-crown-badge">${CROWN_SVG_ICON}</span>` : ''}
+                            <div class="${ringClass}">
+                                <img
+                                    src="${avatarSrc}"
+                                    alt="${safeName}"
+                                    class="review-avatar-img"
+                                    onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(rev.name || 'P')}&background=${isArtis ? 'dc2626' : '64748b'}&color=fff'"
+                                />
+                            </div>
                         </div>
-                        <span style="font-size: 0.65rem; background: ${hasMedia ? 'linear-gradient(45deg, #f09433, #dc2743)' : '#f1f5f9'}; color: ${hasMedia ? '#ffffff' : '#64748b'}; font-weight: 800; padding: 0.25rem 0.65rem; border-radius: 9999px; display: inline-flex; align-items: center; gap: 0.35rem; box-shadow: ${hasMedia ? '0 2px 8px rgba(220, 38, 38, 0.25)' : 'none'};">
-                            <span>${hasMedia ? '▶ Buka Story' : '🔍 Lihat Pop-up'}</span>
-                        </span>
+
+                        <!-- Centered Name -->
+                        <div class="review-author-name">${safeName}</div>
+
+                        <!-- Centered 5 Stars -->
+                        <div class="review-stars-row">
+                            ${starsHtml}
+                        </div>
                     </div>
 
-                    <!-- Review Text (Potong rapi jika panjang) -->
-                    <p style="font-size: 0.9375rem; color: var(--clr-text-muted); line-height: 1.6; margin-bottom: 1.25rem; font-style: normal; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;">
-                        ${rev.comment}
-                    </p>
+                    <!-- Comment Paragraph -->
+                    <p class="review-comment-body">${safeComment}</p>
                 </div>
 
-                <!-- Footer Card: Author Info & Rating -->
-                <div style="padding-top: 1rem; border-top: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between;">
-                    <div style="display: flex; align-items: center; gap: 0.75rem;">
-                        <div style="position: relative;">
-                            <img
-                                src="${avatarSrc}"
-                                alt="${rev.name}"
-                                onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(rev.name)}&background=22c55e&color=fff'"
-                                style="width: 2.75rem; height: 2.75rem; border-radius: 50%; object-fit: cover; border: 2.5px solid ${hasMedia ? '#f43f5e' : '#e2e8f0'};"
-                            />
-                            ${hasMedia ? `
-                                <span style="position: absolute; bottom: -2px; right: -2px; width: 0.85rem; height: 0.85rem; border-radius: 50%; background: #dc2626; border: 1.5px solid #fff; display: flex; align-items: center; justify-content: center; font-size: 0.45rem; color: #fff;">▶</span>
-                            ` : ''}
-                        </div>
-                        <div>
-                            <div style="font-size: 0.9rem; font-weight: 800; color: var(--clr-text-main);">
-                                ${rev.name}
-                            </div>
-                            ${rev.car_name ? `
-                                <div style="font-size: 0.75rem; color: var(--clr-primary); font-weight: 600; display: flex; align-items: center; gap: 0.25rem; margin-top: 0.1rem;">
-                                    <svg style="width:0.75rem;height:0.75rem;fill:none;stroke:currentColor" viewBox="0 0 24 24" stroke-width="2"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.5 2.8C1.4 11.3 1 12.1 1 13v3c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>
-                                    ${rev.car_name}
-                                </div>
-                            ` : ''}
-                        </div>
-                    </div>
-
-                    <!-- Rating Stars -->
-                    <div style="display: flex; gap: 0.15rem; align-items: center;">
-                        ${starsHtml}
-                    </div>
+                <!-- Bottom Footer: Optional Car Name & Bottom-Right "review" -->
+                <div class="review-card-footer-action">
+                    ${safeCar ? `
+                        <span class="review-car-tag">
+                            <svg style="width:0.75rem;height:0.75rem;fill:none;stroke:currentColor" viewBox="0 0 24 24" stroke-width="2"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.5 2.8C1.4 11.3 1 12.1 1 13v3c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>
+                            ${safeCar}
+                        </span>
+                    ` : '<span></span>'}
+                    <span class="review-action-link">
+                        <span>review</span>
+                        ${storyBadgeCount}
+                    </span>
                 </div>
             </div>
         `;
     }).join('');
 
-    // Start interval scroll per 5 detik untuk ulasan pelanggan
     initIntervalReviewScroller('reviewsContainer', {
         intervalMs: 5000,
         prevBtnId: 'reviewsPrevBtn',
@@ -659,96 +709,92 @@ function renderReviews() {
     });
 }
 
-// Buka Story Viewer langsung saat komentar di-klik (berdasarkan ID ulasan)
+// =========================================================================
+// INSTAGRAM STORY VIEWER — STRICTLY 1 COMMENTER PER STORY SESSION
+// =========================================================================
 function openStoryByReviewId(reviewId) {
     const approved = state.reviews.filter(r => r.status === 'approved' || !r.status);
-    currentStoriesList = approved;
+    const rev = approved.find(r => String(r.id) === String(reviewId));
+    if (!rev) return;
 
-    const targetIdx = currentStoriesList.findIndex(r => r.id.toString() === reviewId.toString());
-    openStoryViewer(targetIdx !== -1 ? targetIdx : 0);
-}
-
-// Render Baris Lingkaran Instagram Stories
-function renderStoriesStrip() {
-    const track = document.getElementById('storiesTrack');
-    if (!track) return;
-
-    // Ambil semua ulasan approved yang memiliki media foto/video
-    const approved = state.reviews.filter(r => (r.status === 'approved' || !r.status) && r.media);
-    currentStoriesList = approved;
-
-    let html = `
-        <!-- Story Tambah Baru -->
-        <div class="story-item" onclick="openReviewModal()">
-            <div class="story-ring story-ring-add">
-                <div style="width: 100%; height: 100%; border-radius: 50%; background: #f8fafc; display: flex; align-items: center; justify-content: center; color: #dc2626; font-size: 1.35rem; font-weight: bold;">
-                    +
-                </div>
-            </div>
-            <span class="story-name">Story Anda</span>
-            <span class="story-car-badge" style="color: #dc2626;">+ Tambah</span>
-        </div>
-    `;
-
-    if (approved.length === 0) {
-        // Mock default demo stories agar selalu ada tampilan hidup
-        const demoStories = [
-            { id: 'demo1', name: 'Alex Pratama', car_name: 'Zenix Hybrid', avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80', media: 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=1080&q=80', comment: 'Perjalanan Makassar - Bira lancar jaya! Unit Zenix super irit & adem.', rating: 5 },
-            { id: 'demo2', name: 'Sofia Lestari', car_name: 'Alphard Gen 4', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80', media: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1080&q=80', comment: 'Kabin sangat kedap, nyaman sekali untuk jemput tamu kenegaraan.', rating: 5 },
-            { id: 'demo3', name: 'Daniel K.', car_name: 'Fortuner GR', avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=150&q=80', media: 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=1080&q=80', comment: 'Rombongan pernikahan puas dengan unit Fortuner GR yang kinclong.', rating: 5 }
-        ];
-        currentStoriesList = demoStories;
-    }
-
-    currentStoriesList.forEach((story, idx) => {
-        const avatarSrc = story.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(story.name)}&background=dc2626&color=fff&bold=true`;
-        html += `
-            <div class="story-item" onclick="openStoryViewer(${idx})">
-                <div class="story-ring">
-                    <img src="${avatarSrc}" class="story-avatar-inner" alt="${story.name}" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(story.name)}&background=dc2626&color=fff'">
-                </div>
-                <span class="story-name">${story.name}</span>
-                <span class="story-car-badge">${story.car_name || 'Unit Rental'}</span>
-            </div>
-        `;
-    });
-
-    track.innerHTML = html;
-}
-
-// ==========================================
-// INSTAGRAM STORY VIEWER (FULLSCREEN VIEWER)
-// ==========================================
-function openStoryViewer(index) {
-    if (!currentStoriesList || currentStoriesList.length === 0) return;
-    currentStoryIndex = Math.max(0, Math.min(index, currentStoriesList.length - 1));
+    activeStoryReview = rev;
+    const mediaList = getReviewStories(rev);
+    activeStorySlides = mediaList.length > 0 ? mediaList : [{ type: 'text', url: null }];
+    currentSlideIndex = 0;
+    storyIsPaused = false;
+    storyIsMuted = true;
 
     const modal = document.getElementById('storyViewerModal');
     if (modal) modal.classList.remove('hidden');
 
+    renderStoryViewerHeader(rev);
     buildStoryProgressBars();
-    displayStorySlide(currentStoryIndex);
+    displayStorySlide(0);
+}
+
+function renderStoryViewerHeader(rev) {
+    const isArtis = isArtistReview(rev);
+    const avatarWrap = document.getElementById('storyHeaderAvatarWrap');
+    const crownEl = document.getElementById('storyViewerCrown');
+    const avatarEl = document.getElementById('storyViewerAvatar');
+    const nameEl = document.getElementById('storyViewerName');
+    const subEl = document.getElementById('storyViewerSub');
+    const starsEl = document.getElementById('storyViewerStars');
+    const commentEl = document.getElementById('storyViewerComment');
+    const dateEl = document.getElementById('storyViewerDate');
+    const pauseBtn = document.getElementById('storyPauseBtn');
+
+    if (avatarWrap) avatarWrap.classList.toggle('is-artist', isArtis);
+    if (crownEl) crownEl.classList.toggle('hidden', !isArtis);
+
+    if (avatarEl) {
+        avatarEl.src = rev.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(rev.name || 'P')}&background=${isArtis ? 'dc2626' : 'dc2626'}&color=fff&bold=true`;
+    }
+    if (nameEl) nameEl.textContent = rev.name || 'Pelanggan';
+    if (subEl) subEl.textContent = `${rev.car_name || 'Unit Rental'} • Story Pelanggan`;
+    if (commentEl) commentEl.textContent = rev.comment || '';
+    if (pauseBtn) pauseBtn.textContent = '⏸';
+
+    if (starsEl) {
+        const rating = parseInt(rev.rating || 5);
+        starsEl.style.color = isArtis ? '#ef4444' : '#22c55e';
+        starsEl.innerHTML = Array.from({ length: 5 }, (_, i) => i < rating ? '★' : '☆').join('') +
+            ` <span style="font-size:0.75rem; color:#fff; margin-left:0.25rem;">(${rating}.0)</span>`;
+    }
+
+    if (dateEl) {
+        dateEl.textContent = rev.created_at ? formatDisplayDate(rev.created_at) : 'Ulasan Resmi';
+    }
 }
 
 function closeStoryViewer() {
     const modal = document.getElementById('storyViewerModal');
     if (modal) modal.classList.add('hidden');
 
-    if (storyTimer) clearTimeout(storyTimer);
-    if (storyProgressInterval) clearInterval(storyProgressInterval);
+    if (storyProgressInterval) {
+        clearInterval(storyProgressInterval);
+        storyProgressInterval = null;
+    }
 
     const vid = document.getElementById('storyViewerVid');
     if (vid) {
+        vid.onended = null;
+        vid.ontimeupdate = null;
         vid.pause();
-        vid.src = '';
+        vid.removeAttribute('src');
+        vid.load();
     }
+
+    activeStoryReview = null;
+    activeStorySlides = [];
+    storyIsPaused = false;
 }
 
 function buildStoryProgressBars() {
     const container = document.getElementById('storyProgressContainer');
     if (!container) return;
 
-    container.innerHTML = currentStoriesList.map((_, i) => `
+    container.innerHTML = activeStorySlides.map((_, i) => `
         <div class="story-progress-segment">
             <div id="storyProgressFill_${i}" class="story-progress-fill"></div>
         </div>
@@ -756,102 +802,179 @@ function buildStoryProgressBars() {
 }
 
 function displayStorySlide(index) {
-    if (storyTimer) clearTimeout(storyTimer);
-    if (storyProgressInterval) clearInterval(storyProgressInterval);
+    if (storyProgressInterval) {
+        clearInterval(storyProgressInterval);
+        storyProgressInterval = null;
+    }
 
-    const story = currentStoriesList[index];
-    if (!story) return;
+    if (!activeStoryReview || !activeStorySlides || activeStorySlides.length === 0) return;
 
-    // Set progress fills
-    currentStoriesList.forEach((_, i) => {
+    currentSlideIndex = Math.max(0, Math.min(index, activeStorySlides.length - 1));
+    const slide = activeStorySlides[currentSlideIndex];
+
+    // Update progress bars for all slides of THIS commenter
+    activeStorySlides.forEach((_, i) => {
         const fill = document.getElementById(`storyProgressFill_${i}`);
         if (!fill) return;
-        if (i < index) fill.style.width = '100%';
-        else fill.style.width = '0%';
+        fill.style.width = i < currentSlideIndex ? '100%' : '0%';
     });
 
-    const avatarEl = document.getElementById('storyViewerAvatar');
-    const nameEl = document.getElementById('storyViewerName');
-    const subEl = document.getElementById('storyViewerSub');
-    const starsEl = document.getElementById('storyViewerStars');
-    const commentEl = document.getElementById('storyViewerComment');
+    const slideCounter = document.getElementById('storySlideCounter');
+    if (slideCounter) {
+        slideCounter.textContent = activeStorySlides.length > 1 ? `${currentSlideIndex + 1} / ${activeStorySlides.length}` : '1 / 1';
+    }
+
+    const arrowPrev = document.getElementById('storyArrowPrev');
+    const arrowNext = document.getElementById('storyArrowNext');
+    if (arrowPrev) arrowPrev.classList.toggle('hidden', currentSlideIndex === 0);
+    if (arrowNext) arrowNext.classList.toggle('hidden', currentSlideIndex >= activeStorySlides.length - 1);
+
     const imgEl = document.getElementById('storyViewerImg');
     const vidEl = document.getElementById('storyViewerVid');
-
-    if (avatarEl) avatarEl.src = story.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(story.name)}&background=dc2626&color=fff&bold=true`;
-    if (nameEl) nameEl.textContent = story.name;
-    if (subEl) subEl.textContent = `${story.car_name || 'Unit Rental'} • Cerita Pelanggan`;
-    if (commentEl) commentEl.textContent = story.comment;
-
-    if (starsEl) {
-        const rating = parseInt(story.rating || 5);
-        starsEl.innerHTML = Array.from({ length: 5 }, (_, i) => i < rating ? '★' : '☆').join('') + ` <span style="font-size:0.75rem; color:#fff; margin-left:0.25rem;">(${rating}.0)</span>`;
-    }
-
-    const durationMs = 6000;
-    const isVideo = story.media_type === 'video' || (story.media && (story.media.startsWith('data:video/') || story.media.endsWith('.mp4')));
     const textBgEl = document.getElementById('storyViewerTextBg');
+    const muteBtn = document.getElementById('storyMuteBtn');
+    const pauseBtn = document.getElementById('storyPauseBtn');
 
-    const dateEl = document.getElementById('storyViewerDate');
-    if (dateEl) {
-        dateEl.textContent = story.created_at ? formatDateIndo(story.created_at) : 'Ulasan Resmi';
+    storyIsPaused = false;
+    storyElapsedMs = 0;
+    if (pauseBtn) pauseBtn.textContent = '⏸';
+
+    // Reset video handlers
+    if (vidEl) {
+        vidEl.onended = null;
+        vidEl.ontimeupdate = null;
+        vidEl.pause();
     }
 
-    if (story.media) {
+    if (slide.type === 'video' && slide.url) {
         if (textBgEl) textBgEl.classList.add('hidden');
-        if (isVideo) {
-            imgEl.classList.add('hidden');
+        if (imgEl) imgEl.classList.add('hidden');
+        if (muteBtn) {
+            muteBtn.classList.remove('hidden');
+            muteBtn.textContent = storyIsMuted ? '🔇' : '🔊';
+        }
+        if (vidEl) {
             vidEl.classList.remove('hidden');
-            vidEl.src = story.media;
+            vidEl.muted = storyIsMuted;
+            vidEl.src = slide.url;
             vidEl.currentTime = 0;
+
+            const activeFill = document.getElementById(`storyProgressFill_${currentSlideIndex}`);
+            vidEl.ontimeupdate = () => {
+                if (vidEl.duration && activeFill) {
+                    const pct = Math.min(100, (vidEl.currentTime / vidEl.duration) * 100);
+                    activeFill.style.width = `${pct}%`;
+                }
+            };
+            vidEl.onended = () => {
+                if (activeFill) activeFill.style.width = '100%';
+                nextStory();
+            };
             vidEl.play().catch(() => {});
-        } else {
-            vidEl.classList.add('hidden');
-            vidEl.pause();
+        }
+        return;
+    }
+
+    if (muteBtn) muteBtn.classList.add('hidden');
+    if (vidEl) vidEl.classList.add('hidden');
+
+    if (slide.url) {
+        if (textBgEl) textBgEl.classList.add('hidden');
+        if (imgEl) {
             imgEl.classList.remove('hidden');
-            imgEl.src = story.media;
+            imgEl.src = slide.url;
         }
     } else {
-        // Jika pelanggan hanya mengunggah teks komentar tanpa media, tampilkan kartu background story gradien elegan
         if (imgEl) imgEl.classList.add('hidden');
-        if (vidEl) {
-            vidEl.classList.add('hidden');
-            vidEl.pause();
+        if (textBgEl) {
+            const isArtis = isArtistReview(activeStoryReview);
+            textBgEl.style.background = isArtis
+                ? 'linear-gradient(135deg, #2d1115 0%, #140809 100%)'
+                : 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)';
+            textBgEl.classList.remove('hidden');
         }
-        if (textBgEl) textBgEl.classList.remove('hidden');
     }
 
-    // Animate progress bar fill
-    const activeFill = document.getElementById(`storyProgressFill_${index}`);
-    let startTime = Date.now();
-
-    storyProgressInterval = setInterval(() => {
-        const elapsed = Date.now() - startTime;
-        const pct = Math.min(100, (elapsed / durationMs) * 100);
-        if (activeFill) activeFill.style.width = `${pct}%`;
-        if (elapsed >= durationMs) {
-            clearInterval(storyProgressInterval);
-        }
-    }, 50);
-
-    storyTimer = setTimeout(() => {
-        nextStory();
-    }, durationMs);
+    startStoryTimerLoop();
 }
 
-function nextStory() {
-    if (currentStoryIndex < currentStoriesList.length - 1) {
-        currentStoryIndex++;
-        displayStorySlide(currentStoryIndex);
+function startStoryTimerLoop() {
+    if (storyProgressInterval) clearInterval(storyProgressInterval);
+    storyLastTickTime = Date.now();
+    const activeFill = document.getElementById(`storyProgressFill_${currentSlideIndex}`);
+
+    storyProgressInterval = setInterval(() => {
+        const now = Date.now();
+        const delta = now - storyLastTickTime;
+        storyLastTickTime = now;
+
+        if (storyIsPaused) return;
+
+        storyElapsedMs += delta;
+        const pct = Math.min(100, (storyElapsedMs / STORY_IMAGE_DURATION_MS) * 100);
+        if (activeFill) activeFill.style.width = `${pct}%`;
+
+        if (storyElapsedMs >= STORY_IMAGE_DURATION_MS) {
+            clearInterval(storyProgressInterval);
+            storyProgressInterval = null;
+            nextStory();
+        }
+    }, 50);
+}
+
+function toggleStoryMute(e) {
+    if (e) e.stopPropagation();
+    storyIsMuted = !storyIsMuted;
+    const vidEl = document.getElementById('storyViewerVid');
+    const muteBtn = document.getElementById('storyMuteBtn');
+    if (vidEl) vidEl.muted = storyIsMuted;
+    if (muteBtn) muteBtn.textContent = storyIsMuted ? '🔇' : '🔊';
+}
+
+function toggleStoryPause(e) {
+    if (e) e.stopPropagation();
+    storyIsPaused = !storyIsPaused;
+    const pauseBtn = document.getElementById('storyPauseBtn');
+    const vidEl = document.getElementById('storyViewerVid');
+    if (pauseBtn) pauseBtn.textContent = storyIsPaused ? '▶' : '⏸';
+
+    if (vidEl && !vidEl.classList.contains('hidden')) {
+        if (storyIsPaused) vidEl.pause();
+        else vidEl.play().catch(() => {});
+    }
+}
+
+function pauseStoryHold() {
+    if (storyIsPaused) return;
+    const vidEl = document.getElementById('storyViewerVid');
+    storyIsPaused = true;
+    if (vidEl && !vidEl.classList.contains('hidden')) vidEl.pause();
+}
+
+function resumeStoryHold() {
+    const pauseBtn = document.getElementById('storyPauseBtn');
+    if (pauseBtn && pauseBtn.textContent === '▶') return;
+    storyIsPaused = false;
+    storyLastTickTime = Date.now();
+    const vidEl = document.getElementById('storyViewerVid');
+    if (vidEl && !vidEl.classList.contains('hidden')) vidEl.play().catch(() => {});
+}
+
+function nextStory(e) {
+    if (e) e.stopPropagation();
+    if (currentSlideIndex < activeStorySlides.length - 1) {
+        currentSlideIndex++;
+        displayStorySlide(currentSlideIndex);
     } else {
         closeStoryViewer();
     }
 }
 
-function prevStory() {
-    if (currentStoryIndex > 0) {
-        currentStoryIndex--;
-        displayStorySlide(currentStoryIndex);
+function prevStory(e) {
+    if (e) e.stopPropagation();
+    if (currentSlideIndex > 0) {
+        currentSlideIndex--;
+        displayStorySlide(currentSlideIndex);
     } else {
         displayStorySlide(0);
     }
@@ -861,14 +984,12 @@ function prevStory() {
 function openReviewModal() {
     state.selectedReviewRating = 5;
     state.reviewAvatarBase64 = null;
-    state.reviewMediaBase64 = null;
-    state.reviewMediaType = null;
+    state.reviewStories = [];
 
     const form = document.getElementById('reviewForm');
     if (form) form.reset();
 
-    const mediaPrevBox = document.getElementById('reviewMediaPreviewBox');
-    if (mediaPrevBox) mediaPrevBox.classList.add('hidden');
+    renderPublicReviewMediaGrid();
 
     const avatarPrev = document.getElementById('reviewAvatarPreview');
     if (avatarPrev) avatarPrev.classList.add('hidden');
@@ -908,68 +1029,133 @@ function handleReviewAvatarUpload(e) {
     const file = e.target.files[0];
     if (!file) return;
 
-    if (file.size > 3 * 1024 * 1024) {
-        alert("Ukuran foto terlalu besar. Maksimal 3MB.");
+    if (file.size > 5 * 1024 * 1024) {
+        alert("Ukuran foto avatar maksimal 5MB.");
         e.target.value = '';
         return;
     }
 
-    const reader = new FileReader();
-    reader.onload = function (event) {
-        state.reviewAvatarBase64 = event.target.result;
+    compressImageFileToBase64(file, 400, 0.85).then((compressed) => {
+        state.reviewAvatarBase64 = compressed;
         const previewImg = document.getElementById('reviewAvatarPreview');
         if (previewImg) {
-            previewImg.src = event.target.result;
+            previewImg.src = compressed;
             previewImg.classList.remove('hidden');
         }
-    };
-    reader.readAsDataURL(file);
+    });
 }
 
-// Handle Upload Media Story (Foto / Video)
-function handleReviewMediaUpload(e) {
-    const file = e.target.files[0];
-    if (!file) return;
+function compressImageFileToBase64(file, maxDim = 1080, quality = 0.84) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = function (event) {
+            const img = new Image();
+            img.onload = function () {
+                let width = img.width;
+                let height = img.height;
+                if (width > maxDim || height > maxDim) {
+                    if (width > height) {
+                        height = Math.round((height * maxDim) / width);
+                        width = maxDim;
+                    } else {
+                        width = Math.round((width * maxDim) / height);
+                        height = maxDim;
+                    }
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                resolve(canvas.toDataURL('image/jpeg', quality));
+            };
+            img.onerror = () => resolve(event.target.result);
+            img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+}
 
-    if (file.size > 15 * 1024 * 1024) {
-        alert("Ukuran media terlalu besar. Maksimal 15MB.");
-        e.target.value = '';
+// Handle Multi-Upload Media Story (Banyak Foto / Video)
+async function handleReviewMediaUpload(e) {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    for (const file of files) {
+        const isVideo = file.type.startsWith('video/');
+        const maxSize = isVideo ? 50 * 1024 * 1024 : 15 * 1024 * 1024;
+
+        if (file.size > maxSize) {
+            alert(`File "${file.name}" terlalu besar. Maksimal ${isVideo ? '50MB untuk video' : '15MB untuk foto'}.`);
+            continue;
+        }
+
+        const itemId = `rev_media_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+
+        if (isVideo) {
+            const objectUrl = URL.createObjectURL(file);
+            state.reviewStories.push({
+                id: itemId,
+                url: objectUrl,
+                type: 'video',
+                file: file
+            });
+        } else {
+            const compressedBase64 = await compressImageFileToBase64(file, 1080, 0.84);
+            state.reviewStories.push({
+                id: itemId,
+                url: compressedBase64,
+                type: 'image',
+                file: null
+            });
+        }
+    }
+
+    e.target.value = '';
+    renderPublicReviewMediaGrid();
+}
+
+function removeReviewMediaItem(itemId) {
+    const target = state.reviewStories.find(item => item.id === itemId);
+    if (target && target.type === 'video' && target.url && target.url.startsWith('blob:')) {
+        URL.revokeObjectURL(target.url);
+    }
+    state.reviewStories = state.reviewStories.filter(item => item.id !== itemId);
+    renderPublicReviewMediaGrid();
+}
+
+function renderPublicReviewMediaGrid() {
+    const box = document.getElementById('reviewMediaPreviewBox');
+    const grid = document.getElementById('reviewMediaPreviewGrid');
+    const badge = document.getElementById('reviewMediaCountBadge');
+
+    if (badge) {
+        badge.textContent = `${state.reviewStories.length} Media Dipilih`;
+    }
+
+    if (!box || !grid) return;
+
+    if (state.reviewStories.length === 0) {
+        box.classList.add('hidden');
+        grid.innerHTML = '';
         return;
     }
 
-    const isVideo = file.type.startsWith('video');
-    state.reviewMediaType = isVideo ? 'video' : 'image';
-
-    const reader = new FileReader();
-    reader.onload = function (event) {
-        state.reviewMediaBase64 = event.target.result;
-        const box = document.getElementById('reviewMediaPreviewBox');
-        const img = document.getElementById('reviewMediaImgPreview');
-        const vid = document.getElementById('reviewMediaVidPreview');
-
-        if (box) box.classList.remove('hidden');
-
-        if (isVideo) {
-            if (img) img.classList.add('hidden');
-            if (vid) {
-                vid.classList.remove('hidden');
-                vid.src = event.target.result;
+    box.classList.remove('hidden');
+    grid.innerHTML = state.reviewStories.map(item => `
+        <div style="position: relative; aspect-ratio: 1/1; border-radius: 0.6rem; overflow: hidden; background: #0f172a; border: 1.5px solid #fda4af;">
+            ${item.type === 'video'
+                ? `<video src="${item.url}" muted playsinline style="width:100%; height:100%; object-fit:cover;"></video>
+                   <span style="position:absolute; bottom:4px; left:4px; font-size:0.6rem; font-weight:800; background:rgba(0,0,0,0.75); color:#fff; padding:1px 5px; border-radius:4px;">🎬 Video</span>`
+                : `<img src="${item.url}" alt="Media" style="width:100%; height:100%; object-fit:cover;" />
+                   <span style="position:absolute; bottom:4px; left:4px; font-size:0.6rem; font-weight:800; background:rgba(0,0,0,0.75); color:#fff; padding:1px 5px; border-radius:4px;">📸 Foto</span>`
             }
-        } else {
-            if (vid) {
-                vid.classList.add('hidden');
-                vid.pause();
-            }
-            if (img) {
-                img.classList.remove('hidden');
-                img.src = event.target.result;
-            }
-        }
-    };
-    reader.readAsDataURL(file);
+            <button type="button" onclick="removeReviewMediaItem('${item.id}')" style="position:absolute; top:4px; right:4px; width:20px; height:20px; border-radius:50%; border:none; background:#e11d48; color:#fff; font-size:0.7rem; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center;" title="Hapus media ini">✕</button>
+        </div>
+    `).join('');
 }
 
-// Handle Submit Review Pelanggan
+// Handle Submit Review Pelanggan (Dengan Banyak Foto/Video)
 async function handleReviewSubmit(e) {
     e.preventDefault();
 
@@ -978,57 +1164,83 @@ async function handleReviewSubmit(e) {
     const comment = document.getElementById('reviewComment').value.trim();
     const rating = state.selectedReviewRating;
     const avatar = state.reviewAvatarBase64 || null;
-    const media = state.reviewMediaBase64 || null;
-    const mediaType = state.reviewMediaType || (media ? 'image' : null);
 
     if (!name || !comment) {
         alert("Silakan isi nama dan ulasan Anda!");
         return;
     }
 
-    const newReviewData = {
-        name: name,
-        rating: rating,
-        car_name: carName,
-        comment: comment,
-        avatar: avatar,
-        media: media,
-        media_type: mediaType,
-        status: 'pending' // pending verification by Admin
-    };
+    const submitBtn = document.getElementById('reviewSubmitBtn');
+    const origBtnHtml = submitBtn ? submitBtn.innerHTML : '';
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Mengirim Ulasan & Media...';
+    }
 
-    // Try posting to API
-    let savedSuccessfully = false;
+    const formData = new FormData();
+    formData.append('name', name);
+    formData.append('rating', rating);
+    formData.append('car_name', carName);
+    formData.append('comment', comment);
+    formData.append('user_type', 'regular');
+    formData.append('status', 'pending');
+    if (avatar) formData.append('avatar', avatar);
+
+    const inlineStories = [];
+    state.reviewStories.forEach((item) => {
+        if (item.file) {
+            formData.append('story_files[]', item.file);
+        } else if (item.url) {
+            inlineStories.push({ url: item.url, type: item.type });
+        }
+    });
+    formData.append('stories', JSON.stringify(inlineStories));
+
+    let savedReview = null;
     try {
         const res = await fetch('/api/reviews', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
                 'Accept': 'application/json'
             },
-            body: JSON.stringify(newReviewData)
+            body: formData
         });
 
         if (res.ok) {
-            savedSuccessfully = true;
+            const json = await res.json();
+            if (json.data) savedReview = json.data;
         }
     } catch (err) {
-        // Fallback to local storage
+        console.warn('Fallback local review save:', err);
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = origBtnHtml;
+        }
     }
 
-    // Always keep LocalStorage in sync as well
-    const newLocalReview = {
+    const fallbackLocal = savedReview || {
         id: Date.now(),
-        ...newReviewData,
+        name,
+        rating,
+        car_name: carName,
+        comment,
+        avatar,
+        user_type: 'regular',
+        stories: inlineStories,
+        media: inlineStories[0]?.url || null,
+        media_type: inlineStories[0]?.type || null,
+        status: 'pending',
         created_at: new Date().toISOString()
     };
-    state.reviews.unshift(newLocalReview);
-    localStorage.setItem('rcm_rent_reviews', JSON.stringify(state.reviews));
+
+    state.reviews.unshift(fallbackLocal);
+    try {
+        localStorage.setItem('rcm_rent_reviews', JSON.stringify(state.reviews));
+    } catch (err) {}
 
     closeReviewModal();
-
-    // Show nice alert modal / message
-    alert("🎉 Terima kasih! Ulasan Anda telah berhasil dikirim.\n\nReview Anda akan ditampilkan di halaman utama website setelah diverifikasi dan disetujui oleh Admin kami.");
+    alert("🎉 Terima kasih! Ulasan & Story Anda telah berhasil dikirim.\n\nReview Anda akan ditampilkan di halaman utama website setelah diverifikasi dan disetujui oleh Admin kami.");
 }
 
 // Helper Tanggal Lokal Hari Ini (YYYY-MM-DD) secara Real-Time
@@ -2546,7 +2758,32 @@ document.addEventListener('click', (e) => {
     }
 });
 
+// Keyboard navigation when Story Viewer is open
+document.addEventListener('keydown', (e) => {
+    const storyModal = document.getElementById('storyViewerModal');
+    if (storyModal && !storyModal.classList.contains('hidden')) {
+        if (e.key === 'Escape') closeStoryViewer();
+        else if (e.key === 'ArrowRight') nextStory();
+        else if (e.key === 'ArrowLeft') prevStory();
+    }
+});
+
 // Alias for form submission compatibility and global handlers
+window.openStoryByReviewId = openStoryByReviewId;
+window.closeStoryViewer = closeStoryViewer;
+window.nextStory = nextStory;
+window.prevStory = prevStory;
+window.toggleStoryMute = toggleStoryMute;
+window.toggleStoryPause = toggleStoryPause;
+window.pauseStoryHold = pauseStoryHold;
+window.resumeStoryHold = resumeStoryHold;
+window.openReviewModal = openReviewModal;
+window.closeReviewModal = closeReviewModal;
+window.setReviewRating = setReviewRating;
+window.handleReviewAvatarUpload = handleReviewAvatarUpload;
+window.handleReviewMediaUpload = handleReviewMediaUpload;
+window.removeReviewMediaItem = removeReviewMediaItem;
+window.handleReviewSubmit = handleReviewSubmit;
 window.toggleCustomEventDropdown = toggleCustomEventDropdown;
 window.selectCustomEventOption = selectCustomEventOption;
 window.submitBookingWhatsApp = handleBookingSubmit;

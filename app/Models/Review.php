@@ -15,10 +15,15 @@ class Review extends Model
         'car_name',
         'comment',
         'avatar',
+        'user_type',
+        'stories',
+        'media',
+        'media_type',
         'status',
     ];
 
     protected $casts = [
         'rating' => 'integer',
+        'stories' => 'array',
     ];
 }

@@ -1029,19 +1029,21 @@
                         </div>
                     </div>
 
-                    <!-- Upload Foto / Video Story Pengalaman Sewa Mobil (FITUR STORY IG) -->
+                    <!-- Upload Banyak Foto / Video Story Pengalaman Sewa Mobil (FITUR STORY IG) -->
                     <div class="form-group" style="padding: 1rem; background: #fff1f2; border: 1.5px dashed #f43f5e; border-radius: var(--radius-md);">
-                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
-                            <span style="font-size: 1.1rem;">📸</span>
-                            <label class="form-label" style="font-weight: 800; color: #be123c; margin-bottom: 0;">Upload Story Review (Foto / Video Pengalaman)</label>
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.35rem; flex-wrap: wrap;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span style="font-size: 1.1rem;">📸</span>
+                                <label class="form-label" style="font-weight: 800; color: #be123c; margin-bottom: 0;">Upload Banyak Foto / Video Story</label>
+                            </div>
+                            <span id="reviewMediaCountBadge" style="font-size: 0.68rem; font-weight: 800; background: #ffe4e6; color: #be123c; padding: 0.15rem 0.55rem; border-radius: 999px;">0 Media Dipilih</span>
                         </div>
-                        <p style="font-size: 0.72rem; color: #881337; margin-bottom: 0.5rem;">
-                            Foto atau video Anda bersama mobil saat liburan/dinas akan tampil di lingkaran <strong>Story Ulasan ala Instagram</strong>! (Maks 15MB, Format JPG/PNG/MP4/WebM).
+                        <p style="font-size: 0.72rem; color: #881337; margin-bottom: 0.6rem;">
+                            Anda dapat memilih <strong>banyak foto dan/atau video sekaligus</strong>. Semua foto &amp; video akan tampil khusus di Story Instagram milik Anda! (Format JPG/PNG/MP4/WebM).
                         </p>
-                        <input type="file" id="reviewMediaInput" accept="image/*,video/*" class="form-input" style="padding: 0.5rem; background: #ffffff;" onchange="handleReviewMediaUpload(event)">
-                        <div id="reviewMediaPreviewBox" class="hidden" style="margin-top: 0.75rem; border-radius: var(--radius-md); overflow: hidden; max-height: 180px; background: #0f172a; display: flex; align-items: center; justify-content: center; position: relative;">
-                            <img id="reviewMediaImgPreview" class="hidden" style="max-height: 180px; width: 100%; object-fit: cover;" />
-                            <video id="reviewMediaVidPreview" class="hidden" controls style="max-height: 180px; width: 100%;"></video>
+                        <input type="file" id="reviewMediaInput" accept="image/*,video/*" multiple class="form-input" style="padding: 0.5rem; background: #ffffff;" onchange="handleReviewMediaUpload(event)">
+                        <div id="reviewMediaPreviewBox" class="hidden" style="margin-top: 0.75rem;">
+                            <div id="reviewMediaPreviewGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 0.5rem;"></div>
                         </div>
                     </div>
 
@@ -1053,7 +1055,7 @@
 
                     <!-- Submit Button -->
                     <div style="padding-top: 0.5rem;">
-                        <button type="submit" class="btn btn-emerald btn-lg" style="width: 100%; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                        <button type="submit" id="reviewSubmitBtn" class="btn btn-emerald btn-lg" style="width: 100%; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;">
                             <span>Kirim Ulasan Pelanggan</span>
                             <svg style="width: 1rem; height: 1rem;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
                         </button>
@@ -1070,29 +1072,50 @@
     <!-- ==================================================== -->
     <div id="storyViewerModal" class="story-viewer-modal hidden" onclick="if(event.target === this) closeStoryViewer()">
         <div class="story-viewer-content" onclick="event.stopPropagation()">
-            <!-- Progress Bars -->
+            <!-- Progress Bars (Per Slide Milik Pengomentar Ini) -->
             <div id="storyProgressContainer" class="story-progress-bar-container"></div>
 
             <!-- Header Info -->
             <div class="story-header-bar">
                 <div class="story-header-user">
-                    <img id="storyViewerAvatar" src="" class="story-header-avatar" alt="User">
+                    <div id="storyHeaderAvatarWrap" class="story-header-avatar-wrap">
+                        <span id="storyViewerCrown" class="story-viewer-crown hidden" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 19h20v2H2v-2zm1.5-2L2 7l6 4 4-7 4 7 6-4-1.5 10h-17z"/></svg>
+                        </span>
+                        <img id="storyViewerAvatar" src="" class="story-header-avatar" alt="User">
+                    </div>
                     <div class="story-header-info">
                         <div id="storyViewerName" class="story-header-name"></div>
                         <div id="storyViewerSub" class="story-header-sub"></div>
                     </div>
                 </div>
-                <button onclick="closeStoryViewer()" class="story-close-btn" aria-label="Tutup Story">
-                    ✕
-                </button>
+                <div style="display: flex; align-items: center; gap: 0.4rem;">
+                    <button id="storyMuteBtn" onclick="toggleStoryMute(event)" class="story-control-btn hidden" aria-label="Suara Video" title="Aktifkan/Matikan Suara">
+                        🔇
+                    </button>
+                    <button id="storyPauseBtn" onclick="toggleStoryPause(event)" class="story-control-btn" aria-label="Jeda/Lanjutkan Story" title="Jeda / Putar">
+                        ⏸
+                    </button>
+                    <button onclick="closeStoryViewer()" class="story-close-btn" aria-label="Tutup Story">
+                        ✕
+                    </button>
+                </div>
             </div>
 
             <!-- Tap Navigations (Left = Previous, Right = Next) -->
             <div class="story-nav-tap left" onclick="prevStory()"></div>
             <div class="story-nav-tap right" onclick="nextStory()"></div>
 
+            <!-- Desktop Side Slide Arrows -->
+            <button id="storyArrowPrev" class="story-desktop-arrow left hidden" onclick="prevStory(event)" aria-label="Foto/Video Sebelumnya">
+                <i class="fa-solid fa-chevron-left"></i>
+            </button>
+            <button id="storyArrowNext" class="story-desktop-arrow right hidden" onclick="nextStory(event)" aria-label="Foto/Video Berikutnya">
+                <i class="fa-solid fa-chevron-right"></i>
+            </button>
+
             <!-- Media Container -->
-            <div class="story-media-container">
+            <div class="story-media-container" onmousedown="pauseStoryHold()" onmouseup="resumeStoryHold()" ontouchstart="pauseStoryHold()" ontouchend="resumeStoryHold()">
                 <!-- If Image -->
                 <img id="storyViewerImg" class="hidden" alt="Story Image">
                 <!-- If Video -->
@@ -1105,11 +1128,14 @@
 
             <!-- Bottom Caption & Full Review Overlay -->
             <div class="story-caption-overlay">
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.45rem;">
                     <div id="storyViewerStars" class="story-caption-rating"></div>
-                    <span id="storyViewerDate" style="font-size: 0.7rem; color: rgba(255,255,255,0.75);"></span>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span id="storySlideCounter" style="font-size: 0.7rem; font-weight: 700; color: #fff; background: rgba(255,255,255,0.18); padding: 0.12rem 0.45rem; border-radius: 999px;"></span>
+                        <span id="storyViewerDate" style="font-size: 0.7rem; color: rgba(255,255,255,0.8);"></span>
+                    </div>
                 </div>
-                <p id="storyViewerComment" class="story-caption-text" style="max-height: 180px; overflow-y: auto; scrollbar-width: none;"></p>
+                <p id="storyViewerComment" class="story-caption-text" style="max-height: 165px; overflow-y: auto; scrollbar-width: none;"></p>
             </div>
         </div>
     </div>
