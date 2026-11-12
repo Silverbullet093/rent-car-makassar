@@ -18,8 +18,65 @@
     <link rel="stylesheet" href="/css/style.css">
     <!-- Mobile Responsive Patch -->
     <link rel="stylesheet" href="/css/responsive-mobile.css">
+    <script>
+        try {
+            var params = new URLSearchParams(window.location.search);
+            if (params.get('intro') === '1') {
+                sessionStorage.removeItem('rpm_intro_seen');
+            }
+            if (!sessionStorage.getItem('rpm_intro_seen')) {
+                document.documentElement.classList.add('intro-active');
+            }
+        } catch (e) {}
+    </script>
 </head>
 <body style="overflow-x: hidden;">
+
+    <!-- FIRST-VISIT CINEMATIC VIDEO LOADING SCREEN -->
+    <div id="introPreloader" class="intro-preloader" aria-label="Video Intro RPM Rent Car Makassar" role="dialog" aria-modal="true">
+        <div id="introBufferingState" class="intro-buffering-state">
+            <div class="intro-loader-ring">
+                <img src="/logo_rpm_red.png" alt="RPM Rent Car" class="intro-loader-logo">
+            </div>
+            <span class="intro-loader-text">Memuat Pengalaman RPM...</span>
+        </div>
+
+        <video
+            id="introPreloaderVideo"
+            class="intro-preloader-video"
+            autoplay
+            muted
+            playsinline
+            preload="auto"
+        >
+            <source src="/videos/intro-rpm.mp4" type="video/mp4">
+        </video>
+
+        <div class="intro-progress-track" aria-hidden="true">
+            <div id="introProgressBar" class="intro-progress-fill"></div>
+        </div>
+
+        <div class="intro-controls-bar">
+            <button
+                type="button"
+                id="introMuteBtn"
+                class="intro-control-pill intro-mute-btn"
+                aria-label="Aktifkan atau bisukan suara intro"
+                title="Suara"
+            >
+                <i id="introMuteIcon" class="fa-solid fa-volume-xmark"></i>
+            </button>
+            <button
+                type="button"
+                id="introSkipBtn"
+                class="intro-control-pill intro-skip-btn"
+                aria-label="Lewati video intro"
+            >
+                <span>Lewati Intro</span>
+                <i class="fa-solid fa-forward-step"></i>
+            </button>
+        </div>
+    </div>
 
     <!-- ANNOUNCEMENT BANNER: TARIF LIBUR / PEAK SEASON (JIKA AKTIF) -->
     <div id="holidayAlertBanner" class="hidden" style="background-color: var(--clr-primary); color: white; font-size: 0.75rem; padding: 0.5rem 1rem; text-align: center; font-weight: 700;">
@@ -208,7 +265,7 @@
                             <i class="fa-solid fa-car"></i>
                         </div>
                         <div>
-                            <div class="metric-title">50+ Unit</div>
+                            <div class="metric-title">10+ Unit</div>
                             <div class="metric-sub">Armada Prima</div>
                         </div>
                     </div>
@@ -442,8 +499,8 @@
             <div class="container">
                 
                 <!-- Section Header -->
-                <div style="display: flex; flex-direction: column; md:flex-row; align-items: center; justify-content: space-between; gap: 1.5rem; margin-bottom: 2rem;">
-                    <div style="text-align: left; max-width: 38rem;">
+                <div class="reviews-section-header">
+                    <div class="reviews-header-copy">
                         <span style="color: #22c55e; font-weight: 800; font-size: 0.8125rem; letter-spacing: 0.1em; text-transform: uppercase; display: block; margin-bottom: 0.5rem;">
                             WHAT DRIVERS SAY
                         </span>
@@ -533,7 +590,7 @@
                             </div>
                             <div style="background: #f8fafc; padding: 0.5rem; border-radius: var(--radius-sm); border: 1px solid #f1f5f9;">
                                 <span style="color: var(--clr-text-subtle); font-size: 0.65rem; display: block;">Bagasi</span>
-                                <span id="modalCarLuggage" style="font-weight: 800; color: var(--clr-text-main);">3 Koper</span>
+                                <span id="modalCarLuggage" style="font-weight: 800; color: var(--clr-text-main);">5 Koper</span>
                             </div>
                         </div>
                     </div>

@@ -3669,3 +3669,242 @@ button, input, select, textarea {
     padding: 0.2rem 0.55rem;
     border-radius: 9999px;
 }
+
+/* ==========================================================================
+   FIRST-VISIT CINEMATIC VIDEO INTRO PRELOADER
+   ========================================================================== */
+
+.intro-preloader {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    background-color: #000000;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    opacity: 1;
+    transition:
+        background-color 0.55s ease,
+        opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1),
+        transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html.intro-active,
+html.intro-active body {
+    overflow: hidden !important;
+    height: 100% !important;
+}
+
+html.intro-active .intro-preloader {
+    display: flex;
+}
+
+/* Hero & Navbar prepared underneath for seamless merge */
+html.intro-active .header-glass {
+    opacity: 0;
+    transform: translateY(-10px);
+    transition:
+        opacity 0.85s cubic-bezier(0.22, 1, 0.36, 1) 0.12s,
+        transform 0.85s cubic-bezier(0.22, 1, 0.36, 1) 0.12s;
+}
+
+html.intro-active #home .hero-main-grid > div:first-child,
+html.intro-active #home .hero-metric-bar {
+    opacity: 0;
+    transform: translateY(18px);
+    transition:
+        opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.18s,
+        transform 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.18s;
+}
+
+html.intro-active.intro-merging .header-glass,
+html.intro-active.intro-merging #home .hero-main-grid > div:first-child,
+html.intro-active.intro-merging #home .hero-metric-bar {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* White studio phase around 8.15s in video */
+.intro-preloader.is-light-phase {
+    background-color: #ffffff;
+}
+
+/* Dissolve & merge cleanly into main hero */
+.intro-preloader.is-merging {
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(1.03);
+}
+
+.intro-preloader.is-light-phase.is-merging {
+    transform: translateX(4%) scale(1.015);
+}
+
+.intro-preloader-video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: transparent;
+    opacity: 0;
+    transition: opacity 0.45s ease;
+    pointer-events: none;
+}
+
+.intro-preloader.is-playing .intro-preloader-video {
+    opacity: 1;
+}
+
+/* Buffering state before first video frame */
+.intro-buffering-state {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    z-index: 2;
+    transition: opacity 0.35s ease, visibility 0.35s ease;
+}
+
+.intro-preloader.is-playing .intro-buffering-state {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.intro-loader-ring {
+    width: 4.5rem;
+    height: 4.5rem;
+    border-radius: 1.15rem;
+    background: #dc2626;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.35rem;
+    box-shadow: 0 0 36px rgba(220, 38, 38, 0.45);
+    animation: introPulseLogo 1.6s ease-in-out infinite;
+}
+
+.intro-loader-logo {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    transform: scale(1.25);
+}
+
+.intro-loader-text {
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.72);
+}
+
+@keyframes introPulseLogo {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 28px rgba(220, 38, 38, 0.4); }
+    50% { transform: scale(1.06); box-shadow: 0 0 44px rgba(220, 38, 38, 0.65); }
+}
+
+/* Progress bar */
+.intro-progress-track {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.14);
+    z-index: 5;
+    transition: background-color 0.5s ease;
+}
+
+.intro-preloader.is-light-phase .intro-progress-track {
+    background: rgba(15, 23, 42, 0.1);
+}
+
+.intro-progress-fill {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, #dc2626 0%, #ef4444 100%);
+    transition: width 0.18s linear;
+}
+
+/* Controls: Mute & Skip Button */
+.intro-controls-bar {
+    position: absolute;
+    right: 1.5rem;
+    bottom: 1.5rem;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.intro-control-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    height: 2.65rem;
+    padding: 0 1.15rem;
+    border-radius: 9999px;
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    background: rgba(15, 23, 42, 0.62);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    color: #ffffff;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    transition: all 0.25s ease;
+}
+
+.intro-mute-btn {
+    width: 2.65rem;
+    padding: 0;
+}
+
+.intro-control-pill:hover {
+    background: rgba(220, 38, 38, 0.92);
+    border-color: rgba(239, 68, 68, 0.85);
+    transform: translateY(-2px);
+}
+
+.intro-control-pill:active {
+    transform: scale(0.96);
+}
+
+/* Adapt button contrast during white Alphard scene */
+.intro-preloader.is-light-phase .intro-control-pill {
+    background: rgba(15, 23, 42, 0.08);
+    border-color: rgba(15, 23, 42, 0.16);
+    color: #0f172a;
+    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.08);
+}
+
+.intro-preloader.is-light-phase .intro-control-pill:hover {
+    background: #dc2626;
+    border-color: #dc2626;
+    color: #ffffff;
+}
+
+@media (max-width: 767px) {
+    .intro-controls-bar {
+        right: 1rem;
+        bottom: max(1.25rem, env(safe-area-inset-bottom, 1.25rem));
+    }
+
+    .intro-control-pill {
+        height: 2.45rem;
+        padding: 0 0.95rem;
+        font-size: 0.78rem;
+    }
+
+    .intro-mute-btn {
+        width: 2.45rem;
+        padding: 0;
+    }
+}

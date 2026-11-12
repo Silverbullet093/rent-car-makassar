@@ -152,7 +152,7 @@
 
 /* ——————————————————————————————————————
    2. KATALOG MOBIL GRID — MOBILE
-   1 kolom di HP, 2 kolom di tablet
+   2 kolom di HP & tablet
    —————————————————————————————————————— */
 
 @media (max-width: 767px) {
@@ -167,10 +167,10 @@
         font-size: 1.5rem !important;
     }
 
-    /* Grid mobil: 1 kolom tunggal */
+    /* Grid mobil: 2 kolom di HP */
     #carsGrid {
-        grid-template-columns: 1fr !important;
-        gap: 1rem !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 0.65rem !important;
     }
 
     /* Filter & Search Bar — susun vertikal */
@@ -206,12 +206,8 @@
     }
 
     /* Card unit ukuran di mobile */
-    .card-unit {
-        border-radius: 1rem !important;
-    }
-
     .card-img-wrap {
-        height: 11rem !important;
+        height: 7.75rem !important;
     }
 
     .card-img-wrap img {
@@ -222,8 +218,12 @@
 
 @media (min-width: 480px) and (max-width: 767px) {
     #carsGrid {
-        grid-template-columns: repeat(2, 1fr) !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
         gap: 0.85rem !important;
+    }
+
+    .card-img-wrap {
+        height: 9.5rem !important;
     }
 }
 
@@ -1338,5 +1338,242 @@
 
     .rev-modal-footer .rev-modal-submit-btn {
         flex: 1;
+    }
+}
+
+/* ==========================================================================
+   DESKTOP & MOBILE POLISH: 2-COLUMN CAR CARDS + REVIEWS CAROUSEL MOBILE
+   ========================================================================== */
+
+.reviews-section-header {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.reviews-header-copy {
+    text-align: left;
+    max-width: 38rem;
+}
+
+@media (max-width: 767px) {
+    /* 1. Katalog Mobil — 2 kolom compact tanpa teks terpotong/meluber */
+    #carsGrid .card-unit {
+        min-width: 0;
+        border-radius: 0.95rem !important;
+    }
+
+    #carsGrid .card-unit:hover {
+        transform: none !important;
+    }
+
+    #carsGrid .card-cat-wrap {
+        top: 0.45rem !important;
+        left: 0.45rem !important;
+    }
+
+    #carsGrid .card-status-wrap {
+        top: 0.45rem !important;
+        right: 0.45rem !important;
+        max-width: 64%;
+    }
+
+    #carsGrid .badge-tag {
+        font-size: 0.58rem !important;
+        padding: 0.16rem 0.42rem !important;
+    }
+
+    #carsGrid .status-pill-ready,
+    #carsGrid .status-pill-used {
+        font-size: 0.56rem !important;
+        padding: 0.16rem 0.42rem !important;
+        gap: 0.25rem !important;
+        max-width: 100%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    #carsGrid .dot-indicator {
+        width: 0.3rem;
+        height: 0.3rem;
+        flex-shrink: 0;
+    }
+
+    #carsGrid .card-holiday-tag {
+        font-size: 0.56rem !important;
+        padding: 0.12rem 0.38rem !important;
+        bottom: 0.35rem !important;
+        left: 0.35rem !important;
+    }
+
+    #carsGrid .card-body-info {
+        padding: 0.65rem 0.65rem 0.4rem 0.65rem !important;
+    }
+
+    #carsGrid .card-brand-meta {
+        font-size: 0.64rem !important;
+        margin-bottom: 0.15rem !important;
+    }
+
+    #carsGrid .card-car-title {
+        font-size: 0.9rem !important;
+        line-height: 1.25 !important;
+        margin-bottom: 0.35rem !important;
+    }
+
+    #carsGrid .card-specs-row {
+        flex-wrap: wrap !important;
+        gap: 0.15rem 0.3rem !important;
+        font-size: 0.64rem !important;
+        line-height: 1.35 !important;
+        margin-bottom: 0.4rem !important;
+        padding-bottom: 0.4rem !important;
+    }
+
+    #carsGrid .card-car-desc {
+        font-size: 0.68rem !important;
+        line-height: 1.4 !important;
+        margin-bottom: 0.2rem !important;
+    }
+
+    #carsGrid .card-footer-wrap {
+        padding: 0 0.65rem 0.65rem 0.65rem !important;
+    }
+
+    #carsGrid .card-price-row {
+        margin-bottom: 0.45rem !important;
+    }
+
+    #carsGrid .card-price-label {
+        font-size: 0.62rem !important;
+    }
+
+    #carsGrid .card-price-value {
+        font-size: 0.88rem !important;
+        line-height: 1.25 !important;
+    }
+
+    #carsGrid .card-price-unit {
+        font-size: 0.62rem !important;
+    }
+
+    #carsGrid .card-book-btn {
+        padding: 0.48rem 0.45rem !important;
+        font-size: 0.7rem !important;
+        gap: 0.25rem !important;
+        white-space: normal !important;
+        line-height: 1.2 !important;
+        border-radius: 0.55rem !important;
+    }
+
+    /* 2. Bagian Komentar / Ulasan (#reviews) — Mobile Fix */
+    .reviews-section-header {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 1rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .reviews-header-copy {
+        text-align: center;
+        max-width: 100%;
+    }
+
+    .reviews-carousel-outer {
+        display: grid;
+        grid-template-columns: 1fr auto auto 1fr;
+        grid-template-areas:
+            "slider slider slider slider"
+            ". prev next .";
+        gap: 0.35rem 0.85rem;
+        align-items: center;
+    }
+
+    .reviews-carousel-outer .horizontal-slider-wrapper {
+        grid-area: slider;
+        min-width: 0;
+        padding: 0 !important;
+    }
+
+    /* Hilangkan white edge fade yang memudarkan border/teks kartu di mobile */
+    .reviews-carousel-outer .horizontal-slider-wrapper::before,
+    .reviews-carousel-outer .horizontal-slider-wrapper::after {
+        display: none !important;
+    }
+
+    .reviews-carousel-outer .edge-btn-left {
+        grid-area: prev;
+    }
+
+    .reviews-carousel-outer .edge-btn-right {
+        grid-area: next;
+    }
+
+    /* Letakkan tombol < dan > di bawah kartu agar tidak menutupi teks komentar */
+    .reviews-carousel-outer .carousel-edge-btn {
+        position: static !important;
+        transform: none !important;
+        width: 2.6rem !important;
+        height: 2.6rem !important;
+        font-size: 0.85rem !important;
+        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.1) !important;
+    }
+
+    .reviews-carousel-outer .carousel-edge-btn:hover {
+        transform: scale(1.06) !important;
+    }
+
+    .reviews-carousel-outer .carousel-edge-btn:active {
+        transform: scale(0.94) !important;
+    }
+
+    .reviews-slider-track {
+        gap: 1rem !important;
+        padding: 1.35rem 0.5rem 1.25rem 0.5rem !important;
+        scroll-snap-type: x proximity;
+    }
+
+    .review-card-item {
+        flex: 0 0 100% !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
+        padding: 1.5rem 1.2rem 1.2rem 1.2rem !important;
+        border-radius: 1.25rem !important;
+        scroll-snap-align: center;
+    }
+
+    .review-card-item:hover,
+    .review-card-item.review-card-artist:hover {
+        transform: none !important;
+    }
+
+    .review-card-artist .review-avatar-wrap {
+        margin-top: 0.85rem !important;
+    }
+
+    .review-avatar-ring {
+        width: 4.25rem !important;
+        height: 4.25rem !important;
+    }
+
+    .review-author-name {
+        font-size: 1rem !important;
+    }
+
+    .review-comment-body {
+        font-size: 0.875rem !important;
+        line-height: 1.55 !important;
+        margin-bottom: 1rem !important;
+        -webkit-line-clamp: 5;
+    }
+
+    .review-card-footer-action {
+        flex-wrap: wrap;
+        gap: 0.45rem;
     }
 }

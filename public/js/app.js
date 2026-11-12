@@ -356,7 +356,7 @@ function renderCarsCatalog() {
                         />
 
                         <!-- Status Pill -->
-                        <div style="position: absolute; top: 0.75rem; right: 0.75rem;">
+                        <div class="card-status-wrap" style="position: absolute; top: 0.75rem; right: 0.75rem;">
                             ${isReady ? `
                                 <span class="status-pill-ready">
                                     <span class="dot-indicator" style="background-color: var(--clr-emerald);"></span>
@@ -371,30 +371,30 @@ function renderCarsCatalog() {
                         </div>
 
                         <!-- Kategori Badge -->
-                        <div style="position: absolute; top: 0.75rem; left: 0.75rem;">
+                        <div class="card-cat-wrap" style="position: absolute; top: 0.75rem; left: 0.75rem;">
                             <span class="badge-tag">
                                 ${car.category}
                             </span>
                         </div>
 
                         ${isHoliday ? `
-                            <div style="position: absolute; bottom: 0.5rem; left: 0.5rem; background: var(--clr-rose); color: white; font-size: 0.65rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: var(--radius-sm);">
+                            <div class="card-holiday-tag" style="position: absolute; bottom: 0.5rem; left: 0.5rem; background: var(--clr-rose); color: white; font-size: 0.65rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: var(--radius-sm);">
                                 Tarif Libur
                             </div>
                         ` : ''}
                     </div>
 
                     <!-- Informasi Unit Mobil -->
-                    <div style="padding: 1.25rem;">
-                        <div style="font-size: 0.75rem; color: var(--clr-text-muted); font-weight: 600; margin-bottom: 0.25rem;">
+                    <div class="card-body-info" style="padding: 1.25rem;">
+                        <div class="card-brand-meta" style="font-size: 0.75rem; color: var(--clr-text-muted); font-weight: 600; margin-bottom: 0.25rem;">
                             ${car.brand} • ${car.year}
                         </div>
-                        <h3 style="font-size: 1.125rem; font-weight: 800; color: var(--clr-text-main); margin-bottom: 0.5rem;">
+                        <h3 class="card-car-title" style="font-size: 1.125rem; font-weight: 800; color: var(--clr-text-main); margin-bottom: 0.5rem;">
                             ${car.model}
                         </h3>
 
                         <!-- Spesifikasi Ringkas -->
-                        <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: var(--clr-text-muted); margin-bottom: 0.75rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--clr-border);">
+                        <div class="card-specs-row" style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: var(--clr-text-muted); margin-bottom: 0.75rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--clr-border);">
                             <span>${car.seats} Kursi</span>
                             <span>•</span>
                             <span>${car.transmission}</span>
@@ -403,7 +403,7 @@ function renderCarsCatalog() {
                         </div>
 
                         ${car.description && car.description !== 'null' ? `
-                            <p class="line-clamp-2" style="font-size: 0.8125rem; color: var(--clr-text-muted); line-height: 1.5; margin-bottom: 0.5rem;">
+                            <p class="line-clamp-2 card-car-desc" style="font-size: 0.8125rem; color: var(--clr-text-muted); line-height: 1.5; margin-bottom: 0.5rem;">
                                 ${car.description}
                             </p>
                         ` : ''}
@@ -411,12 +411,12 @@ function renderCarsCatalog() {
                 </div>
 
                 <!-- Footer Kartu: Harga & Tombol Aksi -->
-                <div style="padding: 0 1.25rem 1.25rem 1.25rem;">
-                    <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 0.75rem;">
+                <div class="card-footer-wrap" style="padding: 0 1.25rem 1.25rem 1.25rem;">
+                    <div class="card-price-row" style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 0.75rem;">
                         <div>
-                            <div style="font-size: 0.7rem; color: var(--clr-text-subtle); font-weight: 600;">Tarif Sewa:</div>
-                            <div style="font-size: 1.25rem; font-weight: 800; color: var(--clr-text-main);">
-                                ${formatRupiah(activePrice)}<span style="font-size: 0.75rem; font-weight: 400; color: var(--clr-text-muted);"> / hari</span>
+                            <div class="card-price-label" style="font-size: 0.7rem; color: var(--clr-text-subtle); font-weight: 600;">Tarif Sewa:</div>
+                            <div class="card-price-value" style="font-size: 1.25rem; font-weight: 800; color: var(--clr-text-main);">
+                                ${formatRupiah(activePrice)}<span class="card-price-unit" style="font-size: 0.75rem; font-weight: 400; color: var(--clr-text-muted);"> / hari</span>
                             </div>
                         </div>
 
@@ -424,7 +424,7 @@ function renderCarsCatalog() {
 
                     <button
                         onclick="openBookingModal('${car.id}')"
-                        class="btn ${isReady ? 'btn-primary' : 'btn-outline'}"
+                        class="btn ${isReady ? 'btn-primary' : 'btn-outline'} card-book-btn"
                         style="width: 100%;">
                         <span>${isReady ? 'Pilih & Pesan Unit' : 'Cek Detail / Booking Jadwal'}</span>
                         <svg style="width:0.875rem;height:0.875rem;display:inline-block;vertical-align:-1px;margin-left:0.25rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
@@ -457,7 +457,9 @@ function initIntervalReviewScroller(containerId, options = {}) {
     function getCardStep() {
         const firstCard = container.querySelector('.review-card-item');
         if (firstCard) {
-            return firstCard.offsetWidth + 24; // 24px gap
+            const styles = window.getComputedStyle(container);
+            const gap = parseFloat(styles.columnGap || styles.gap || '24') || 24;
+            return firstCard.offsetWidth + gap;
         }
         return 404;
     }
@@ -2807,3 +2809,128 @@ window.closeBookingModal = closeBookingModal;
 window.toggleMobileMenu = toggleMobileMenu;
 window.closeMobileMenu = closeMobileMenu;
 window.initScrollReveal = initScrollReveal;
+
+// =========================================================================
+// FIRST-VISIT CINEMATIC VIDEO INTRO PRELOADER
+// =========================================================================
+function initIntroPreloader() {
+    const root = document.documentElement;
+    const preloader = document.getElementById('introPreloader');
+    const video = document.getElementById('introPreloaderVideo');
+    const skipBtn = document.getElementById('introSkipBtn');
+    const muteBtn = document.getElementById('introMuteBtn');
+    const muteIcon = document.getElementById('introMuteIcon');
+    const progressBar = document.getElementById('introProgressBar');
+
+    if (!root.classList.contains('intro-active') || !preloader || !video) {
+        return;
+    }
+
+    let isFinished = false;
+    const LIGHT_PHASE_TIME_SEC = 8.15;
+    const MERGE_LEAD_TIME_SEC = 0.85;
+
+    function updateMuteUi() {
+        if (!muteIcon) return;
+        muteIcon.className = video.muted ? 'fa-solid fa-volume-xmark' : 'fa-solid fa-volume-high';
+    }
+
+    function finishIntroPreloader() {
+        if (isFinished) return;
+        isFinished = true;
+
+        try {
+            sessionStorage.setItem('rpm_intro_seen', '1');
+        } catch (e) {}
+
+        if (progressBar) {
+            progressBar.style.width = '100%';
+        }
+
+        root.classList.add('intro-merging');
+        preloader.classList.add('is-merging');
+
+        setTimeout(() => {
+            try {
+                video.pause();
+                video.removeAttribute('src');
+                const sourceEl = video.querySelector('source');
+                if (sourceEl) sourceEl.removeAttribute('src');
+                video.load();
+            } catch (e) {}
+
+            preloader.style.display = 'none';
+            root.classList.remove('intro-active', 'intro-merging');
+
+            if (typeof initScrollReveal === 'function') {
+                initScrollReveal();
+            }
+        }, 920);
+    }
+
+    function markVideoReady() {
+        preloader.classList.add('is-playing');
+    }
+
+    video.addEventListener('playing', markVideoReady);
+    video.addEventListener('canplay', markVideoReady);
+
+    video.addEventListener('timeupdate', () => {
+        if (isFinished) return;
+        const duration = video.duration || 0;
+        const current = video.currentTime || 0;
+
+        if (current >= LIGHT_PHASE_TIME_SEC) {
+            preloader.classList.add('is-light-phase');
+        }
+
+        if (duration > 0) {
+            const pct = Math.min(100, (current / duration) * 100);
+            if (progressBar) {
+                progressBar.style.width = `${pct}%`;
+            }
+
+            if (duration - current <= MERGE_LEAD_TIME_SEC) {
+                preloader.classList.add('is-light-phase');
+                finishIntroPreloader();
+            }
+        }
+    });
+
+    video.addEventListener('ended', finishIntroPreloader);
+    video.addEventListener('error', finishIntroPreloader);
+
+    if (skipBtn) {
+        skipBtn.addEventListener('click', finishIntroPreloader);
+    }
+
+    if (muteBtn) {
+        muteBtn.addEventListener('click', () => {
+            video.muted = !video.muted;
+            updateMuteUi();
+        });
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (!isFinished && root.classList.contains('intro-active')) {
+            if (e.key === 'Escape' || e.key === 'ArrowRight') {
+                finishIntroPreloader();
+            }
+        }
+    });
+
+    updateMuteUi();
+
+    const playPromise = video.play();
+    if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch(() => {
+            video.muted = true;
+            updateMuteUi();
+            video.play().catch(() => {
+                // If autoplay is completely blocked, let user skip or dismiss gracefully
+            });
+        });
+    }
+}
+
+initIntroPreloader();
