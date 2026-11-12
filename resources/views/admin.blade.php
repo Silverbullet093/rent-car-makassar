@@ -496,26 +496,34 @@
                 <!-- ==================================================== -->
                 <div id="tab-content-reviews" class="tab-pane hidden flex flex-col gap-6">
                     
-                    <!-- Header Actions & Filters -->
-                    <div style="background: white; border-radius: var(--radius-xl); border: 1px solid var(--clr-border); padding: 1.25rem 1.5rem; display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
-                        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-                            <button onclick="setAdminReviewFilter('all', this)" class="review-filter-btn btn btn-primary btn-sm">
-                                Semua (<span id="reviewStatTotal">0</span>)
+                    <!-- Header Actions & Segmented Filters -->
+                    <div class="rev-toolbar">
+                        <div class="rev-filter-bar" role="tablist" aria-label="Filter status ulasan">
+                            <button type="button" onclick="setAdminReviewFilter('all', this)" class="review-filter-btn rev-filter-tab active">
+                                <span>Semua</span>
+                                <span id="reviewStatTotal" class="rev-filter-count">0</span>
                             </button>
-                            <button onclick="setAdminReviewFilter('pending', this)" class="review-filter-btn btn btn-outline btn-sm">
-                                ⏳ Menunggu Verifikasi (<span id="reviewStatPending">0</span>)
+                            <button type="button" onclick="setAdminReviewFilter('pending', this)" class="review-filter-btn rev-filter-tab">
+                                <span class="rev-status-dot" style="background: #f59e0b;"></span>
+                                <span>Menunggu</span>
+                                <span id="reviewStatPending" class="rev-filter-count">0</span>
                             </button>
-                            <button onclick="setAdminReviewFilter('approved', this)" class="review-filter-btn btn btn-outline btn-sm">
-                                ✔️ Disetujui / Uploaded (<span id="reviewStatApproved">0</span>)
+                            <button type="button" onclick="setAdminReviewFilter('approved', this)" class="review-filter-btn rev-filter-tab">
+                                <span class="rev-status-dot" style="background: #16a34a;"></span>
+                                <span>Disetujui</span>
+                                <span id="reviewStatApproved" class="rev-filter-count">0</span>
                             </button>
-                            <button onclick="setAdminReviewFilter('rejected', this)" class="review-filter-btn btn btn-outline btn-sm">
-                                🚫 Ditolak (<span id="reviewStatRejected">0</span>)
+                            <button type="button" onclick="setAdminReviewFilter('rejected', this)" class="review-filter-btn rev-filter-tab">
+                                <span class="rev-status-dot" style="background: #ef4444;"></span>
+                                <span>Ditolak</span>
+                                <span id="reviewStatRejected" class="rev-filter-count">0</span>
                             </button>
                         </div>
 
                         <div>
-                            <button onclick="openAdminAddReviewModal()" class="btn btn-emerald btn-sm" style="font-weight: 700;">
-                                + Tambah Review Manual
+                            <button type="button" onclick="openAdminAddReviewModal()" class="rev-add-btn">
+                                <i class="fa-solid fa-plus"></i>
+                                <span>Tambah Review Manual</span>
                             </button>
                         </div>
                     </div>
@@ -524,14 +532,14 @@
                     <div style="background: white; border-radius: var(--radius-xl); border: 1px solid var(--clr-border); overflow: hidden; box-shadow: var(--shadow-sm);">
                         <div style="overflow-x: auto;">
                             <table style="width: 100%; border-collapse: collapse; text-align: left;">
-                                <thead style="background: #f8fafc; border-bottom: 1px solid var(--clr-border); font-size: 0.75rem; color: var(--clr-text-subtle); text-transform: uppercase;">
+                                <thead style="background: #f8fafc; border-bottom: 1px solid var(--clr-border); font-size: 0.72rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.04em;">
                                     <tr>
-                                        <th style="padding: 0.85rem 1rem;">Pelanggan & Unit</th>
+                                        <th style="padding: 0.85rem 1rem;">Pelanggan &amp; Unit</th>
                                         <th style="padding: 0.85rem 1rem;">Rating</th>
                                         <th style="padding: 0.85rem 1rem;">Ulasan / Testimoni</th>
                                         <th style="padding: 0.85rem 1rem; text-align: center;">Media Story</th>
                                         <th style="padding: 0.85rem 1rem;">Status</th>
-                                        <th style="padding: 0.85rem 1rem; text-align: right;">Aksi Verifikasi & Publish</th>
+                                        <th style="padding: 0.85rem 1rem; text-align: right;">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody id="reviewsTableBody">
@@ -832,114 +840,221 @@
     </div>
 
     <!-- MODAL TAMBAH REVIEW MANUAL BY ADMIN -->
-    <div id="adminReviewModal" class="modal-backdrop hidden">
-        <div class="modal-box max-w-lg" style="max-height: 90vh; display: flex; flex-direction: column; overflow: hidden;">
-            <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--clr-border); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;">
-                <h3 id="adminReviewModalTitle" style="font-size: 1.15rem; font-weight: 800; color: var(--clr-text-main);">Tambah Review Pelanggan Manual</h3>
-                <button onclick="closeAdminAddReviewModal()" class="btn btn-outline btn-sm" style="padding: 0.35rem 0.6rem;">✕</button>
+    <div id="adminReviewModal" class="modal-backdrop hidden" onclick="if(event.target === this) closeAdminAddReviewModal()">
+        <div class="modal-box rev-modal-box" onclick="event.stopPropagation()">
+            <div class="rev-modal-header">
+                <div class="rev-modal-header-left">
+                    <div class="rev-modal-icon-badge">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                    </div>
+                    <div>
+                        <h3 id="adminReviewModalTitle" style="font-size: 1.05rem; font-weight: 800; color: #0f172a; margin: 0; line-height: 1.25;">Tambah Review Pelanggan</h3>
+                        <p id="adminReviewModalSubtitle" style="font-size: 0.74rem; color: #64748b; margin: 0.15rem 0 0 0;">Buat ulasan &amp; galeri story pelanggan secara manual</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeAdminAddReviewModal()" class="rev-modal-close-btn" aria-label="Tutup Modal">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
             </div>
-            <div style="padding: 1.5rem; overflow-y: auto;">
-                <form id="adminReviewForm" onsubmit="handleAdminAddReviewSubmit(event)" class="flex flex-col gap-4">
-                    <input type="hidden" id="adminRevId">
-                    <div class="form-group">
-                        <label class="form-label">Nama Pelanggan <span style="color: var(--clr-rose);">*</span></label>
-                        <input type="text" id="adminRevName" required placeholder="Contoh: Ahmad Yani" class="form-input">
-                    </div>
 
-                    <!-- Kategori Pelanggan (Reguler vs Artis) -->
-                    <div class="form-group">
-                        <label class="form-label" style="font-weight: 800;">Kategori Komentar (Tampilan Kartu &amp; Story)</label>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem;">
-                            <label id="adminRevTypeCardRegular" onclick="setAdminReviewUserType('regular')" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.7rem 0.85rem; border-radius: var(--radius-md); border: 2px solid #22c55e; background: #f0fdf4; cursor: pointer; transition: all 0.2s ease;">
-                                <input type="radio" name="adminRevUserTypeRadio" id="adminRevTypeRegular" value="regular" checked style="accent-color: #16a34a;">
-                                <div>
-                                    <div style="font-size: 0.82rem; font-weight: 800; color: #0f172a;">👤 Reguler</div>
-                                    <div style="font-size: 0.68rem; color: #64748b;">Kartu putih standar</div>
-                                </div>
-                            </label>
-                            <label id="adminRevTypeCardArtis" onclick="setAdminReviewUserType('artis')" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.7rem 0.85rem; border-radius: var(--radius-md); border: 2px solid #e2e8f0; background: #ffffff; cursor: pointer; transition: all 0.2s ease;">
-                                <input type="radio" name="adminRevUserTypeRadio" id="adminRevTypeArtis" value="artis" style="accent-color: #d97706;">
-                                <div>
-                                    <div style="font-size: 0.82rem; font-weight: 800; color: #b45309;">👑 Artis / VIP</div>
-                                    <div style="font-size: 0.68rem; color: #92400e;">Mahkota + warna berbeda</div>
-                                </div>
-                            </label>
+            <form id="adminReviewForm" onsubmit="handleAdminAddReviewSubmit(event)" class="rev-modal-form">
+                <input type="hidden" id="adminRevId">
+
+                <div class="rev-modal-body">
+                    <!-- LEFT COLUMN: STRUCTURED FORM FIELDS -->
+                    <div class="rev-modal-left">
+                        <div class="rev-field-row">
+                            <div class="form-group">
+                                <label class="form-label" for="adminRevName">Nama Pelanggan <span style="color: #dc2626;">*</span></label>
+                                <input type="text" id="adminRevName" required placeholder="Contoh: Sofia Lestari" class="form-input" oninput="updateAdminReviewLivePreview()">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="adminRevCar">Armada Mobil</label>
+                                <input type="text" id="adminRevCar" placeholder="Contoh: Toyota Alphard Gen 4" class="form-input" oninput="updateAdminReviewLivePreview()">
+                            </div>
                         </div>
-                        <input type="hidden" id="adminRevUserType" value="regular">
-                    </div>
 
-                    <div class="form-group">
-                        <label class="form-label">Rating (1-5)</label>
-                        <select id="adminRevRating" class="form-select">
-                            <option value="5" selected>⭐⭐⭐⭐⭐ (5 Bintang)</option>
-                            <option value="4">⭐⭐⭐⭐ (4 Bintang)</option>
-                            <option value="3">⭐⭐⭐ (3 Bintang)</option>
-                            <option value="2">⭐⭐ (2 Bintang)</option>
-                            <option value="1">⭐ (1 Bintang)</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Armada Mobil</label>
-                        <input type="text" id="adminRevCar" placeholder="Contoh: Toyota Avanza Veloz" class="form-input">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Isi Ulasan <span style="color: var(--clr-rose);">*</span></label>
-                        <textarea id="adminRevComment" required rows="3" placeholder="Isi ulasan pelanggan..." class="form-textarea"></textarea>
-                    </div>
-
-                    <!-- Upload Foto Pelanggan / Avatar -->
-                    <div class="form-group">
-                        <label class="form-label">Foto Profil / Avatar Pelanggan (Opsional)</label>
-                        <div id="adminRevAvatarDropZone" ondragover="handleAdminRevAvatarDragOver(event)" ondragleave="handleAdminRevAvatarDragLeave(event)" ondrop="handleAdminRevAvatarDrop(event)" style="display: flex; flex-direction: column; gap: 0.5rem; background: #f8fafc; border: 2px dashed var(--clr-border); padding: 0.85rem; border-radius: var(--radius-md); transition: all 0.2s ease;">
-                            <input type="file" id="adminRevAvatarFile" accept="image/*" class="form-input" style="padding: 0.35rem 0.5rem; font-size: 0.75rem; background: white;" onchange="handleAdminRevAvatarFile(event)">
-                            <span style="font-size: 0.75rem; color: #64748b; text-align: center; font-weight: 500;">💡 Klik <b>Choose File</b> atau <b>Tarik &amp; Lepas</b> foto avatar</span>
-                            <input type="hidden" id="adminRevAvatar">
-                            <div id="adminRevAvatarPreviewBox" style="margin-top: 0.25rem; display: none; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.6rem 0.75rem; background: #ffffff; border-radius: var(--radius-md); border: 1px solid var(--clr-border);">
-                                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                    <img id="adminRevAvatarPreview" src="" alt="Preview Foto Pelanggan" style="width: 3.25rem; height: 3.25rem; border-radius: 50%; object-fit: cover; border: 2px solid #22c55e;">
+                        <!-- Kategori Pelanggan (Reguler vs Artis / VIP) -->
+                        <div class="form-group">
+                            <label class="form-label">Kategori Kartu &amp; Story</label>
+                            <div class="rev-type-grid">
+                                <div id="adminRevTypeCardRegular" onclick="setAdminReviewUserType('regular')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setAdminReviewUserType('regular');}" class="rev-type-card is-active" role="button" tabindex="0">
+                                    <input type="radio" name="adminRevUserTypeRadio" id="adminRevTypeRegular" value="regular" checked style="display: none;">
+                                    <div class="rev-type-card-icon">
+                                        <i class="fa-regular fa-user"></i>
+                                    </div>
                                     <div>
-                                        <div style="font-size: 0.8rem; font-weight: 700; color: #166534;">Foto Avatar Terpilih</div>
-                                        <div style="font-size: 0.7rem; color: var(--clr-text-muted);">Tampil di lingkaran profil ulasan</div>
+                                        <div class="rev-type-card-title">Reguler</div>
+                                        <div class="rev-type-card-sub">Kartu putih standar</div>
                                     </div>
                                 </div>
-                                <button type="button" onclick="removeAdminRevAvatar()" class="btn btn-outline btn-sm" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; color: var(--clr-rose); border-color: #fecdd3;" title="Hapus Foto">
-                                    Hapus
-                                </button>
+                                <div id="adminRevTypeCardArtis" onclick="setAdminReviewUserType('artis')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setAdminReviewUserType('artis');}" class="rev-type-card" role="button" tabindex="0">
+                                    <input type="radio" name="adminRevUserTypeRadio" id="adminRevTypeArtis" value="artis" style="display: none;">
+                                    <div class="rev-type-card-icon">
+                                        <i class="fa-solid fa-crown"></i>
+                                    </div>
+                                    <div>
+                                        <div class="rev-type-card-title">Artis / VIP</div>
+                                        <div class="rev-type-card-sub">Mahkota &amp; aksen hijau</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <input type="hidden" id="adminRevUserType" value="regular">
+                        </div>
+
+                        <!-- Interactive Star Rating Picker -->
+                        <div class="form-group">
+                            <label class="form-label">Rating Kepuasan</label>
+                            <div class="rev-star-picker-bar">
+                                <div class="rev-star-buttons" id="adminRevStarPicker">
+                                    <button type="button" class="rev-star-btn is-filled" data-star="1" onclick="setAdminReviewRating(1)" aria-label="1 Bintang">
+                                        <svg style="width:1.45rem;height:1.45rem;" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                                    </button>
+                                    <button type="button" class="rev-star-btn is-filled" data-star="2" onclick="setAdminReviewRating(2)" aria-label="2 Bintang">
+                                        <svg style="width:1.45rem;height:1.45rem;" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                                    </button>
+                                    <button type="button" class="rev-star-btn is-filled" data-star="3" onclick="setAdminReviewRating(3)" aria-label="3 Bintang">
+                                        <svg style="width:1.45rem;height:1.45rem;" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                                    </button>
+                                    <button type="button" class="rev-star-btn is-filled" data-star="4" onclick="setAdminReviewRating(4)" aria-label="4 Bintang">
+                                        <svg style="width:1.45rem;height:1.45rem;" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                                    </button>
+                                    <button type="button" class="rev-star-btn is-filled" data-star="5" onclick="setAdminReviewRating(5)" aria-label="5 Bintang">
+                                        <svg style="width:1.45rem;height:1.45rem;" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                                    </button>
+                                </div>
+                                <span id="adminRevRatingLabel" class="rev-rating-readout">5.0 • Sempurna</span>
+                            </div>
+                            <input type="hidden" id="adminRevRating" value="5">
+                        </div>
+
+                        <!-- Isi Ulasan -->
+                        <div class="form-group">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem;">
+                                <label class="form-label" for="adminRevComment" style="margin-bottom: 0;">Isi Ulasan <span style="color: #dc2626;">*</span></label>
+                                <span id="adminRevCommentCount" style="font-size: 0.68rem; color: #94a3b8; font-weight: 600;">0 karakter</span>
+                            </div>
+                            <textarea id="adminRevComment" required rows="4" placeholder="Tuliskan pengalaman pelanggan menggunakan unit dan layanan..." class="form-textarea" style="resize: vertical; min-height: 5.75rem;" oninput="updateAdminReviewLivePreview()"></textarea>
+                        </div>
+
+                        <!-- Custom Avatar Dropzone -->
+                        <div class="form-group">
+                            <label class="form-label">Foto Profil Pelanggan (Opsional)</label>
+                            <div id="adminRevAvatarDropZone" class="rev-avatar-uploader" ondragover="handleAdminRevAvatarDragOver(event)" ondragleave="handleAdminRevAvatarDragLeave(event)" ondrop="handleAdminRevAvatarDrop(event)">
+                                <input type="file" id="adminRevAvatarFile" accept="image/*" style="display: none;" onchange="handleAdminRevAvatarFile(event)">
+                                <input type="hidden" id="adminRevAvatar">
+
+                                <div style="display: flex; align-items: center; gap: 0.75rem; min-width: 0;">
+                                    <div id="adminRevAvatarPlaceholder" style="width: 2.85rem; height: 2.85rem; border-radius: 50%; background: #e2e8f0; color: #64748b; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 0.95rem;">
+                                        <i class="fa-regular fa-user"></i>
+                                    </div>
+                                    <div id="adminRevAvatarPreviewBox" style="display: none; align-items: center; flex-shrink: 0;">
+                                        <img id="adminRevAvatarPreview" src="" alt="Preview Avatar" class="rev-avatar-preview-thumb has-avatar">
+                                    </div>
+                                    <div style="min-width: 0;">
+                                        <div id="adminRevAvatarStatusTitle" style="font-size: 0.78rem; font-weight: 700; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Belum ada foto profil</div>
+                                        <div style="font-size: 0.69rem; color: #64748b;">Tarik &amp; lepas atau pilih file (maks. 5MB)</div>
+                                    </div>
+                                </div>
+
+                                <div style="display: flex; align-items: center; gap: 0.4rem; flex-shrink: 0;">
+                                    <button type="button" onclick="document.getElementById('adminRevAvatarFile').click()" class="rev-upload-action-btn">
+                                        <i class="fa-solid fa-upload" style="margin-right: 0.3rem; font-size: 0.68rem;"></i>Pilih Foto
+                                    </button>
+                                    <button type="button" id="adminRevAvatarRemoveBtn" onclick="removeAdminRevAvatar()" class="rev-upload-action-btn" style="display: none; color: #dc2626; border-color: #fecaca;" title="Hapus Foto Profil">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Upload BANYAK Foto / Video Story Pengalaman (Story IG) -->
-                    <div class="form-group" style="padding: 1rem; background: #fff1f2; border: 1.5px dashed #fecdd3; border-radius: var(--radius-lg);">
-                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.35rem; flex-wrap: wrap;">
-                            <label class="form-label" style="display: flex; align-items: center; gap: 0.5rem; color: #9f1239; font-weight: 800; font-size: 0.875rem; margin-bottom: 0;">
-                                <span>📸</span>
-                                <span>Upload Banyak Foto / Video Story IG</span>
-                            </label>
-                            <span id="adminRevMediaCountBadge" style="font-size: 0.68rem; font-weight: 800; background: #ffe4e6; color: #9f1239; padding: 0.15rem 0.55rem; border-radius: 999px;">0 Media</span>
-                        </div>
-                        <p style="font-size: 0.72rem; color: #881337; margin-bottom: 0.6rem;">
-                            Pilih <strong>banyak foto dan/atau video sekaligus</strong> (bisa tambah lagi berkali-kali). Seluruh foto &amp; video ini hanya akan tampil pada Story milik pengomentar ini!
-                        </p>
-                        <input type="file" id="adminRevMediaFile" accept="image/*,video/*" multiple class="form-input" style="padding: 0.45rem; background: #ffffff;" onchange="handleAdminRevMediaFile(event)">
-
-                        <!-- Preview Grid Multi-Media Story -->
-                        <div id="adminRevMediaPreviewBox" style="margin-top: 0.75rem; display: none; flex-direction: column; gap: 0.5rem; padding: 0.75rem; background: #ffffff; border-radius: var(--radius-md); border: 1px solid #fecdd3;">
-                            <div style="display: flex; align-items: center; justify-content: space-between;">
-                                <span style="font-size: 0.75rem; font-weight: 700; color: #9f1239;">✅ Daftar Media Story Siap Dipublikasi</span>
-                                <button type="button" onclick="removeAdminRevMedia()" class="btn btn-outline btn-sm" style="padding: 0.2rem 0.5rem; font-size: 0.7rem; color: var(--clr-rose); border-color: #fecdd3;">Hapus Semua</button>
+                    <!-- RIGHT COLUMN: LIVE CARD PREVIEW & MEDIA STORY GALLERY -->
+                    <div class="rev-modal-right">
+                        <!-- Live Card Preview -->
+                        <div>
+                            <div class="rev-preview-section-head">
+                                <span class="rev-live-tag">
+                                    <span class="rev-live-dot"></span>
+                                    Preview Kartu Website
+                                </span>
+                                <span id="adminRevLiveModeBadge" class="rev-reg-pill">Reguler</span>
                             </div>
-                            <div id="adminRevMediaPreviewGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 0.5rem;"></div>
+
+                            <div id="adminRevLiveCard" class="rev-live-preview-card">
+                                <div style="display: flex; flex-direction: column; align-items: center; text-align: center;">
+                                    <div class="rev-preview-avatar-wrap">
+                                        <span id="adminRevLiveCrown" class="rev-preview-crown hidden">
+                                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 19h20v2H2v-2zm1.5-2L2 7l6 4 4-7 4 7 6-4-1.5 10h-17z"/></svg>
+                                        </span>
+                                        <div class="rev-preview-ring">
+                                            <img id="adminRevLiveAvatar" src="https://ui-avatars.com/api/?name=P&background=64748b&color=fff&bold=true" alt="Preview" class="rev-preview-avatar">
+                                        </div>
+                                    </div>
+                                    <div id="adminRevLiveName" style="font-size: 0.9rem; font-weight: 800; color: #0f172a; margin-bottom: 0.25rem;">Nama Pelanggan</div>
+                                    <div id="adminRevLiveStars" style="display: flex; align-items: center; gap: 0.18rem; margin-bottom: 0.65rem; color: #22c55e;"></div>
+                                </div>
+                                <p id="adminRevLiveComment" style="font-size: 0.78rem; color: #475569; line-height: 1.5; margin-bottom: 0.85rem; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
+                                    Ulasan pelanggan akan tampil di sini secara langsung saat Anda mengetik...
+                                </p>
+                                <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 0.4rem; border-top: 1px solid #f1f5f9;">
+                                    <span id="adminRevLiveCar" style="font-size: 0.69rem; font-weight: 600; color: #64748b; display: inline-flex; align-items: center; gap: 0.28rem;">
+                                        <i class="fa-solid fa-car-side"></i>
+                                        <span>Unit Rental</span>
+                                    </span>
+                                    <span id="adminRevLiveAction" style="font-size: 0.74rem; font-weight: 700; color: #0f172a; display: inline-flex; align-items: center; gap: 0.3rem;">
+                                        <span>review</span>
+                                        <span id="adminRevLiveMediaBadge" style="display: none; font-size: 0.64rem; font-weight: 800; padding: 0.08rem 0.4rem; border-radius: 9999px; background: #f1f5f9; color: #475569;"></span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Galeri Media Story (Multi Upload) -->
+                        <div class="form-group">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.45rem;">
+                                <label class="form-label" style="margin-bottom: 0;">Galeri Media Story</label>
+                                <span id="adminRevMediaCountBadge" style="font-size: 0.68rem; font-weight: 700; background: #e2e8f0; color: #475569; padding: 0.15rem 0.55rem; border-radius: 9999px;">0 Media</span>
+                            </div>
+
+                            <input type="file" id="adminRevMediaFile" accept="image/*,video/*" multiple style="display: none;" onchange="handleAdminRevMediaFile(event)">
+
+                            <div id="adminRevMediaDropZone" class="rev-media-dropzone" onclick="document.getElementById('adminRevMediaFile').click()" ondragover="handleAdminRevMediaDragOver(event)" ondragleave="handleAdminRevMediaDragLeave(event)" ondrop="handleAdminRevMediaDrop(event)">
+                                <div style="width: 2.3rem; height: 2.3rem; border-radius: 0.65rem; background: #f1f5f9; color: #475569; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 0.45rem; font-size: 0.95rem;">
+                                    <i class="fa-solid fa-photo-film"></i>
+                                </div>
+                                <div style="font-size: 0.78rem; font-weight: 700; color: #0f172a;">Tambah Foto atau Video Story</div>
+                                <div style="font-size: 0.69rem; color: #64748b; margin-top: 0.15rem;">Klik atau tarik banyak file sekaligus (JPG, PNG, MP4)</div>
+                            </div>
+
+                            <!-- Preview Grid Multi-Media Story -->
+                            <div id="adminRevMediaPreviewBox" class="rev-media-grid-wrap">
+                                <div style="display: flex; align-items: center; justify-content: space-between;">
+                                    <span style="font-size: 0.72rem; font-weight: 700; color: #334155;">Media Terlampir</span>
+                                    <button type="button" onclick="removeAdminRevMedia()" style="background: none; border: none; color: #dc2626; font-size: 0.7rem; font-weight: 700; cursor: pointer;">Hapus Semua</button>
+                                </div>
+                                <div id="adminRevMediaPreviewGrid" class="rev-media-grid"></div>
+                            </div>
                         </div>
                     </div>
+                </div>
 
-                    <div style="padding-top: 0.5rem;">
-                        <button type="submit" id="adminRevSubmitBtn" class="btn btn-emerald btn-lg" style="width: 100%; font-weight: 800;">
-                            Simpan &amp; Publikasikan Ulasan
+                <div class="rev-modal-footer">
+                    <div style="font-size: 0.72rem; color: #64748b; display: inline-flex; align-items: center; gap: 0.4rem;">
+                        <i class="fa-solid fa-circle-check" style="color: #16a34a;"></i>
+                        <span>Langsung disetujui &amp; tampil di halaman utama</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.6rem;">
+                        <button type="button" onclick="closeAdminAddReviewModal()" class="btn btn-outline btn-sm" style="padding: 0.58rem 1.05rem; border-radius: 0.65rem;">
+                            Batal
+                        </button>
+                        <button type="submit" id="adminRevSubmitBtn" class="rev-modal-submit-btn">
+                            <i class="fa-solid fa-check"></i>
+                            <span>Simpan &amp; Publikasikan</span>
                         </button>
                     </div>
-                </form>
-            </div>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -1049,172 +1164,233 @@
     </div>
 
     <!-- MODAL INPUT / EDIT BOOKING BY ADMIN -->
-    <div id="adminBookingModal" class="modal-backdrop hidden" style="z-index: 9999;">
-        <div class="modal-box max-w-xl" style="background: #ffffff; border-radius: var(--radius-xl); box-shadow: var(--shadow-xl); border: 1px solid var(--clr-border); max-height: 90vh; overflow-y: auto;">
-            <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--clr-border); display: flex; align-items: center; justify-content: space-between; background: #ffffff; position: sticky; top: 0; z-index: 10;">
-                <h3 id="adminBookingModalTitle" style="font-size: 1.15rem; font-weight: 800; color: var(--clr-text-main); display: flex; align-items: center; gap: 0.5rem;">
-                    <span id="adminBookingModalIcon" style="color: #dc2626; display: flex; align-items: center;"><i class="fa-solid fa-pen-to-square"></i></span>
-                    <span id="adminBookingModalTitleText">Edit Data Booking</span>
-                </h3>
-                <button type="button" onclick="closeAdminBookingModal()" class="btn btn-outline btn-sm" style="padding: 0.35rem 0.65rem; border-radius: var(--radius-md); font-weight: 700;">✕</button>
+    <div id="adminBookingModal" class="modal-backdrop hidden" style="z-index: 9999;" onclick="if(event.target === this) closeAdminBookingModal()">
+        <div class="modal-box book-modal-box" onclick="event.stopPropagation()">
+            <div class="rev-modal-header">
+                <div class="rev-modal-header-left">
+                    <div id="adminBookingModalIcon" class="rev-modal-icon-badge">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                    </div>
+                    <div>
+                        <h3 id="adminBookingModalTitle" style="font-size: 1.05rem; font-weight: 800; color: #0f172a; margin: 0; line-height: 1.25;">
+                            <span id="adminBookingModalTitleText">Edit Data Booking</span>
+                        </h3>
+                        <p id="adminBookingModalSubtitle" style="font-size: 0.74rem; color: #64748b; margin: 0.15rem 0 0 0;">Lengkapi data penyewa, jadwal sewa, dan skema pembayaran</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeAdminBookingModal()" class="rev-modal-close-btn" aria-label="Tutup Modal">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
             </div>
-            <div style="padding: 1.5rem;">
-                <form onsubmit="handleSaveAdminBooking(event)" class="flex flex-col gap-4">
-                    <input type="hidden" id="abBookingId" value="">
 
-                    <!-- Section: Pelanggan & Armada -->
-                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-lg); padding: 1rem;">
-                        <div style="font-size: 0.78rem; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.4rem;">
-                            <i class="fa-solid fa-user-tag" style="color: #2563eb;"></i>
-                            <span>Data Pelanggan & Armada</span>
+            <form onsubmit="handleSaveAdminBooking(event)" class="rev-modal-form">
+                <input type="hidden" id="abBookingId" value="">
+
+                <div class="book-modal-body">
+                    <!-- LEFT COLUMN: PELANGGAN, ARMADA & JADWAL -->
+                    <div class="book-modal-left">
+                        <!-- Section: Pelanggan & Armada -->
+                        <div class="book-section-card">
+                            <div class="book-section-head">
+                                <span class="book-section-title">
+                                    <i class="fa-regular fa-user" style="color: #16a34a;"></i>
+                                    <span>Data Pelanggan &amp; Armada</span>
+                                </span>
+                            </div>
+
+                            <div class="rev-field-row">
+                                <div class="form-group">
+                                    <label class="form-label" for="abCustomerName">Nama Pelanggan <span style="color: #dc2626;">*</span></label>
+                                    <input type="text" id="abCustomerName" required placeholder="Contoh: Irfan Pratama" class="form-input" oninput="updateAdminBookingSummary()">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="abCustomerPhone">No. WhatsApp / HP <span style="color: #dc2626;">*</span></label>
+                                    <input type="tel" id="abCustomerPhone" required placeholder="Contoh: 082196984912" class="form-input">
+                                </div>
+                            </div>
+
+                            <div class="rev-field-row">
+                                <div class="form-group">
+                                    <label class="form-label" for="abCarId">Armada Mobil <span style="color: #dc2626;">*</span></label>
+                                    <select id="abCarId" required class="form-select" onchange="calculateAdminBookingPrice()">
+                                        <!-- Dynamic options -->
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="abEventType">Keperluan Acara / Event</label>
+                                    <select id="abEventType" class="form-select">
+                                        <option value="Wisata / Liburan Keluarga" selected>Wisata / Liburan Keluarga</option>
+                                        <option value="Acara Pernikahan / Iring-iringan">Acara Pernikahan / Iring-iringan</option>
+                                        <option value="Kunjungan Bisnis / Perjalanan Dinas">Kunjungan Bisnis / Perjalanan Dinas</option>
+                                        <option value="Antar / Jemput Bandara">Antar / Jemput Bandara</option>
+                                        <option value="Mudik / Pulang Kampung">Mudik / Pulang Kampung</option>
+                                        <option value="Acara Keluarga / Hajatan">Acara Keluarga / Hajatan</option>
+                                        <option value="Keperluan Lainnya">Keperluan Lainnya</option>
+                                    </select>
+                                </div>
+                            </div>
                         </div>
-                        <div class="grid sm:grid-cols-2 gap-3" style="margin-bottom: 0.75rem;">
-                            <div class="form-group" style="margin-bottom: 0;">
-                                <label class="form-label" style="font-size: 0.75rem; font-weight: 700;">Nama Pelanggan <span style="color: var(--clr-rose);">*</span></label>
-                                <input type="text" id="abCustomerName" required placeholder="Contoh: Irfan Pratama" class="form-input">
+
+                        <!-- Section: Jadwal Sewa & Layanan -->
+                        <div class="book-section-card">
+                            <div class="book-section-head">
+                                <span class="book-section-title">
+                                    <i class="fa-regular fa-calendar" style="color: #16a34a;"></i>
+                                    <span>Jadwal Sewa &amp; Layanan</span>
+                                </span>
+                                <span id="abDurationBadge" class="book-duration-pill">1 Hari</span>
                             </div>
-                            <div class="form-group" style="margin-bottom: 0;">
-                                <label class="form-label" style="font-size: 0.75rem; font-weight: 700;">No. WhatsApp / HP <span style="color: var(--clr-rose);">*</span></label>
-                                <input type="tel" id="abCustomerPhone" required placeholder="Contoh: 082196984912" class="form-input">
+
+                            <div class="rev-field-row">
+                                <div class="form-group">
+                                    <label class="form-label" for="abStartDate">Tanggal Mulai <span style="color: #dc2626;">*</span></label>
+                                    <input type="date" id="abStartDate" required class="form-input" onchange="handleAdminStartDateChange()">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="abEndDate">Tanggal Selesai <span style="color: #dc2626;">*</span></label>
+                                    <input type="date" id="abEndDate" required class="form-input" onchange="calculateAdminBookingPrice()">
+                                </div>
                             </div>
-                        </div>
-                        <div class="grid sm:grid-cols-2 gap-3">
-                            <div class="form-group" style="margin-bottom: 0;">
-                                <label class="form-label" style="font-size: 0.75rem; font-weight: 700;">Armada Mobil <span style="color: var(--clr-rose);">*</span></label>
-                                <select id="abCarId" required class="form-select" onchange="calculateAdminBookingPrice()">
-                                    <!-- Dynamic options -->
-                                </select>
+
+                            <div class="rev-field-row">
+                                <div class="form-group">
+                                    <label class="form-label" for="abStartTime">Jam Ambil / Mulai <span style="color: #dc2626;">*</span></label>
+                                    <input type="time" id="abStartTime" value="09:00" required class="form-input">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="abEndTime">Jam Kembali / Selesai <span style="color: #dc2626;">*</span></label>
+                                    <input type="time" id="abEndTime" value="09:00" required class="form-input">
+                                </div>
                             </div>
-                            <div class="form-group" style="margin-bottom: 0;">
-                                <label class="form-label" style="font-size: 0.75rem; font-weight: 700;">Keperluan Acara / Event</label>
-                                <select id="abEventType" class="form-select">
-                                    <option value="Wisata / Liburan Keluarga" selected>🏖️ Wisata / Liburan Keluarga</option>
-                                    <option value="Acara Pernikahan / Iring-iringan">💍 Acara Pernikahan / Iring-iringan</option>
-                                    <option value="Kunjungan Bisnis / Perjalanan Dinas">💼 Kunjungan Bisnis / Perjalanan Dinas</option>
-                                    <option value="Antar / Jemput Bandara">✈️ Antar / Jemput Bandara</option>
-                                    <option value="Mudik / Pulang Kampung">🏡 Mudik / Pulang Kampung</option>
-                                    <option value="Acara Keluarga / Hajatan">👨‍👩‍👧‍👦 Acara Keluarga / Hajatan</option>
-                                    <option value="Keperluan Lainnya">📌 Keperluan Lainnya</option>
-                                </select>
+
+                            <div class="rev-field-row">
+                                <div class="form-group">
+                                    <label class="form-label" for="abDriverOption">Pilihan Layanan Supir</label>
+                                    <select id="abDriverOption" class="form-select" onchange="calculateAdminBookingPrice()">
+                                        <option value="with_driver" selected>+Supir (Dalam Kota)</option>
+                                        <option value="without_driver">Tanpa Supir (Lepas Kunci)</option>
+                                        <option value="luar_kota">+Supir (Luar Kota)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="abStatus">Status Verifikasi</label>
+                                    <select id="abStatus" class="form-select" onchange="updateAdminBookingSummary()">
+                                        <option value="confirmed" selected>Verifikasi</option>
+                                        <option value="confirmed_pending">Verifikasi + Menunggu Pembayaran</option>
+                                        <option value="pending">Menunggu</option>
+                                        <option value="cancelled">Dibatalkan</option>
+                                    </select>
+                                    <span id="abStatusLockedHint" class="book-lock-badge hidden">
+                                        <i class="fa-solid fa-lock" style="font-size: 0.62rem;"></i>
+                                        <span>Terverifikasi &amp; terkunci</span>
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Section: Jadwal Sewa & Layanan -->
-                    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: var(--radius-lg); padding: 1rem;">
-                        <div style="font-size: 0.78rem; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.4rem;">
-                            <i class="fa-solid fa-calendar-days" style="color: #dc2626;"></i>
-                            <span>Jadwal Sewa & Layanan</span>
-                        </div>
-                        <div class="grid sm:grid-cols-2 gap-3" style="margin-bottom: 0.75rem;">
-                            <div class="form-group" style="margin-bottom: 0;">
-                                <label class="form-label" style="font-size: 0.75rem; font-weight: 700;">Tanggal Mulai <span style="color: var(--clr-rose);">*</span></label>
-                                <input type="date" id="abStartDate" required class="form-input" onchange="handleAdminStartDateChange()">
+                    <!-- RIGHT COLUMN: RINGKASAN BIAYA, PEMBAYARAN & CATATAN -->
+                    <div class="book-modal-right">
+                        <!-- Live Ringkasan Order -->
+                        <div class="book-summary-card">
+                            <div class="book-summary-top">
+                                <div>
+                                    <div style="font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #94a3b8;">Ringkasan Pesanan</div>
+                                    <div id="abSummaryCar" class="book-summary-car">Pilih Armada Mobil</div>
+                                    <div id="abSummaryMeta" class="book-summary-meta">1 Hari • +Supir (Dalam Kota)</div>
+                                </div>
+                                <span id="abSummaryDurationPill" style="font-size: 0.68rem; font-weight: 800; padding: 0.18rem 0.55rem; border-radius: 9999px; background: rgba(74, 222, 128, 0.15); color: #4ade80; border: 1px solid rgba(74, 222, 128, 0.25); white-space: nowrap;">1 Hari</span>
                             </div>
-                            <div class="form-group" style="margin-bottom: 0;">
-                                <label class="form-label" style="font-size: 0.75rem; font-weight: 700;">Tanggal Selesai <span style="color: var(--clr-rose);">*</span></label>
-                                <input type="date" id="abEndDate" required class="form-input" onchange="calculateAdminBookingPrice()">
+                            <div class="book-summary-price-row">
+                                <span style="font-size: 0.72rem; color: #cbd5e1; font-weight: 600;">Total Tagihan</span>
+                                <span id="abSummaryTotal" class="book-summary-total">Rp 0</span>
                             </div>
-                        </div>
-                        <div class="grid sm:grid-cols-2 gap-3" style="margin-bottom: 0.75rem;">
-                            <div class="form-group" style="margin-bottom: 0;">
-                                <label class="form-label" style="font-size: 0.75rem; font-weight: 700;">Jam Ambil / Mulai <span style="color: var(--clr-rose);">*</span></label>
-                                <input type="time" id="abStartTime" value="09:00" required class="form-input">
-                            </div>
-                            <div class="form-group" style="margin-bottom: 0;">
-                                <label class="form-label" style="font-size: 0.75rem; font-weight: 700;">Jam Kembali / Selesai <span style="color: var(--clr-rose);">*</span></label>
-                                <input type="time" id="abEndTime" value="09:00" required class="form-input">
-                            </div>
-                        </div>
-                        <div class="grid sm:grid-cols-2 gap-3">
-                            <div class="form-group" style="margin-bottom: 0;">
-                                <label class="form-label" style="font-size: 0.75rem; font-weight: 700;">Pilihan Layanan Supir</label>
-                                <select id="abDriverOption" class="form-select" onchange="calculateAdminBookingPrice()">
-                                    <option value="with_driver" selected>+Supir (Dalam Kota)</option>
-                                    <option value="without_driver">Tanpa Supir (Lepas Kunci)</option>
-                                    <option value="luar_kota">+Supir (Luar Kota)</option>
-                                </select>
-                            </div>
-                            <div class="form-group" style="margin-bottom: 0;">
-                                <label class="form-label" style="font-size: 0.75rem; font-weight: 700;">Status Verifikasi</label>
-                                <select id="abStatus" class="form-select">
-                                    <option value="confirmed" selected>Verifikasi</option>
-                                    <option value="confirmed_pending">Verifikasi + Menunggu Pembayaran</option>
-                                    <option value="pending">Menunggu</option>
-                                    <option value="cancelled">Dibatalkan</option>
-                                </select>
-                                <small id="abStatusLockedHint" class="hidden" style="color: #059669; font-weight: 700; font-size: 0.72rem; margin-top: 0.25rem; display: block;"><i class="fa-solid fa-lock"></i> Status terverifikasi & terkunci.</small>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Section: Biaya & Opsi Pembayaran (Samakan Desain Form) -->
-                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-lg); padding: 1rem;">
-                        <div style="font-size: 0.78rem; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.4rem;">
-                            <i class="fa-solid fa-money-bill-wave" style="color: #059669;"></i>
-                            <span>Biaya & Skema Pembayaran</span>
                         </div>
 
-                        <div class="form-group" style="margin-bottom: 0.75rem;">
-                            <label class="form-label" style="font-size: 0.75rem; font-weight: 700;">Total Biaya Rental (Rp) <span style="color: var(--clr-rose);">*</span></label>
-                            <input type="number" id="abTotalPrice" required placeholder="Contoh: 9900000" class="form-input" style="font-size: 0.95rem; font-weight: 800; color: #0f172a;" oninput="handleAdminBookingPaymentTypeChange()">
+                        <!-- Input Total Biaya -->
+                        <div class="form-group">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem;">
+                                <label class="form-label" for="abTotalPrice" style="margin-bottom: 0;">Total Biaya Rental <span style="color: #dc2626;">*</span></label>
+                                <span id="abPriceFormattedHint" style="font-size: 0.7rem; font-weight: 700; color: #15803d;">Rp 0</span>
+                            </div>
+                            <div class="book-currency-wrap">
+                                <span class="book-currency-prefix">Rp</span>
+                                <input type="number" id="abTotalPrice" required placeholder="Contoh: 2850000" class="form-input book-currency-input" oninput="handleAdminBookingPaymentTypeChange()">
+                            </div>
                         </div>
 
-                        <!-- Opsi Pembayaran (Radio Cards seperti di Form Depan) -->
-                        <div class="form-group" style="margin-bottom: 0.75rem;">
-                            <label class="form-label" style="font-size: 0.75rem; font-weight: 700;">Skema / Opsi Pembayaran Pelanggan</label>
-                            <div class="grid sm:grid-cols-3 gap-2" id="abPaymentTypeCards">
-                                <label class="ab-pay-card" id="abPayCard_lunas_awal" style="display: flex; flex-direction: column; align-items: flex-start; padding: 0.75rem; border: 1.5px solid #2563eb; background: #eff6ff; border-radius: var(--radius-md); cursor: pointer; transition: all 0.2s;">
-                                    <div style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; font-weight: 800; color: #1e3a8a;">
+                        <!-- Skema Pembayaran -->
+                        <div class="form-group">
+                            <label class="form-label">Skema Pembayaran Pelanggan</label>
+                            <div class="book-pay-grid" id="abPaymentTypeCards">
+                                <label class="book-pay-card is-active" id="abPayCard_lunas_awal">
+                                    <div class="book-pay-card-top">
                                         <input type="radio" name="ab_pay_choice" value="lunas_awal" checked onchange="setAdminPaymentType('lunas_awal')">
-                                        <span>Lunas di Awal</span>
+                                        <span>Lunas Awal</span>
                                     </div>
-                                    <span style="font-size: 0.68rem; color: #475569; margin-top: 0.25rem;">Bayar 100% penuh</span>
+                                    <span class="book-pay-card-sub">Bayar 100% penuh</span>
                                 </label>
 
-                                <label class="ab-pay-card" id="abPayCard_dp" style="display: flex; flex-direction: column; align-items: flex-start; padding: 0.75rem; border: 1.5px solid #e2e8f0; background: #ffffff; border-radius: var(--radius-md); cursor: pointer; transition: all 0.2s;">
-                                    <div style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; font-weight: 800; color: #334155;">
+                                <label class="book-pay-card" id="abPayCard_dp">
+                                    <div class="book-pay-card-top">
                                         <input type="radio" name="ab_pay_choice" value="dp" onchange="setAdminPaymentType('dp')">
-                                        <span>DP (Uang Muka)</span>
+                                        <span>DP</span>
                                     </div>
-                                    <span style="font-size: 0.68rem; color: #475569; margin-top: 0.25rem;">Uang muka awal</span>
+                                    <span class="book-pay-card-sub">Uang muka awal</span>
                                 </label>
 
-                                <label class="ab-pay-card" id="abPayCard_bayar_akhir" style="display: flex; flex-direction: column; align-items: flex-start; padding: 0.75rem; border: 1.5px solid #e2e8f0; background: #ffffff; border-radius: var(--radius-md); cursor: pointer; transition: all 0.2s;">
-                                    <div style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; font-weight: 800; color: #334155;">
+                                <label class="book-pay-card" id="abPayCard_bayar_akhir">
+                                    <div class="book-pay-card-top">
                                         <input type="radio" name="ab_pay_choice" value="bayar_akhir" onchange="setAdminPaymentType('bayar_akhir')">
-                                        <span>Bayar di Akhir</span>
+                                        <span>Bayar Akhir</span>
                                     </div>
-                                    <span style="font-size: 0.68rem; color: #475569; margin-top: 0.25rem;">Pelunasan selesai sewa</span>
+                                    <span class="book-pay-card-sub">Pelunasan selesai</span>
                                 </label>
                             </div>
                             <input type="hidden" id="abPaymentType" value="lunas_awal">
                         </div>
 
                         <!-- Nominal DP (Muncul jika DP dipilih) -->
-                        <div id="abDpAmountWrap" class="hidden" style="background: #fffbeb; border: 1.5px solid #fde68a; border-radius: var(--radius-md); padding: 0.75rem; margin-bottom: 0.75rem;">
-                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem;">
-                                <label class="form-label" style="font-size: 0.75rem; font-weight: 700; color: #92400e; margin-bottom: 0;">Nominal DP / Uang Muka (Rp)</label>
+                        <div id="abDpAmountWrap" class="book-dp-panel hidden">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.45rem; gap: 0.5rem;">
+                                <div>
+                                    <label class="form-label" for="abDpAmount" style="margin-bottom: 0; color: #15803d;">Nominal DP / Uang Muka</label>
+                                    <div id="abDpFormattedHint" style="font-size: 0.68rem; color: #64748b; font-weight: 600;">Rp 0</div>
+                                </div>
                                 <div style="display: flex; gap: 0.35rem;">
-                                    <button type="button" onclick="setAdminQuickDp(0.3)" style="padding: 0.15rem 0.45rem; font-size: 0.68rem; font-weight: 700; background: #fef3c7; border: 1px solid #d97706; color: #92400e; border-radius: 4px; cursor: pointer;">DP 30%</button>
-                                    <button type="button" onclick="setAdminQuickDp(0.5)" style="padding: 0.15rem 0.45rem; font-size: 0.68rem; font-weight: 700; background: #fef3c7; border: 1px solid #d97706; color: #92400e; border-radius: 4px; cursor: pointer;">DP 50%</button>
+                                    <button type="button" onclick="setAdminQuickDp(0.3)" class="book-quick-chip">30%</button>
+                                    <button type="button" onclick="setAdminQuickDp(0.5)" class="book-quick-chip">50%</button>
                                 </div>
                             </div>
-                            <input type="number" id="abDpAmount" placeholder="Contoh: 500000" class="form-input" style="background: #ffffff; font-weight: 700;">
+                            <div class="book-currency-wrap">
+                                <span class="book-currency-prefix">Rp</span>
+                                <input type="number" id="abDpAmount" placeholder="Contoh: 500000" class="form-input book-currency-input" oninput="updateAdminBookingSummary()">
+                            </div>
                         </div>
 
-                        <div class="form-group" style="margin-bottom: 0;">
-                            <label class="form-label" style="font-size: 0.75rem; font-weight: 700;">Catatan / Alamat Jemput</label>
-                            <textarea id="abNotes" rows="2" placeholder="Catatan lokasi penjemputan atau keterangan tambahan..." class="form-textarea"></textarea>
+                        <!-- Catatan / Alamat Jemput -->
+                        <div class="form-group">
+                            <label class="form-label" for="abNotes">Catatan / Alamat Jemput</label>
+                            <textarea id="abNotes" rows="3" placeholder="Lokasi penjemputan, permintaan khusus, atau keterangan tambahan..." class="form-textarea" style="resize: vertical; min-height: 4.5rem;"></textarea>
                         </div>
                     </div>
+                </div>
 
-                    <div style="padding-top: 0.5rem; display: flex; gap: 0.75rem;">
-                        <button type="button" onclick="closeAdminBookingModal()" class="btn btn-outline" style="flex: 1; font-weight: 700;">Batal</button>
-                        <button type="submit" id="abSubmitBtn" class="btn" style="flex: 2; background-color: #dc2626; color: #ffffff; font-weight: 800; border: none; padding: 0.75rem; border-radius: var(--radius-md); cursor: pointer; box-shadow: var(--shadow-sm);">Simpan Perubahan</button>
+                <div class="rev-modal-footer">
+                    <div id="abFooterSummary" style="font-size: 0.72rem; color: #64748b; font-weight: 600;">
+                        Verifikasi • Lunas di Awal
                     </div>
-                </form>
-            </div>
+                    <div style="display: flex; align-items: center; gap: 0.6rem;">
+                        <button type="button" onclick="closeAdminBookingModal()" class="btn btn-outline btn-sm" style="padding: 0.58rem 1.05rem; border-radius: 0.65rem;">
+                            Batal
+                        </button>
+                        <button type="submit" id="abSubmitBtn" class="rev-modal-submit-btn">
+                            <i class="fa-solid fa-check"></i>
+                            <span>Simpan Perubahan</span>
+                        </button>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
 

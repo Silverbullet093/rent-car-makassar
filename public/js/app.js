@@ -630,29 +630,33 @@ function renderReviews() {
     }
     displayList = [...displayList, ...displayList];
 
-    container.innerHTML = displayList.map((rev) => {
+    container.innerHTML = displayList.map((rev, cardIdx) => {
         const isArtis = isArtistReview(rev);
         const stories = getReviewStories(rev);
         const hasMedia = stories.length > 0;
         const rating = parseInt(rev.rating || 5);
-        const starActiveColor = isArtis ? '#ef4444' : '#22c55e';
-        const starInactiveColor = isArtis ? '#4c262b' : '#cbd5e1';
+        const starActiveColor = '#22c55e';
+        const starInactiveColor = '#cbd5e1';
 
-        const starsHtml = Array.from({ length: 5 }, (_, i) =>
-            `<svg style="width:1.35rem;height:1.35rem;fill:${i < rating ? starActiveColor : starInactiveColor};stroke:${i < rating ? starActiveColor : starInactiveColor}" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`
-        ).join('');
+        const starsHtml = Array.from({ length: 5 }, (_, i) => {
+            if (isArtis && i < rating) {
+                const gradId = `artistStarGrad_${cardIdx}_${i}`;
+                return `<svg style="width:1.35rem;height:1.35rem;" viewBox="0 0 24 24"><defs><linearGradient id="${gradId}" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#16a34a"/><stop offset="50%" stop-color="#22c55e"/><stop offset="100%" stop-color="#16a34a"/></linearGradient></defs><polygon fill="url(#${gradId})" stroke="url(#${gradId})" points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
+            }
+            return `<svg style="width:1.35rem;height:1.35rem;fill:${i < rating ? starActiveColor : starInactiveColor};stroke:${i < rating ? starActiveColor : starInactiveColor}" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
+        }).join('');
 
         const safeName = escapeHtml(rev.name || 'Pelanggan');
         const safeComment = escapeHtml(rev.comment || '');
         const safeCar = escapeHtml(rev.car_name || '');
-        const avatarSrc = rev.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(rev.name || 'P')}&background=${isArtis ? 'dc2626' : '64748b'}&color=fff&bold=true`;
+        const avatarSrc = rev.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(rev.name || 'P')}&background=${isArtis ? '16a34a' : '64748b'}&color=fff&bold=true`;
 
         const ringClass = isArtis
             ? 'review-avatar-ring is-artist'
             : (hasMedia ? 'review-avatar-ring has-story' : 'review-avatar-ring');
 
         const storyBadgeCount = stories.length > 0
-            ? `<span style="font-size: 0.7rem; font-weight: 800; padding: 0.1rem 0.45rem; border-radius: 9999px; background: ${isArtis ? 'rgba(239,68,68,0.22)' : '#f1f5f9'}; color: ${isArtis ? '#f87171' : '#475569'};">▶ ${stories.length}</span>`
+            ? `<span style="font-size: 0.7rem; font-weight: 800; padding: 0.1rem 0.45rem; border-radius: 9999px; background: ${isArtis ? 'linear-gradient(135deg, #16a34a 0%, #22c55e 100%)' : '#f1f5f9'}; color: ${isArtis ? '#ffffff' : '#475569'};">▶ ${stories.length}</span>`
             : '';
 
         return `
@@ -667,7 +671,7 @@ function renderReviews() {
                                     src="${avatarSrc}"
                                     alt="${safeName}"
                                     class="review-avatar-img"
-                                    onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(rev.name || 'P')}&background=${isArtis ? 'dc2626' : '64748b'}&color=fff'"
+                                    onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(rev.name || 'P')}&background=${isArtis ? '16a34a' : '64748b'}&color=fff'"
                                 />
                             </div>
                         </div>
@@ -748,7 +752,7 @@ function renderStoryViewerHeader(rev) {
     if (crownEl) crownEl.classList.toggle('hidden', !isArtis);
 
     if (avatarEl) {
-        avatarEl.src = rev.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(rev.name || 'P')}&background=${isArtis ? 'dc2626' : 'dc2626'}&color=fff&bold=true`;
+        avatarEl.src = rev.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(rev.name || 'P')}&background=${isArtis ? '16a34a' : '22c55e'}&color=fff&bold=true`;
     }
     if (nameEl) nameEl.textContent = rev.name || 'Pelanggan';
     if (subEl) subEl.textContent = `${rev.car_name || 'Unit Rental'} • Story Pelanggan`;
@@ -757,7 +761,7 @@ function renderStoryViewerHeader(rev) {
 
     if (starsEl) {
         const rating = parseInt(rev.rating || 5);
-        starsEl.style.color = isArtis ? '#ef4444' : '#22c55e';
+        starsEl.style.color = '#22c55e';
         starsEl.innerHTML = Array.from({ length: 5 }, (_, i) => i < rating ? '★' : '☆').join('') +
             ` <span style="font-size:0.75rem; color:#fff; margin-left:0.25rem;">(${rating}.0)</span>`;
     }
@@ -889,7 +893,7 @@ function displayStorySlide(index) {
         if (textBgEl) {
             const isArtis = isArtistReview(activeStoryReview);
             textBgEl.style.background = isArtis
-                ? 'linear-gradient(135deg, #2d1115 0%, #140809 100%)'
+                ? 'linear-gradient(135deg, #064e3b 0%, #052e16 100%)'
                 : 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)';
             textBgEl.classList.remove('hidden');
         }

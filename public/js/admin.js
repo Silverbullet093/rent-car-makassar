@@ -1058,105 +1058,104 @@ function renderReviewsTable() {
     tbody.innerHTML = filtered.map(rev => {
         const isArtis = isArtistReviewAdmin(rev);
         const stories = getAdminReviewStories(rev);
-        const rating = parseInt(rev.rating || 5);
+        const rating = Math.max(1, Math.min(5, parseInt(rev.rating || 5)));
+        const safeName = escapeHtml(rev.name || 'Pelanggan');
+        const safeCar = escapeHtml(rev.car_name || 'Mobil Rental');
+        const safeComment = escapeHtml(rev.comment || '');
         const starsHtml = Array.from({ length: 5 }, (_, i) =>
-            `<svg style="width:0.875rem;height:0.875rem;fill:${i < rating ? (isArtis ? '#f59e0b' : '#22c55e') : '#cbd5e1'};stroke:${i < rating ? (isArtis ? '#f59e0b' : '#22c55e') : '#cbd5e1'}" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`
+            `<svg style="width:0.875rem;height:0.875rem;fill:${i < rating ? '#22c55e' : '#e2e8f0'};stroke:${i < rating ? '#22c55e' : '#e2e8f0'}" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`
         ).join('');
 
         const status = rev.status || 'approved';
         let statusBadge = '';
 
         if (status === 'pending') {
-            statusBadge = `<span style="background: #fef3c7; color: #d97706; border: 1px solid #fde68a; font-size: 0.7rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 999px; display: inline-flex; align-items: center; gap: 0.25rem;"><svg style="width:0.75rem;height:0.75rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Menunggu Verifikasi</span>`;
+            statusBadge = `<span class="rev-status-pill is-pending"><span class="rev-status-dot" style="background:#f59e0b;"></span>Menunggu</span>`;
         } else if (status === 'approved') {
-            statusBadge = `<span style="background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; font-size: 0.7rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 999px; display: inline-flex; align-items: center; gap: 0.25rem;"><svg style="width:0.75rem;height:0.75rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Disetujui / Dipublikasi</span>`;
+            statusBadge = `<span class="rev-status-pill is-approved"><span class="rev-status-dot" style="background:#16a34a;"></span>Disetujui</span>`;
         } else {
-            statusBadge = `<span style="background: #ffe4e6; color: #e11d48; border: 1px solid #fecdd3; font-size: 0.7rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 999px; display: inline-flex; align-items: center; gap: 0.25rem;"><svg style="width:0.75rem;height:0.75rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> Ditolak</span>`;
+            statusBadge = `<span class="rev-status-pill is-rejected"><span class="rev-status-dot" style="background:#ef4444;"></span>Ditolak</span>`;
         }
 
-        const avatarSrc = rev.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(rev.name)}&background=${isArtis ? 'd97706' : '22c55e'}&color=fff&bold=true`;
+        const avatarSrc = rev.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(rev.name || 'P')}&background=${isArtis ? '16a34a' : '64748b'}&color=fff&bold=true`;
 
-        let mediaPreviewHtml = '<span style="color: #94a3b8; font-size: 0.72rem; font-style: italic;">Tidak ada media</span>';
+        let mediaPreviewHtml = '<span style="color: #94a3b8; font-size: 0.78rem;">—</span>';
         if (stories.length > 0) {
             const firstItem = stories[0];
             const photoCount = stories.filter(s => s.type !== 'video').length;
             const videoCount = stories.filter(s => s.type === 'video').length;
             const countLabels = [];
-            if (photoCount > 0) countLabels.push(`📸 ${photoCount} Foto`);
-            if (videoCount > 0) countLabels.push(`🎬 ${videoCount} Video`);
+            if (photoCount > 0) countLabels.push(`${photoCount} Foto`);
+            if (videoCount > 0) countLabels.push(`${videoCount} Video`);
 
             mediaPreviewHtml = `
-                <div style="display: flex; flex-direction: column; align-items: center; gap: 0.25rem;">
+                <div style="display: inline-flex; flex-direction: column; align-items: center; gap: 0.3rem;">
                     <div style="position: relative; display: inline-flex;">
                         ${firstItem.type === 'video'
-                            ? `<video src="${firstItem.url}" muted style="width: 2.75rem; height: 2.75rem; border-radius: 0.5rem; object-fit: cover; border: 1.5px solid #dc2626;"></video>`
-                            : `<img src="${firstItem.url}" alt="Story" style="width: 2.75rem; height: 2.75rem; border-radius: 0.5rem; object-fit: cover; border: 1.5px solid #dc2626;">`
+                            ? `<video src="${firstItem.url}" muted style="width: 2.65rem; height: 2.65rem; border-radius: 0.55rem; object-fit: cover; border: 1px solid #cbd5e1; background: #0f172a;"></video>`
+                            : `<img src="${firstItem.url}" alt="Story" style="width: 2.65rem; height: 2.65rem; border-radius: 0.55rem; object-fit: cover; border: 1px solid #cbd5e1;">`
                         }
-                        ${stories.length > 1 ? `<span style="position:absolute; top:-6px; right:-6px; background:#0f172a; color:#fff; font-size:0.6rem; font-weight:800; padding:1px 5px; border-radius:999px; border:1.5px solid #fff;">+${stories.length - 1}</span>` : ''}
+                        ${stories.length > 1 ? `<span style="position:absolute; top:-5px; right:-5px; background:#0f172a; color:#fff; font-size:0.6rem; font-weight:800; padding:1px 5px; border-radius:999px; border:1.5px solid #fff;">+${stories.length - 1}</span>` : ''}
                     </div>
-                    <span style="font-size: 0.625rem; font-weight: 700; color: #dc2626; background: #fef2f2; padding: 0.1rem 0.4rem; border-radius: 4px; white-space: nowrap;">${countLabels.join(' • ')}</span>
+                    <span style="font-size: 0.65rem; font-weight: 700; color: #475569; white-space: nowrap;">${countLabels.join(' · ')}</span>
                 </div>
             `;
         }
 
         const categoryBadge = isArtis
-            ? `<span style="background: linear-gradient(135deg, #fef3c7, #fde68a); color: #92400e; border: 1px solid #f59e0b; font-size: 0.625rem; font-weight: 800; padding: 0.1rem 0.45rem; border-radius: 999px; display: inline-flex; align-items: center; gap: 0.2rem;">👑 ARTIS</span>`
-            : `<span style="background: #f1f5f9; color: #64748b; font-size: 0.625rem; font-weight: 700; padding: 0.1rem 0.45rem; border-radius: 999px;">Reguler</span>`;
+            ? `<span class="rev-vip-pill"><i class="fa-solid fa-crown" style="font-size:0.58rem;"></i>VIP / Artis</span>`
+            : `<span class="rev-reg-pill">Reguler</span>`;
 
         return `
-            <tr style="border-bottom: 1px solid var(--clr-border); ${isArtis ? 'background: #fffdf5;' : ''}">
-                <td style="padding: 1rem;">
+            <tr class="rev-table-row">
+                <td style="padding: 0.95rem 1rem;">
                     <div style="display: flex; align-items: center; gap: 0.75rem;">
-                        <div style="position: relative;">
-                            ${isArtis ? `<span style="position:absolute; top:-10px; left:50%; transform:translateX(-50%); font-size:0.75rem;">👑</span>` : ''}
-                            <img src="${avatarSrc}" alt="${rev.name}" style="width: 2.5rem; height: 2.5rem; border-radius: 50%; object-fit: cover; border: 2px solid ${isArtis ? '#f59e0b' : 'var(--clr-border)'};">
-                        </div>
+                        <img src="${avatarSrc}" alt="${safeName}" style="width: 2.5rem; height: 2.5rem; border-radius: 50%; object-fit: cover; border: 2px solid ${isArtis ? '#22c55e' : '#e2e8f0'}; flex-shrink: 0;">
                         <div>
-                            <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
-                                <span style="font-weight: 800; font-size: 0.875rem; color: var(--clr-text-main);">${rev.name}</span>
+                            <div style="display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap;">
+                                <span style="font-weight: 800; font-size: 0.85rem; color: #0f172a;">${safeName}</span>
                                 ${categoryBadge}
                             </div>
-                            <div style="font-size: 0.7rem; color: var(--clr-primary); font-weight: 600;">${rev.car_name || 'Mobil Rental'}</div>
+                            <div style="font-size: 0.72rem; color: #64748b; font-weight: 600; margin-top: 0.1rem;">${safeCar}</div>
                         </div>
                     </div>
                 </td>
-                <td style="padding: 1rem;">
-                    <div style="display: flex; gap: 0.1rem; align-items: center;">
-                        ${starsHtml}
+                <td style="padding: 0.95rem 1rem; white-space: nowrap;">
+                    <div style="display: inline-flex; align-items: center; gap: 0.35rem;">
+                        <div style="display: inline-flex; gap: 0.1rem; align-items: center;">${starsHtml}</div>
+                        <span style="font-size: 0.72rem; font-weight: 700; color: #475569; font-variant-numeric: tabular-nums;">${rating}.0</span>
                     </div>
                 </td>
-                <td style="padding: 1rem; font-size: 0.8125rem; color: var(--clr-text-muted); max-width: 24rem; line-height: 1.5;">
-                    "${rev.comment}"
+                <td style="padding: 0.95rem 1rem; font-size: 0.8125rem; color: #334155; max-width: 24rem; line-height: 1.55;">
+                    ${safeComment}
                 </td>
-                <td style="padding: 1rem; text-align: center;">
+                <td style="padding: 0.95rem 1rem; text-align: center;">
                     ${mediaPreviewHtml}
                 </td>
-                <td style="padding: 1rem;">
+                <td style="padding: 0.95rem 1rem;">
                     ${statusBadge}
                 </td>
-                <td style="padding: 1rem; text-align: right;">
-                    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 0.35rem; flex-wrap: wrap;">
-                        <button onclick="toggleAdminReviewUserType('${rev.id}')" class="btn btn-outline btn-sm" style="padding: 0.3rem 0.55rem; font-size: 0.72rem; ${isArtis ? 'background:#fef3c7; color:#92400e; border-color:#f59e0b;' : 'color:#b45309; border-color:#fde68a;'}" title="Ubah Kategori Artis / Reguler">
-                            ${isArtis ? '👤 Set Reguler' : '👑 Jadikan Artis'}
+                <td style="padding: 0.95rem 1rem; text-align: right;">
+                    <div style="display: inline-flex; align-items: center; justify-content: flex-end; gap: 0.4rem;">
+                        <button type="button" onclick="toggleAdminReviewUserType('${rev.id}')" class="rev-type-toggle-btn ${isArtis ? 'is-vip' : ''}" title="${isArtis ? 'Ubah ke Kategori Reguler' : 'Jadikan Kategori VIP / Artis'}">
+                            <i class="${isArtis ? 'fa-regular fa-user' : 'fa-solid fa-crown'}" style="font-size:0.7rem;"></i>
+                            <span>${isArtis ? 'Set Reguler' : 'Set VIP'}</span>
                         </button>
                         ${status !== 'approved' ? `
-                            <button onclick="approveReview('${rev.id}')" class="btn btn-emerald btn-sm" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 0.25rem;" title="Verifikasi & Tampilkan di Website">
-                                <svg style="width:0.75rem;height:0.75rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                                Setujui
+                            <button type="button" onclick="approveReview('${rev.id}')" class="booking-action-icon-btn btn-icon-complete" title="Setujui &amp; Publikasikan">
+                                <i class="fa-solid fa-check"></i>
                             </button>
                         ` : ''}
                         ${status !== 'rejected' ? `
-                            <button onclick="rejectReview('${rev.id}')" class="btn btn-outline btn-sm" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; color: #d97706; border-color: #fde68a; display: inline-flex; align-items: center; gap: 0.25rem;" title="Sembunyikan dari Website">
-                                <svg style="width:0.75rem;height:0.75rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-                                Tolak
+                            <button type="button" onclick="rejectReview('${rev.id}')" class="booking-action-icon-btn btn-icon-edit" title="Sembunyikan / Tolak">
+                                <i class="fa-solid fa-ban"></i>
                             </button>
                         ` : ''}
-                        <button onclick="openAdminEditReviewModal('${rev.id}')" class="btn btn-outline btn-sm" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; color: #3b82f6; border-color: #bfdbfe; display: inline-flex; align-items: center; gap: 0.25rem;" title="Edit Ulasan, Kategori & Banyak Foto/Video">
-                            <svg style="width:0.75rem;height:0.75rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                            Edit
+                        <button type="button" onclick="openAdminEditReviewModal('${rev.id}')" class="booking-action-icon-btn btn-icon-doc" title="Edit Ulasan &amp; Media Story">
+                            <i class="fa-regular fa-pen-to-square"></i>
                         </button>
-                        <button onclick="deleteReview('${rev.id}')" class="btn btn-outline btn-sm" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; color: var(--clr-rose); border-color: #fecdd3;" title="Hapus Ulasan">
-                            <svg style="width:0.75rem;height:0.75rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        <button type="button" onclick="deleteReview('${rev.id}')" class="booking-action-icon-btn btn-icon-delete" title="Hapus Ulasan">
+                            <i class="fa-regular fa-trash-can"></i>
                         </button>
                     </div>
                 </td>
@@ -1184,7 +1183,13 @@ async function toggleAdminReviewUserType(reviewId) {
     saveReviewsData();
     renderReviewsTable();
     if (typeof showAdminToast === 'function') {
-        showAdminToast(nextType === 'artis' ? `👑 "${rev.name}" ditandai sebagai Artis / VIP!` : `👤 "${rev.name}" diubah ke kategori Reguler.`);
+        showAdminToast(
+            nextType === 'artis' ? 'Kategori Diubah ke VIP' : 'Kategori Diubah ke Reguler',
+            nextType === 'artis'
+                ? `"${rev.name}" kini tampil dengan mahkota & aksen hijau VIP.`
+                : `"${rev.name}" kini menggunakan tampilan kartu reguler.`,
+            'success'
+        );
     }
 }
 
@@ -1201,13 +1206,112 @@ function setAdminReviewUserType(type) {
     if (radioReg) radioReg.checked = !isArtis;
     if (radioArt) radioArt.checked = isArtis;
 
-    if (cardReg) {
-        cardReg.style.borderColor = !isArtis ? '#22c55e' : '#e2e8f0';
-        cardReg.style.background = !isArtis ? '#f0fdf4' : '#ffffff';
+    if (cardReg) cardReg.classList.toggle('is-active', !isArtis);
+    if (cardArt) cardArt.classList.toggle('is-active', isArtis);
+
+    updateAdminReviewLivePreview();
+}
+
+function setAdminReviewRating(stars) {
+    const rating = Math.max(1, Math.min(5, parseInt(stars) || 5));
+    const ratingInput = document.getElementById('adminRevRating');
+    if (ratingInput) ratingInput.value = String(rating);
+
+    const labels = {
+        5: '5.0 • Sempurna',
+        4: '4.0 • Sangat Baik',
+        3: '3.0 • Cukup Baik',
+        2: '2.0 • Kurang',
+        1: '1.0 • Buruk'
+    };
+    const labelEl = document.getElementById('adminRevRatingLabel');
+    if (labelEl) labelEl.textContent = labels[rating] || `${rating}.0`;
+
+    document.querySelectorAll('#adminRevStarPicker .rev-star-btn').forEach(btn => {
+        const val = parseInt(btn.getAttribute('data-star') || '0');
+        btn.classList.toggle('is-filled', val <= rating);
+    });
+
+    updateAdminReviewLivePreview();
+}
+
+function updateAdminReviewLivePreview() {
+    const nameInput = document.getElementById('adminRevName');
+    const carInput = document.getElementById('adminRevCar');
+    const commentInput = document.getElementById('adminRevComment');
+    const userTypeInput = document.getElementById('adminRevUserType');
+    const ratingInput = document.getElementById('adminRevRating');
+    const avatarInput = document.getElementById('adminRevAvatar');
+
+    const rawName = (nameInput?.value || '').trim();
+    const rawCar = (carInput?.value || '').trim();
+    const rawComment = (commentInput?.value || '').trim();
+    const isArtis = (userTypeInput?.value || 'regular') === 'artis';
+    const rating = Math.max(1, Math.min(5, parseInt(ratingInput?.value || '5')));
+    const avatarVal = (avatarInput?.value || '').trim();
+
+    const charCountEl = document.getElementById('adminRevCommentCount');
+    if (charCountEl) {
+        charCountEl.textContent = `${(commentInput?.value || '').length} karakter`;
     }
-    if (cardArt) {
-        cardArt.style.borderColor = isArtis ? '#f59e0b' : '#e2e8f0';
-        cardArt.style.background = isArtis ? '#fffbeb' : '#ffffff';
+
+    const cardEl = document.getElementById('adminRevLiveCard');
+    const crownEl = document.getElementById('adminRevLiveCrown');
+    const modeBadgeEl = document.getElementById('adminRevLiveModeBadge');
+    const avatarEl = document.getElementById('adminRevLiveAvatar');
+    const liveNameEl = document.getElementById('adminRevLiveName');
+    const liveStarsEl = document.getElementById('adminRevLiveStars');
+    const liveCommentEl = document.getElementById('adminRevLiveComment');
+    const liveCarEl = document.getElementById('adminRevLiveCar');
+    const liveActionEl = document.getElementById('adminRevLiveAction');
+    const liveMediaBadgeEl = document.getElementById('adminRevLiveMediaBadge');
+
+    if (cardEl) cardEl.classList.toggle('is-vip', isArtis);
+    if (crownEl) crownEl.classList.toggle('hidden', !isArtis);
+
+    if (modeBadgeEl) {
+        modeBadgeEl.className = isArtis ? 'rev-vip-pill' : 'rev-reg-pill';
+        modeBadgeEl.innerHTML = isArtis
+            ? '<i class="fa-solid fa-crown" style="font-size:0.58rem;"></i>VIP / Artis'
+            : 'Reguler';
+    }
+
+    if (avatarEl) {
+        const displayName = rawName || 'P';
+        avatarEl.src = avatarVal || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=${isArtis ? '16a34a' : '64748b'}&color=fff&bold=true`;
+    }
+    if (liveNameEl) liveNameEl.textContent = rawName || 'Nama Pelanggan';
+    if (liveCommentEl) {
+        liveCommentEl.textContent = rawComment || 'Ulasan pelanggan akan tampil di sini secara langsung saat Anda mengetik...';
+        liveCommentEl.style.color = rawComment ? '#334155' : '#94a3b8';
+    }
+
+    if (liveStarsEl) {
+        liveStarsEl.innerHTML = Array.from({ length: 5 }, (_, i) =>
+            `<svg style="width:1rem;height:1rem;fill:${i < rating ? '#22c55e' : '#e2e8f0'};" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`
+        ).join('');
+    }
+
+    if (liveCarEl) {
+        liveCarEl.style.color = isArtis ? '#16a34a' : '#64748b';
+        const span = liveCarEl.querySelector('span');
+        if (span) span.textContent = rawCar || 'Unit Armada';
+    }
+
+    if (liveActionEl) {
+        liveActionEl.style.color = isArtis ? '#16a34a' : '#0f172a';
+    }
+
+    if (liveMediaBadgeEl) {
+        const count = (adminState.editingReviewStories || []).length;
+        if (count > 0) {
+            liveMediaBadgeEl.style.display = 'inline-block';
+            liveMediaBadgeEl.textContent = `▶ ${count}`;
+            liveMediaBadgeEl.style.background = isArtis ? 'linear-gradient(135deg, #16a34a 0%, #22c55e 100%)' : '#f1f5f9';
+            liveMediaBadgeEl.style.color = isArtis ? '#ffffff' : '#475569';
+        } else {
+            liveMediaBadgeEl.style.display = 'none';
+        }
     }
 }
 
@@ -1216,13 +1320,11 @@ function setAdminReviewFilter(status, btnEl) {
     adminState.reviewsFilter = status;
 
     document.querySelectorAll('.review-filter-btn').forEach(btn => {
-        btn.classList.remove('btn-primary');
-        btn.classList.add('btn-outline');
+        btn.classList.remove('active');
     });
 
     if (btnEl) {
-        btnEl.classList.add('btn-primary');
-        btnEl.classList.remove('btn-outline');
+        btnEl.classList.add('active');
     }
 
     renderReviewsTable();
@@ -1245,7 +1347,9 @@ async function approveReview(reviewId) {
 
     saveReviewsData();
     renderReviewsTable();
-    alert(`Ulasan dari "${rev.name}" berhasil diverifikasi & dipublikasikan ke halaman utama website!`);
+    if (typeof showAdminToast === 'function') {
+        showAdminToast('Ulasan Disetujui', `Ulasan dari "${rev.name}" kini tampil di halaman utama.`, 'success');
+    }
 }
 
 // Tolak / Sembunyikan Review
@@ -1292,32 +1396,27 @@ function openAdminAddReviewModal() {
     if (form) form.reset();
 
     const titleEl = document.getElementById('adminReviewModalTitle');
-    if (titleEl) titleEl.textContent = 'Tambah Review Pelanggan Manual';
+    if (titleEl) titleEl.textContent = 'Tambah Review Pelanggan';
+
+    const subtitleEl = document.getElementById('adminReviewModalSubtitle');
+    if (subtitleEl) subtitleEl.textContent = 'Buat ulasan & galeri story pelanggan secara manual';
 
     const submitBtn = document.getElementById('adminRevSubmitBtn');
-    if (submitBtn) submitBtn.textContent = 'Simpan & Publikasikan Ulasan';
+    if (submitBtn) submitBtn.innerHTML = '<i class="fa-solid fa-check"></i><span>Simpan &amp; Publikasikan</span>';
 
     const idEl = document.getElementById('adminRevId');
     if (idEl) idEl.value = '';
 
-    const ratingEl = document.getElementById('adminRevRating');
-    if (ratingEl) ratingEl.value = '5';
-
+    setAdminReviewRating(5);
     setAdminReviewUserType('regular');
 
-    const avatarEl = document.getElementById('adminRevAvatar');
-    if (avatarEl) avatarEl.value = '';
-
-    const fileInput = document.getElementById('adminRevAvatarFile');
-    if (fileInput) fileInput.value = '';
-
-    const previewBox = document.getElementById('adminRevAvatarPreviewBox');
-    if (previewBox) previewBox.style.display = 'none';
+    removeAdminRevAvatar();
 
     adminState.editingReviewStories = [];
     const mediaFileInput = document.getElementById('adminRevMediaFile');
     if (mediaFileInput) mediaFileInput.value = '';
     renderAdminRevMediaGrid();
+    updateAdminReviewLivePreview();
 }
 
 // Modal Admin Edit Review
@@ -1331,34 +1430,48 @@ function openAdminEditReviewModal(reviewId) {
     const titleEl = document.getElementById('adminReviewModalTitle');
     if (titleEl) titleEl.textContent = 'Edit Review Pelanggan';
 
+    const subtitleEl = document.getElementById('adminReviewModalSubtitle');
+    if (subtitleEl) subtitleEl.textContent = `Perbarui ulasan, kategori, dan media story milik ${rev.name || 'pelanggan'}`;
+
     const submitBtn = document.getElementById('adminRevSubmitBtn');
-    if (submitBtn) submitBtn.textContent = 'Perbarui Ulasan';
+    if (submitBtn) submitBtn.innerHTML = '<i class="fa-solid fa-check"></i><span>Perbarui Ulasan</span>';
 
     document.getElementById('adminRevId').value = rev.id;
     document.getElementById('adminRevName').value = rev.name || '';
-    document.getElementById('adminRevRating').value = rev.rating || '5';
     document.getElementById('adminRevCar').value = rev.car_name || '';
     document.getElementById('adminRevComment').value = rev.comment || '';
     document.getElementById('adminRevAvatar').value = rev.avatar || '';
 
+    setAdminReviewRating(rev.rating || 5);
     setAdminReviewUserType(isArtistReviewAdmin(rev) ? 'artis' : 'regular');
 
     const fileInput = document.getElementById('adminRevAvatarFile');
     if (fileInput) fileInput.value = '';
 
+    const placeholder = document.getElementById('adminRevAvatarPlaceholder');
     const previewBox = document.getElementById('adminRevAvatarPreviewBox');
     const previewImg = document.getElementById('adminRevAvatarPreview');
+    const statusTitle = document.getElementById('adminRevAvatarStatusTitle');
+    const removeBtn = document.getElementById('adminRevAvatarRemoveBtn');
+
     if (rev.avatar) {
         if (previewImg) previewImg.src = rev.avatar;
         if (previewBox) previewBox.style.display = 'flex';
+        if (placeholder) placeholder.style.display = 'none';
+        if (statusTitle) statusTitle.textContent = 'Foto profil terpasang';
+        if (removeBtn) removeBtn.style.display = 'inline-flex';
     } else {
         if (previewBox) previewBox.style.display = 'none';
+        if (placeholder) placeholder.style.display = 'flex';
+        if (statusTitle) statusTitle.textContent = 'Belum ada foto profil';
+        if (removeBtn) removeBtn.style.display = 'none';
     }
 
     adminState.editingReviewStories = getAdminReviewStories(rev);
     const mediaFileInput = document.getElementById('adminRevMediaFile');
     if (mediaFileInput) mediaFileInput.value = '';
     renderAdminRevMediaGrid();
+    updateAdminReviewLivePreview();
 }
 
 // Multi-Media Story Upload Handler (Banyak Foto / Video)
@@ -1424,14 +1537,19 @@ function renderAdminRevMediaGrid() {
     const previewBox = document.getElementById('adminRevMediaPreviewBox');
     const grid = document.getElementById('adminRevMediaPreviewGrid');
     const countBadge = document.getElementById('adminRevMediaCountBadge');
+    const count = adminState.editingReviewStories.length;
 
     if (countBadge) {
-        countBadge.textContent = `${adminState.editingReviewStories.length} Media`;
+        countBadge.textContent = `${count} Media`;
+        countBadge.style.background = count > 0 ? '#ecfdf5' : '#e2e8f0';
+        countBadge.style.color = count > 0 ? '#15803d' : '#475569';
     }
+
+    updateAdminReviewLivePreview();
 
     if (!previewBox || !grid) return;
 
-    if (adminState.editingReviewStories.length === 0) {
+    if (count === 0) {
         previewBox.style.display = 'none';
         grid.innerHTML = '';
         return;
@@ -1439,16 +1557,40 @@ function renderAdminRevMediaGrid() {
 
     previewBox.style.display = 'flex';
     grid.innerHTML = adminState.editingReviewStories.map(item => `
-        <div style="position: relative; aspect-ratio: 1/1; border-radius: 0.5rem; overflow: hidden; background: #0f172a; border: 1.5px solid #fecdd3;">
+        <div class="rev-media-tile">
             ${item.type === 'video'
                 ? `<video src="${item.url}" muted playsinline style="width:100%; height:100%; object-fit:cover;"></video>
-                   <span style="position:absolute; bottom:4px; left:4px; font-size:0.6rem; font-weight:800; background:rgba(0,0,0,0.75); color:#fff; padding:1px 5px; border-radius:4px;">🎬 Video</span>`
+                   <span style="position:absolute; bottom:4px; left:4px; font-size:0.6rem; font-weight:700; background:rgba(15,23,42,0.78); color:#fff; padding:1px 5px; border-radius:4px;">Video</span>`
                 : `<img src="${item.url}" alt="Story" style="width:100%; height:100%; object-fit:cover;" />
-                   <span style="position:absolute; bottom:4px; left:4px; font-size:0.6rem; font-weight:800; background:rgba(0,0,0,0.75); color:#fff; padding:1px 5px; border-radius:4px;">📸 Foto</span>`
+                   <span style="position:absolute; bottom:4px; left:4px; font-size:0.6rem; font-weight:700; background:rgba(15,23,42,0.78); color:#fff; padding:1px 5px; border-radius:4px;">Foto</span>`
             }
-            <button type="button" onclick="removeAdminRevMediaItem('${item.id}')" style="position:absolute; top:4px; right:4px; width:20px; height:20px; border-radius:50%; border:none; background:#e11d48; color:#fff; font-size:0.7rem; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center;" title="Hapus media ini">✕</button>
+            <button type="button" onclick="removeAdminRevMediaItem('${item.id}')" class="rev-media-tile-remove" title="Hapus media ini">✕</button>
         </div>
     `).join('');
+}
+
+function handleAdminRevMediaDragOver(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const zone = document.getElementById('adminRevMediaDropZone');
+    if (zone) zone.classList.add('is-dragover');
+}
+
+function handleAdminRevMediaDragLeave(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const zone = document.getElementById('adminRevMediaDropZone');
+    if (zone) zone.classList.remove('is-dragover');
+}
+
+function handleAdminRevMediaDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    handleAdminRevMediaDragLeave(e);
+    const files = e.dataTransfer && e.dataTransfer.files;
+    if (files && files.length > 0) {
+        handleAdminRevMediaFile({ target: { files, value: '' } });
+    }
 }
 
 function closeAdminAddReviewModal() {
@@ -1469,10 +1611,19 @@ function processAdminRevAvatarFile(file) {
         const avatarInput = document.getElementById('adminRevAvatar');
         if (avatarInput) avatarInput.value = base64;
 
+        const placeholder = document.getElementById('adminRevAvatarPlaceholder');
         const previewBox = document.getElementById('adminRevAvatarPreviewBox');
         const previewImg = document.getElementById('adminRevAvatarPreview');
+        const statusTitle = document.getElementById('adminRevAvatarStatusTitle');
+        const removeBtn = document.getElementById('adminRevAvatarRemoveBtn');
+
         if (previewImg) previewImg.src = base64;
         if (previewBox) previewBox.style.display = 'flex';
+        if (placeholder) placeholder.style.display = 'none';
+        if (statusTitle) statusTitle.textContent = file.name || 'Foto profil terpasang';
+        if (removeBtn) removeBtn.style.display = 'inline-flex';
+
+        updateAdminReviewLivePreview();
     });
 }
 
@@ -1485,20 +1636,14 @@ function handleAdminRevAvatarDragOver(e) {
     e.preventDefault();
     e.stopPropagation();
     const zone = document.getElementById('adminRevAvatarDropZone');
-    if (zone) {
-        zone.style.borderColor = 'var(--clr-primary, #10b981)';
-        zone.style.background = '#f0fdf4';
-    }
+    if (zone) zone.classList.add('is-dragover');
 }
 
 function handleAdminRevAvatarDragLeave(e) {
     e.preventDefault();
     e.stopPropagation();
     const zone = document.getElementById('adminRevAvatarDropZone');
-    if (zone) {
-        zone.style.borderColor = 'var(--clr-border, #cbd5e1)';
-        zone.style.background = '#f8fafc';
-    }
+    if (zone) zone.classList.remove('is-dragover');
 }
 
 function handleAdminRevAvatarDrop(e) {
@@ -1522,8 +1667,17 @@ function removeAdminRevAvatar() {
     const fileInput = document.getElementById('adminRevAvatarFile');
     if (fileInput) fileInput.value = '';
 
+    const placeholder = document.getElementById('adminRevAvatarPlaceholder');
     const previewBox = document.getElementById('adminRevAvatarPreviewBox');
+    const statusTitle = document.getElementById('adminRevAvatarStatusTitle');
+    const removeBtn = document.getElementById('adminRevAvatarRemoveBtn');
+
     if (previewBox) previewBox.style.display = 'none';
+    if (placeholder) placeholder.style.display = 'flex';
+    if (statusTitle) statusTitle.textContent = 'Belum ada foto profil';
+    if (removeBtn) removeBtn.style.display = 'none';
+
+    updateAdminReviewLivePreview();
 }
 
 async function handleAdminAddReviewSubmit(e) {
@@ -1557,7 +1711,7 @@ async function handleAdminAddReviewSubmit(e) {
     } else if (avatarVal) {
         formData.append('avatar', avatarVal);
     } else if (!id) {
-        formData.append('avatar', `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=${userType === 'artis' ? 'd97706' : '22c55e'}&color=fff&bold=true`);
+        formData.append('avatar', `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=${userType === 'artis' ? '16a34a' : '64748b'}&color=fff&bold=true`);
     }
 
     const inlineStories = [];
@@ -1571,10 +1725,10 @@ async function handleAdminAddReviewSubmit(e) {
     formData.append('stories', JSON.stringify(inlineStories));
 
     const submitBtn = document.getElementById('adminRevSubmitBtn');
-    const origBtnText = submitBtn ? submitBtn.textContent : '';
+    const origBtnHtml = submitBtn ? submitBtn.innerHTML : '';
     if (submitBtn) {
         submitBtn.disabled = true;
-        submitBtn.textContent = 'Menyimpan...';
+        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>Menyimpan...</span>';
     }
 
     let savedRev = null;
@@ -1610,7 +1764,7 @@ async function handleAdminAddReviewSubmit(e) {
     } finally {
         if (submitBtn) {
             submitBtn.disabled = false;
-            submitBtn.textContent = origBtnText;
+            submitBtn.innerHTML = origBtnHtml;
         }
     }
 
@@ -1634,7 +1788,9 @@ async function handleAdminAddReviewSubmit(e) {
                 };
             }
         }
-        alert("Ulasan, Kategori & Media Story berhasil diperbarui.");
+        if (typeof showAdminToast === 'function') {
+            showAdminToast('Ulasan Diperbarui', `Ulasan milik "${name}" berhasil diperbarui.`, 'success');
+        }
     } else {
         if (!savedRev) {
             savedRev = {
@@ -1645,7 +1801,7 @@ async function handleAdminAddReviewSubmit(e) {
                 car_name: carName,
                 comment,
                 status: 'approved',
-                avatar: avatarVal || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=${userType === 'artis' ? 'd97706' : '22c55e'}&color=fff&bold=true`,
+                avatar: avatarVal || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=${userType === 'artis' ? '16a34a' : '64748b'}&color=fff&bold=true`,
                 stories: inlineStories,
                 media: inlineStories[0]?.url || null,
                 media_type: inlineStories[0]?.type || null,
@@ -1653,7 +1809,9 @@ async function handleAdminAddReviewSubmit(e) {
             };
         }
         adminState.reviews.unshift(savedRev);
-        alert("Ulasan & Media Story berhasil ditambahkan dan dipublikasikan.");
+        if (typeof showAdminToast === 'function') {
+            showAdminToast('Ulasan Dipublikasikan', `Ulasan baru dari "${name}" berhasil ditambahkan.`, 'success');
+        }
     }
 
     saveReviewsData();
@@ -3941,15 +4099,8 @@ function setAdminPaymentType(type) {
         const cardEl = document.getElementById(`abPayCard_${c}`);
         const radio = cardEl ? cardEl.querySelector('input[type="radio"]') : null;
         if (cardEl) {
-            if (c === type) {
-                cardEl.style.border = '1.5px solid #2563eb';
-                cardEl.style.background = '#eff6ff';
-                if (radio) radio.checked = true;
-            } else {
-                cardEl.style.border = '1.5px solid #e2e8f0';
-                cardEl.style.background = '#ffffff';
-                if (radio) radio.checked = false;
-            }
+            cardEl.classList.toggle('is-active', c === type);
+            if (radio) radio.checked = (c === type);
         }
     });
 
@@ -3965,6 +4116,8 @@ function setAdminPaymentType(type) {
     } else {
         if (dpWrap) dpWrap.classList.add('hidden');
     }
+
+    updateAdminBookingSummary();
 }
 
 function setAdminQuickDp(percentage) {
@@ -3972,6 +4125,71 @@ function setAdminQuickDp(percentage) {
     const dpInput = document.getElementById('abDpAmount');
     if (dpInput) {
         dpInput.value = Math.round(totalPrice * percentage);
+    }
+    updateAdminBookingSummary();
+}
+
+function updateAdminBookingSummary() {
+    const carSelect = document.getElementById('abCarId');
+    const startDateVal = document.getElementById('abStartDate')?.value;
+    const endDateVal = document.getElementById('abEndDate')?.value;
+    const driverOpt = document.getElementById('abDriverOption')?.value || 'with_driver';
+    const totalPrice = parseFloat(document.getElementById('abTotalPrice')?.value) || 0;
+    const payType = document.getElementById('abPaymentType')?.value || 'lunas_awal';
+    const dpVal = parseFloat(document.getElementById('abDpAmount')?.value) || 0;
+    const statusVal = document.getElementById('abStatus')?.value || 'confirmed';
+
+    let days = 1;
+    if (startDateVal && endDateVal) {
+        const start = new Date(startDateVal);
+        const end = new Date(endDateVal);
+        if (!isNaN(start) && !isNaN(end) && end >= start) {
+            const diffDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+            days = diffDays > 0 ? diffDays : 1;
+        }
+    }
+
+    const driverLabels = {
+        with_driver: '+Supir (Dalam Kota)',
+        without_driver: 'Lepas Kunci',
+        luar_kota: '+Supir (Luar Kota)'
+    };
+    const payLabels = {
+        lunas_awal: 'Lunas di Awal',
+        dp: 'DP (Uang Muka)',
+        bayar_akhir: 'Bayar di Akhir'
+    };
+    const statusLabels = {
+        confirmed: 'Verifikasi',
+        confirmed_pending: 'Verifikasi + Menunggu Bayar',
+        pending: 'Menunggu',
+        cancelled: 'Dibatalkan'
+    };
+
+    const carText = carSelect && carSelect.selectedIndex >= 0
+        ? carSelect.options[carSelect.selectedIndex].textContent
+        : 'Pilih Armada Mobil';
+
+    const durBadge = document.getElementById('abDurationBadge');
+    const sumDurationPill = document.getElementById('abSummaryDurationPill');
+    const sumCar = document.getElementById('abSummaryCar');
+    const sumMeta = document.getElementById('abSummaryMeta');
+    const sumTotal = document.getElementById('abSummaryTotal');
+    const priceHint = document.getElementById('abPriceFormattedHint');
+    const dpHint = document.getElementById('abDpFormattedHint');
+    const footerSummary = document.getElementById('abFooterSummary');
+
+    const formattedTotal = formatRupiah(totalPrice);
+
+    if (durBadge) durBadge.textContent = `${days} Hari`;
+    if (sumDurationPill) sumDurationPill.textContent = `${days} Hari`;
+    if (sumCar) sumCar.textContent = carText;
+    if (sumMeta) sumMeta.textContent = `${days} Hari · ${driverLabels[driverOpt] || '+Supir'}`;
+    if (sumTotal) sumTotal.textContent = formattedTotal;
+    if (priceHint) priceHint.textContent = formattedTotal;
+    if (dpHint) dpHint.textContent = `${formatRupiah(dpVal)} dari ${formattedTotal}`;
+    if (footerSummary) {
+        footerSummary.textContent = `${statusLabels[statusVal] || 'Verifikasi'} · ${payLabels[payType] || 'Lunas di Awal'}`;
     }
 }
 
@@ -4013,10 +4231,12 @@ function openAdminBookingModal() {
 
     const titleIconEl = document.getElementById('adminBookingModalIcon');
     const titleTextEl = document.getElementById('adminBookingModalTitleText');
+    const subtitleEl = document.getElementById('adminBookingModalSubtitle');
     const submitBtnEl = document.getElementById('abSubmitBtn');
-    if (titleIconEl) titleIconEl.innerHTML = '<i class="fa-solid fa-plus" style="font-size: 0.95rem;"></i>';
+    if (titleIconEl) titleIconEl.innerHTML = '<i class="fa-solid fa-plus"></i>';
     if (titleTextEl) titleTextEl.textContent = 'Input Booking Manual';
-    if (submitBtnEl) submitBtnEl.textContent = 'Simpan Booking';
+    if (subtitleEl) subtitleEl.textContent = 'Buat pesanan sewa unit baru secara langsung untuk pelanggan';
+    if (submitBtnEl) submitBtnEl.innerHTML = '<i class="fa-solid fa-check"></i><span>Simpan Booking</span>';
 
     populateAdminBookingCarSelect();
 
@@ -4076,10 +4296,12 @@ function openEditAdminBookingModal(id) {
 
     const titleIconEl = document.getElementById('adminBookingModalIcon');
     const titleTextEl = document.getElementById('adminBookingModalTitleText');
+    const subtitleEl = document.getElementById('adminBookingModalSubtitle');
     const submitBtnEl = document.getElementById('abSubmitBtn');
-    if (titleIconEl) titleIconEl.innerHTML = '<i class="fa-solid fa-pen-to-square" style="font-size: 0.95rem;"></i>';
+    if (titleIconEl) titleIconEl.innerHTML = '<i class="fa-solid fa-pen-to-square"></i>';
     if (titleTextEl) titleTextEl.textContent = 'Edit Data Booking';
-    if (submitBtnEl) submitBtnEl.textContent = 'Simpan Perubahan';
+    if (subtitleEl) subtitleEl.textContent = `${booking.booking_code ? '#' + booking.booking_code + ' · ' : ''}Perbarui jadwal, armada, atau rincian biaya sewa`;
+    if (submitBtnEl) submitBtnEl.innerHTML = '<i class="fa-solid fa-check"></i><span>Simpan Perubahan</span>';
 
     populateAdminBookingCarSelect(booking.car_id);
 
@@ -4097,16 +4319,18 @@ function openEditAdminBookingModal(id) {
     const notesEl = document.getElementById('abNotes');
 
     const todayStr = new Date().toISOString().split('T')[0];
-    if (startDateEl) startDateEl.min = todayStr;
-    if (endDateEl) endDateEl.min = todayStr;
+    const startVal = booking.start_date ? String(booking.start_date).split('T')[0] : todayStr;
+    if (startDateEl) {
+        startDateEl.min = startVal < todayStr ? startVal : todayStr;
+        startDateEl.value = startVal;
+    }
+    if (endDateEl) {
+        endDateEl.value = booking.end_date ? String(booking.end_date).split('T')[0] : getRelativeDateStr(1);
+        endDateEl.min = startVal;
+    }
 
     if (nameEl) nameEl.value = booking.customer_name || '';
     if (phoneEl) phoneEl.value = booking.customer_phone || '';
-    if (startDateEl) startDateEl.value = booking.start_date ? String(booking.start_date).split('T')[0] : todayStr;
-    if (endDateEl) {
-        endDateEl.value = booking.end_date ? String(booking.end_date).split('T')[0] : getRelativeDateStr(1);
-        if (startDateEl && startDateEl.value) endDateEl.min = startDateEl.value;
-    }
     if (startTimeEl) startTimeEl.value = booking.start_time || '09:00';
     if (endTimeEl) endTimeEl.value = booking.end_time || '09:00';
     if (eventTypeEl) eventTypeEl.value = booking.event_type || 'Wisata / Liburan Keluarga';
@@ -4136,6 +4360,7 @@ function openEditAdminBookingModal(id) {
     if (notesEl) notesEl.value = booking.notes || '';
 
     setAdminPaymentType(booking.payment_type || 'lunas_awal');
+    updateAdminBookingSummary();
     modal.classList.remove('hidden');
 }
 
@@ -4150,7 +4375,10 @@ function calculateAdminBookingPrice() {
     const endDateVal = document.getElementById('abEndDate')?.value;
     const driverOpt = document.getElementById('abDriverOption')?.value;
 
-    if (!carId || !adminState.cars) return;
+    if (!carId || !adminState.cars) {
+        updateAdminBookingSummary();
+        return;
+    }
     const car = adminState.cars.find(c => c.id == carId) || adminState.cars[0];
     const isHoliday = adminState.ownerConfig ? adminState.ownerConfig.isHolidayPricingActive : false;
     const carRate = car ? (isHoliday ? (car.priceHoliday || car.priceNormal) : car.priceNormal) : 350000;
@@ -4173,6 +4401,7 @@ function calculateAdminBookingPrice() {
     const grandTotal = (carRate * days) + driverTotal;
     const priceInput = document.getElementById('abTotalPrice');
     if (priceInput) priceInput.value = grandTotal;
+    updateAdminBookingSummary();
 }
 
 async function handleSaveAdminBooking(e) {
@@ -4382,8 +4611,13 @@ window.openAdminAddReviewModal = openAdminAddReviewModal;
 window.openAdminEditReviewModal = openAdminEditReviewModal;
 window.closeAdminAddReviewModal = closeAdminAddReviewModal;
 window.setAdminReviewUserType = setAdminReviewUserType;
+window.setAdminReviewRating = setAdminReviewRating;
+window.updateAdminReviewLivePreview = updateAdminReviewLivePreview;
 window.toggleAdminReviewUserType = toggleAdminReviewUserType;
 window.handleAdminRevMediaFile = handleAdminRevMediaFile;
+window.handleAdminRevMediaDragOver = handleAdminRevMediaDragOver;
+window.handleAdminRevMediaDragLeave = handleAdminRevMediaDragLeave;
+window.handleAdminRevMediaDrop = handleAdminRevMediaDrop;
 window.removeAdminRevMediaItem = removeAdminRevMediaItem;
 window.removeAdminRevMedia = removeAdminRevMedia;
 window.handleAdminRevAvatarFile = handleAdminRevAvatarFile;
@@ -4399,6 +4633,7 @@ window.closeStatusDropdownPortal = closeStatusDropdownPortal;
 window.selectBookingStatusFromPortal = selectBookingStatusFromPortal;
 window.openEditAdminBookingModal = openEditAdminBookingModal;
 window.setAdminPaymentType = setAdminPaymentType;
+window.updateAdminBookingSummary = updateAdminBookingSummary;
 window.setAdminQuickDp = setAdminQuickDp;
 window.handleAdminStartDateChange = handleAdminStartDateChange;
 window.openBookingHistoryModal = openBookingHistoryModal;
