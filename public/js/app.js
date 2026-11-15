@@ -58,15 +58,15 @@ function formatDisplayDate(dateStr) {
 async function initStorage() {
     // Bersihkan cache lama (garuda_ keys) & paksa refresh data
     ['garuda_rent_cars','garuda_rent_config','garuda_rent_reviews','garuda_rent_bookings'].forEach(k => localStorage.removeItem(k));
-    if (localStorage.getItem('rcm_cars_v_rev') !== '4') {
+    if (localStorage.getItem('rcm_cars_v_rev') !== '8') {
         localStorage.removeItem('rcm_rent_cars');
         localStorage.removeItem('rcm_rent_config');
         localStorage.removeItem('rcm_rent_reviews');
         localStorage.removeItem('rcm_rent_bookings');
-        localStorage.setItem('rcm_cars_v_rev', '4');
+        localStorage.setItem('rcm_cars_v_rev', '8');
     }
 
-    // Cars setup
+    // 1. Cars initial cache
     const savedCars = localStorage.getItem('rcm_rent_cars');
     if (savedCars) {
         try {
@@ -80,7 +80,47 @@ async function initStorage() {
         localStorage.setItem('rcm_rent_cars', JSON.stringify(state.cars));
     }
 
-    // Try fetching cars from API if available
+    // 2. Config initial cache
+    const savedConfig = localStorage.getItem('rcm_rent_config');
+    if (savedConfig) {
+        try {
+            state.ownerConfig = JSON.parse(savedConfig);
+        } catch (e) {
+            state.ownerConfig = { ...DEFAULT_OWNER_CONFIG };
+        }
+    } else {
+        state.ownerConfig = { ...DEFAULT_OWNER_CONFIG };
+        localStorage.setItem('rcm_rent_config', JSON.stringify(state.ownerConfig));
+    }
+
+    // 3. Reviews initial cache
+    const savedReviews = localStorage.getItem('rcm_rent_reviews');
+    if (savedReviews) {
+        try {
+            state.reviews = JSON.parse(savedReviews);
+        } catch (e) {
+            state.reviews = [...DEFAULT_REVIEWS];
+        }
+    } else {
+        state.reviews = [...DEFAULT_REVIEWS];
+        localStorage.setItem('rcm_rent_reviews', JSON.stringify(state.reviews));
+    }
+
+    // Render UI LANGSUNG seketika (0 ms) sehingga halaman tidak nge-lag/blank
+    renderOwnerInfo();
+    renderCarsCatalog();
+    renderReviews();
+
+    // 4. Fetch pembaruan dari backend API secara PARALEL di latar belakang
+    Promise.allSettled([
+        fetchCarsApi(),
+        fetchConfigApi(),
+        fetchReviewsApi()
+    ]);
+}
+
+// Fetch Cars dari API secara background
+async function fetchCarsApi() {
     try {
         const res = await fetch('/api/cars');
         if (res.ok) {
@@ -99,39 +139,25 @@ async function initStorage() {
                     luggage: c.luggage,
                     priceNormal: parseFloat(c.price_normal),
                     priceHoliday: parseFloat(c.price_holiday),
-                    driverRateNormal: parseFloat(c.driver_rate_normal || 0),
-                    driverRateHoliday: parseFloat(c.driver_rate_holiday || 0),
+                    driver_fee: parseFloat(c.driver_fee || 50000),
+                    driverFee: parseFloat(c.driver_fee || 50000),
+                    driverRateNormal: parseFloat(c.driver_fee || c.driver_rate_normal || 50000),
+                    driverRateHoliday: parseFloat(c.driver_fee || c.driver_rate_holiday || 50000),
+                    rental_option: c.rental_option || 'both',
+                    rentalOption: c.rental_option || 'both',
                     status: c.status,
                     image: c.image || 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80',
                     description: c.description
                 }));
                 localStorage.setItem('rcm_rent_cars', JSON.stringify(state.cars));
-            } else if ((!state.cars || state.cars.length === 0) && typeof DEFAULT_CARS !== 'undefined') {
-                state.cars = [...DEFAULT_CARS];
-                localStorage.setItem('rcm_rent_cars', JSON.stringify(state.cars));
+                renderCarsCatalog();
             }
         }
-    } catch (err) {
-        if ((!state.cars || state.cars.length === 0) && typeof DEFAULT_CARS !== 'undefined') {
-            state.cars = [...DEFAULT_CARS];
-            localStorage.setItem('rcm_rent_cars', JSON.stringify(state.cars));
-        }
-    }
+    } catch (err) {}
+}
 
-    // Config setup
-    const savedConfig = localStorage.getItem('rcm_rent_config');
-    if (savedConfig) {
-        try {
-            state.ownerConfig = JSON.parse(savedConfig);
-        } catch (e) {
-            state.ownerConfig = { ...DEFAULT_OWNER_CONFIG };
-        }
-    } else {
-        state.ownerConfig = { ...DEFAULT_OWNER_CONFIG };
-        localStorage.setItem('rcm_rent_config', JSON.stringify(state.ownerConfig));
-    }
-
-    // Try fetching config from API
+// Fetch Config dari API secara background
+async function fetchConfigApi() {
     try {
         const res = await fetch('/api/owner-config');
         if (res.ok) {
@@ -161,35 +187,14 @@ async function initStorage() {
                     qrisImage: c.qris_image !== undefined ? (c.qris_image || '') : (state.ownerConfig.qrisImage || '')
                 };
                 localStorage.setItem('rcm_rent_config', JSON.stringify(state.ownerConfig));
+                renderOwnerInfo();
             }
         }
-    } catch (err) {
-        // Silent fallback
-    }
-
-    // Reviews setup
-    await initReviewsStorage();
-
-    renderOwnerInfo();
-    renderCarsCatalog();
-    renderReviews();
+    } catch (err) {}
 }
 
-// Inisialisasi Data Reviews
-async function initReviewsStorage() {
-    const savedReviews = localStorage.getItem('rcm_rent_reviews');
-    if (savedReviews) {
-        try {
-            state.reviews = JSON.parse(savedReviews);
-        } catch (e) {
-            state.reviews = [...DEFAULT_REVIEWS];
-        }
-    } else {
-        state.reviews = [...DEFAULT_REVIEWS];
-        localStorage.setItem('rcm_rent_reviews', JSON.stringify(state.reviews));
-    }
-
-    // Try fetching approved reviews from backend API
+// Fetch Reviews dari API secara background
+async function fetchReviewsApi() {
     try {
         const res = await fetch('/api/reviews?status=approved');
         if (res.ok) {
@@ -197,11 +202,10 @@ async function initReviewsStorage() {
             if (result.data && result.data.length > 0) {
                 state.reviews = result.data;
                 localStorage.setItem('rcm_rent_reviews', JSON.stringify(state.reviews));
+                renderReviews();
             }
         }
-    } catch (err) {
-        // LocalStorage fallback
-    }
+    } catch (err) {}
 }
 
 // Render Header, Info Rental & Kontak Owner
@@ -370,11 +374,16 @@ function renderCarsCatalog() {
                             `}
                         </div>
 
-                        <!-- Kategori Badge -->
-                        <div class="card-cat-wrap" style="position: absolute; top: 0.75rem; left: 0.75rem;">
+                        <!-- Kategori Badge & Ketentuan Driver -->
+                        <div class="card-cat-wrap" style="position: absolute; top: 0.75rem; left: 0.75rem; display: flex; flex-direction: column; gap: 0.35rem; align-items: flex-start;">
                             <span class="badge-tag">
                                 ${car.category}
                             </span>
+                            ${(car.rental_option === 'driver_only' || car.rentalOption === 'driver_only') ? `
+                                <span style="background: rgba(220, 38, 38, 0.9); backdrop-filter: blur(4px); color: #ffffff; font-size: 0.625rem; font-weight: 800; padding: 0.15rem 0.45rem; border-radius: 4px; display: inline-flex; align-items: center; gap: 0.25rem; box-shadow: 0 2px 6px rgba(220, 38, 38, 0.35);">
+                                    <i class="fa-solid fa-user-tie"></i> +Supir Wajib
+                                </span>
+                            ` : ''}
                         </div>
 
                         ${isHoliday ? `
@@ -600,7 +609,7 @@ let storyElapsedMs = 0;
 let storyLastTickTime = 0;
 const STORY_IMAGE_DURATION_MS = 5500;
 
-const CROWN_SVG_ICON = `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M2 19h20v2H2v-2zm1.5-2L2 7l6 4 4-7 4 7 6-4-1.5 10h-17z"/></svg>`;
+const CROWN_SVG_ICON = `<svg viewBox="0 0 24 24" aria-hidden="true" style="width:100%;height:100%;"><defs><linearGradient id="crownGradRedOrange" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#dc2626"/><stop offset="50%" stop-color="#ef4444"/><stop offset="100%" stop-color="#f97316"/></linearGradient></defs><path fill="url(#crownGradRedOrange)" d="M2 19h20v2H2v-2zm1.5-2L2 7l6 4 4-7 4 7 6-4-1.5 10h-17z"/></svg>`;
 
 // Render Review & Testimoni Pelanggan (Layout Baru: Avatar -> Nama -> 5 Bintang -> Komentar -> "review")
 function renderReviews() {
@@ -643,7 +652,7 @@ function renderReviews() {
         const starsHtml = Array.from({ length: 5 }, (_, i) => {
             if (isArtis && i < rating) {
                 const gradId = `artistStarGrad_${cardIdx}_${i}`;
-                return `<svg style="width:1.35rem;height:1.35rem;" viewBox="0 0 24 24"><defs><linearGradient id="${gradId}" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#16a34a"/><stop offset="50%" stop-color="#22c55e"/><stop offset="100%" stop-color="#16a34a"/></linearGradient></defs><polygon fill="url(#${gradId})" stroke="url(#${gradId})" points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
+                return `<svg style="width:1.35rem;height:1.35rem;" viewBox="0 0 24 24"><defs><linearGradient id="${gradId}" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#dc2626"/><stop offset="50%" stop-color="#ef4444"/><stop offset="100%" stop-color="#f97316"/></linearGradient></defs><polygon fill="url(#${gradId})" stroke="url(#${gradId})" points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
             }
             return `<svg style="width:1.35rem;height:1.35rem;fill:${i < rating ? starActiveColor : starInactiveColor};stroke:${i < rating ? starActiveColor : starInactiveColor}" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
         }).join('');
@@ -651,14 +660,14 @@ function renderReviews() {
         const safeName = escapeHtml(rev.name || 'Pelanggan');
         const safeComment = escapeHtml(rev.comment || '');
         const safeCar = escapeHtml(rev.car_name || '');
-        const avatarSrc = rev.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(rev.name || 'P')}&background=${isArtis ? '16a34a' : '64748b'}&color=fff&bold=true`;
+        const avatarSrc = rev.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(rev.name || 'P')}&background=${isArtis ? 'dc2626' : '64748b'}&color=fff&bold=true`;
 
         const ringClass = isArtis
             ? 'review-avatar-ring is-artist'
             : (hasMedia ? 'review-avatar-ring has-story' : 'review-avatar-ring');
 
         const storyBadgeCount = stories.length > 0
-            ? `<span style="font-size: 0.7rem; font-weight: 800; padding: 0.1rem 0.45rem; border-radius: 9999px; background: ${isArtis ? 'linear-gradient(135deg, #16a34a 0%, #22c55e 100%)' : '#f1f5f9'}; color: ${isArtis ? '#ffffff' : '#475569'};">▶ ${stories.length}</span>`
+            ? `<span style="font-size: 0.7rem; font-weight: 800; padding: 0.1rem 0.45rem; border-radius: 9999px; background: ${isArtis ? 'linear-gradient(135deg, #ef4444 0%, #f97316 100%)' : '#f1f5f9'}; color: ${isArtis ? '#ffffff' : '#475569'};">▶ ${stories.length}</span>`
             : '';
 
         return `
@@ -673,7 +682,7 @@ function renderReviews() {
                                     src="${avatarSrc}"
                                     alt="${safeName}"
                                     class="review-avatar-img"
-                                    onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(rev.name || 'P')}&background=${isArtis ? '16a34a' : '64748b'}&color=fff'"
+                                    onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(rev.name || 'P')}&background=${isArtis ? 'dc2626' : '64748b'}&color=fff'"
                                 />
                             </div>
                         </div>
@@ -1702,6 +1711,67 @@ async function openBookingModal(carId) {
         statusBadge.innerHTML = '<span class="dot-indicator" style="background-color: #f59e0b;"></span> Sedang Dalam Masa Sewa';
     }
 
+    // Biaya Supir per Hari untuk Mobil Ini
+    const driverFeeVal = car.driver_fee || car.driverFee || 50000;
+    const driverFeeTextEl = document.getElementById('modalCarDriverFeeText');
+    if (driverFeeTextEl) {
+        driverFeeTextEl.textContent = `+ ${formatRupiah(driverFeeVal)} / hari`;
+    }
+
+    // Cek Ketentuan Layanan Sewa (Hanya Supir / Keduanya)
+    const isDriverOnly = (car.rental_option === 'driver_only') || (car.rentalOption === 'driver_only');
+    const selfWrapper = document.getElementById('driverOptionSelfWrapper');
+    const driverWrapper = document.getElementById('driverOptionDriverWrapper');
+    const selfRadio = document.getElementById('driverOptionSelf');
+    const driverRadio = document.getElementById('driverOptionDriver');
+    const driverOnlyAlert = document.getElementById('driverOnlyAlert');
+
+    if (isDriverOnly) {
+        if (selfRadio) {
+            selfRadio.checked = false;
+            selfRadio.disabled = true;
+        }
+        if (driverRadio) {
+            driverRadio.checked = true;
+            driverRadio.disabled = false;
+        }
+        if (selfWrapper) {
+            selfWrapper.style.opacity = '0.45';
+            selfWrapper.style.cursor = 'not-allowed';
+            selfWrapper.style.background = '#f1f5f9';
+            selfWrapper.style.borderColor = 'var(--clr-border)';
+        }
+        if (driverWrapper) {
+            driverWrapper.style.opacity = '1';
+            driverWrapper.style.cursor = 'pointer';
+            driverWrapper.style.borderColor = '#10b981';
+            driverWrapper.style.background = '#ecfdf5';
+        }
+        if (driverOnlyAlert) driverOnlyAlert.classList.remove('hidden');
+    } else {
+        if (selfRadio) {
+            selfRadio.disabled = false;
+            selfRadio.checked = true;
+        }
+        if (driverRadio) {
+            driverRadio.disabled = false;
+            driverRadio.checked = false;
+        }
+        if (selfWrapper) {
+            selfWrapper.style.opacity = '1';
+            selfWrapper.style.cursor = 'pointer';
+            selfWrapper.style.background = '#f8fafc';
+            selfWrapper.style.borderColor = 'var(--clr-border)';
+        }
+        if (driverWrapper) {
+            driverWrapper.style.opacity = '1';
+            driverWrapper.style.cursor = 'pointer';
+            driverWrapper.style.background = '#f8fafc';
+            driverWrapper.style.borderColor = 'var(--clr-border)';
+        }
+        if (driverOnlyAlert) driverOnlyAlert.classList.add('hidden');
+    }
+
     // Set Option Select Mobil di Form
     const selectUnit = document.getElementById('bookCarSelect');
     if (selectUnit) {
@@ -1953,6 +2023,7 @@ function handlePaymentTypeChange() {
         if (waNoticeText) {
             waNoticeText.innerHTML = 'Anda memilih opsi <strong>DP (Uang Muka)</strong>. Rincian DP akan dikirimkan ke WhatsApp Admin. Admin akan mengirimkan nomor rekening resmi / QRIS untuk pembayaran transfer DP guna mengunci jadwal pesanan Anda.';
         }
+        updateDpButtonsHighlight(50);
     } else if (payType === 'lunas_awal') {
         if (dpAmountBox) dpAmountBox.classList.add('hidden');
         if (waNoticeTitle) waNoticeTitle.textContent = 'Pembayaran Lunas di Awal via WhatsApp Admin';
@@ -1993,6 +2064,45 @@ function handlePaymentMethodChange() {
     }
 }
 
+// Update Highlight Tombol DP 30% dan DP 50%
+function updateDpButtonsHighlight(pct) {
+    const btn30 = document.getElementById('btnDp30');
+    const btn50 = document.getElementById('btnDp50');
+    if (!btn30 || !btn50) return;
+
+    if (pct === 30) {
+        btn30.style.background = '#f59e0b';
+        btn30.style.color = '#ffffff';
+        btn30.style.fontWeight = '800';
+        btn30.style.boxShadow = '0 2px 5px rgba(245, 158, 11, 0.4)';
+
+        btn50.style.background = '#ffffff';
+        btn50.style.color = '#b45309';
+        btn50.style.fontWeight = '700';
+        btn50.style.boxShadow = 'none';
+    } else if (pct === 50) {
+        btn50.style.background = '#f59e0b';
+        btn50.style.color = '#ffffff';
+        btn50.style.fontWeight = '800';
+        btn50.style.boxShadow = '0 2px 5px rgba(245, 158, 11, 0.4)';
+
+        btn30.style.background = '#ffffff';
+        btn30.style.color = '#b45309';
+        btn30.style.fontWeight = '700';
+        btn30.style.boxShadow = 'none';
+    } else {
+        btn30.style.background = '#ffffff';
+        btn30.style.color = '#b45309';
+        btn30.style.fontWeight = '700';
+        btn30.style.boxShadow = 'none';
+
+        btn50.style.background = '#ffffff';
+        btn50.style.color = '#b45309';
+        btn50.style.fontWeight = '700';
+        btn50.style.boxShadow = 'none';
+    }
+}
+
 // Set Cepat Persentase DP (30% atau 50%)
 function setDpPercentage(pct) {
     const dpInput = document.getElementById('bookDpAmount');
@@ -2001,6 +2111,29 @@ function setDpPercentage(pct) {
     const calcDp = Math.round((total * pct) / 100);
     dpInput.value = calcDp;
     dpInput.dataset.userEdited = 'true';
+    updateDpButtonsHighlight(pct);
+    calculateBookingPrice();
+}
+
+// Handle Input Manual Nominal DP
+function handleDpAmountInput() {
+    const dpInput = document.getElementById('bookDpAmount');
+    if (!dpInput) return;
+    dpInput.dataset.userEdited = 'true';
+
+    const total = state.currentGrandTotal || 0;
+    const currentVal = parseFloat(dpInput.value) || 0;
+    if (total > 0) {
+        const val30 = Math.round(total * 0.3);
+        const val50 = Math.round(total * 0.5);
+        if (Math.abs(currentVal - val30) <= Math.max(100, val30 * 0.02)) {
+            updateDpButtonsHighlight(30);
+        } else if (Math.abs(currentVal - val50) <= Math.max(100, val50 * 0.02)) {
+            updateDpButtonsHighlight(50);
+        } else {
+            updateDpButtonsHighlight(null);
+        }
+    }
     calculateBookingPrice();
 }
 
@@ -2171,7 +2304,7 @@ function calculateBookingPrice() {
     let driverRateText = 'Rp 0';
 
     if (isWithDriver) {
-        const driverRate = isHoliday ? (car.driverRateHoliday || 150000) : (car.driverRateNormal || 150000);
+        const driverRate = isHoliday ? (car.driverFee || car.driverRateHoliday || 50000) : (car.driverFee || car.driverRateNormal || 50000);
         driverTotal = driverRate * days;
         driverRateText = `${formatRupiah(driverRate)}/hari`;
     }
@@ -2290,7 +2423,7 @@ async function handleBookingSubmit(e) {
     let driverLabel = 'Lepas Kunci (Berkendara Sendiri)';
 
     if (isWithDriver) {
-        const driverRate = isHoliday ? (car.driverRateHoliday || 150000) : (car.driverRateNormal || 150000);
+        const driverRate = isHoliday ? (car.driverFee || car.driverRateHoliday || 50000) : (car.driverFee || car.driverRateNormal || 50000);
         driverTotal = driverRate * diffDays;
         driverLabel = `Dengan Supir Pengalaman (${formatRupiah(driverRate)}/hari)`;
     }
@@ -2802,6 +2935,8 @@ window.handleCustomerSettlementProofUpload = handleCustomerSettlementProofUpload
 window.handlePaymentTypeChange = handlePaymentTypeChange;
 window.handlePaymentMethodChange = handlePaymentMethodChange;
 window.setDpPercentage = setDpPercentage;
+window.handleDpAmountInput = handleDpAmountInput;
+window.updateDpButtonsHighlight = updateDpButtonsHighlight;
 window.copyBankAccountNumber = copyBankAccountNumber;
 window.checkDateConflict = checkDateConflict;
 window.openBookingModal = openBookingModal;

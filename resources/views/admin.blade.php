@@ -215,10 +215,10 @@
 
                     <!-- 4 Kartu Metrik Utama Bisnis & Omzet -->
                     <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <!-- Total Pendapatan Bulan Ini -->
+                        <!-- Total Pendapatan Sesuai Periode -->
                         <div style="background: #ffffff; padding: 1.25rem; border-radius: var(--radius-lg); border: 1px solid var(--clr-border); box-shadow: var(--shadow-xs); position: relative; overflow: hidden;">
                             <div style="display: flex; align-items: center; justify-content: space-between;">
-                                <div style="font-size: 0.75rem; font-weight: 700; color: var(--clr-text-subtle);">Pendapatan Bulan Ini</div>
+                                <div style="font-size: 0.75rem; font-weight: 700; color: var(--clr-text-subtle);" id="statRevenueTitle">Pendapatan Bulan Ini</div>
                                 <span id="statRevenueGrowthBadge" style="font-size: 0.675rem; font-weight: 800; padding: 0.15rem 0.45rem; border-radius: 999px; background: #ecfdf5; color: #047857;">
                                     +0%
                                 </span>
@@ -251,15 +251,15 @@
                                 </span>
                             </div>
                             <div style="font-size: 1.6rem; font-weight: 800; color: #d97706; margin-top: 0.35rem;" id="statInUseCars">0 Unit</div>
-                            <div style="font-size: 0.7rem; color: var(--clr-text-muted); margin-top: 0.2rem;">Sedang operasional sewa</div>
+                            <div style="font-size: 0.7rem; color: var(--clr-text-muted); margin-top: 0.2rem;">Sedang operasional sewa hari ini</div>
                         </div>
 
-                        <!-- Total Transaksi Booking -->
+                        <!-- Total Transaksi Booking Sesuai Periode -->
                         <div style="background: #ffffff; padding: 1.25rem; border-radius: var(--radius-lg); border: 1px solid var(--clr-border); box-shadow: var(--shadow-xs);">
                             <div style="display: flex; align-items: center; justify-content: space-between;">
-                                <div style="font-size: 0.75rem; font-weight: 700; color: #2563eb;">Total Order Masuk</div>
+                                <div style="font-size: 0.75rem; font-weight: 700; color: #2563eb;" id="statBookingsTitle">Total Order Masuk</div>
                                 <span style="font-size: 0.675rem; font-weight: 800; padding: 0.15rem 0.45rem; border-radius: 999px; background: #eff6ff; color: #1d4ed8;" id="statYearGrowthBadge">
-                                    Tahun Ini
+                                    Bulan Ini
                                 </span>
                             </div>
                             <div style="font-size: 1.6rem; font-weight: 800; color: #2563eb; margin-top: 0.35rem;" id="statTotalBookingsCount">0 Order</div>
@@ -286,10 +286,10 @@
 
                             <!-- Filter Rentang Waktu (Mingguan, Bulanan, Tahunan) -->
                             <div style="display: flex; align-items: center; background: #f1f5f9; padding: 0.25rem; border-radius: 999px; gap: 0.25rem; border: 1px solid #e2e8f0;">
-                                <button onclick="setRevenueChartTimeframe('week', this)" id="btnTimeframeWeek" class="revenue-tf-btn active" style="border: none; padding: 0.4rem 0.85rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s; background: #dc2626; color: #ffffff;">
+                                <button onclick="setRevenueChartTimeframe('week', this)" id="btnTimeframeWeek" class="revenue-tf-btn" style="border: none; padding: 0.4rem 0.85rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s; background: transparent; color: #64748b;">
                                     Per Minggu
                                 </button>
-                                <button onclick="setRevenueChartTimeframe('month', this)" id="btnTimeframeMonth" class="revenue-tf-btn" style="border: none; padding: 0.4rem 0.85rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s; background: transparent; color: #64748b;">
+                                <button onclick="setRevenueChartTimeframe('month', this)" id="btnTimeframeMonth" class="revenue-tf-btn active" style="border: none; padding: 0.4rem 0.85rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s; background: #dc2626; color: #ffffff;">
                                     Per Bulan
                                 </button>
                                 <button onclick="setRevenueChartTimeframe('year', this)" id="btnTimeframeYear" class="revenue-tf-btn" style="border: none; padding: 0.4rem 0.85rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s; background: transparent; color: #64748b;">
@@ -453,15 +453,29 @@
                         <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 240px;">
                             <input type="text" id="adminBookingSearch" oninput="filterBookingsTable()" placeholder="Cari nama pelanggan, HP, kode booking, atau armada..." class="form-input" style="font-size: 0.8125rem;">
                         </div>
-                        <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            <span style="font-size: 0.75rem; color: var(--clr-text-muted); font-weight: 600;">Filter Status:</span>
-                            <select id="adminBookingFilterStatus" onchange="filterBookingsTable()" class="form-select" style="font-size: 0.8125rem; width: auto; padding-right: 2rem;">
-                                <option value="all">Semua Status</option>
-                                <option value="confirmed">Verifikasi</option>
-                                <option value="confirmed_pending">Verifikasi + Menunggu Pembayaran</option>
-                                <option value="pending">Menunggu</option>
-                                <option value="cancelled">Dibatalkan</option>
-                            </select>
+                        <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                            <!-- Filter Periode Real-Time -->
+                            <div style="display: flex; align-items: center; gap: 0.4rem;">
+                                <span style="font-size: 0.75rem; color: var(--clr-text-muted); font-weight: 600;">Periode:</span>
+                                <select id="adminBookingFilterPeriod" onchange="filterBookingsTable()" class="form-select" style="font-size: 0.8125rem; width: auto; padding-right: 2rem; font-weight: 700; color: #dc2626; border-color: #fca5a5;">
+                                    <option value="month" selected>Per Bulan (Bulan Ini)</option>
+                                    <option value="week">Per Minggu (7 Hari Terakhir)</option>
+                                    <option value="year">Per Tahun (Tahun Ini)</option>
+                                    <option value="all">Semua Waktu</option>
+                                </select>
+                            </div>
+
+                            <!-- Filter Status -->
+                            <div style="display: flex; align-items: center; gap: 0.4rem;">
+                                <span style="font-size: 0.75rem; color: var(--clr-text-muted); font-weight: 600;">Status:</span>
+                                <select id="adminBookingFilterStatus" onchange="filterBookingsTable()" class="form-select" style="font-size: 0.8125rem; width: auto; padding-right: 2rem;">
+                                    <option value="all">Semua Status</option>
+                                    <option value="confirmed">Verifikasi</option>
+                                    <option value="confirmed_pending">Verifikasi + Menunggu Pembayaran</option>
+                                    <option value="pending">Menunggu</option>
+                                    <option value="cancelled">Dibatalkan</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
 
@@ -762,7 +776,32 @@
                         <select id="carStatus" class="form-select" style="font-weight: 700; color: var(--clr-emerald);">
                             <option value="ready">Ready (Tersedia)</option>
                             <option value="in_use">Sedang Digunakan</option>
+                            <option value="maintenance">Perawatan / Bengkel</option>
                         </select>
+                    </div>
+                </div>
+
+                <!-- Ketentuan Layanan Sewa (Hanya Supir / Keduanya) -->
+                <div style="background: #fffbeb; border: 1.5px solid #fde68a; border-radius: var(--radius-lg); padding: 1rem 1.15rem; display: flex; flex-direction: column; gap: 0.75rem;">
+                    <div>
+                        <label class="form-label" style="font-weight: 800; color: #92400e; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem;">
+                            <svg style="width: 1rem; height: 1rem; color: #d97706;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                            Ketentuan Layanan Sewa
+                        </label>
+                        <select id="carRentalOption" class="form-select" style="font-weight: 700; background: #ffffff; width: 100%; border: 1.5px solid #fcd34d; border-radius: var(--radius-md); padding: 0.65rem 0.85rem; font-size: 0.875rem; color: #1e293b; box-shadow: 0 1px 2px rgba(0,0,0,0.04);">
+                            <option value="both" selected>Keduanya (Bisa Lepas Kunci & Pakai Supir)</option>
+                            <option value="driver_only">Hanya Bisa Sewa Pakai Supir (Wajib Driver)</option>
+                        </select>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0.5rem; background: rgba(254, 243, 199, 0.55); border: 1px solid #fde68a; padding: 0.6rem 0.85rem; border-radius: var(--radius-md); font-size: 0.74rem; color: #92400e; line-height: 1.45;">
+                        <div style="display: flex; align-items: flex-start; gap: 0.4rem;">
+                            <span style="font-size: 0.85rem; line-height: 1;">💡</span>
+                            <span><b>Aturan Sewa:</b> Jika diset <i>Hanya Pakai Supir</i>, opsi Lepas Kunci otomatis dinonaktifkan untuk pelanggan.</span>
+                        </div>
+                        <div style="display: flex; align-items: flex-start; gap: 0.4rem;">
+                            <span style="font-size: 0.85rem; line-height: 1;">⚡</span>
+                            <span><b>Ketersediaan Otomatis:</b> Jika mobil sedang dipakai hari ini di Data Booking, status otomatis berubah ke <b>Sedang Digunakan</b>.</span>
+                        </div>
                     </div>
                 </div>
 
@@ -802,7 +841,7 @@
                     </div>
                     <div class="form-group" style="margin-bottom: 0;">
                         <label class="form-label">Biaya Supir / Hari</label>
-                        <input type="number" id="carDriverFee" required value="150000" class="form-input" style="font-weight: 700;">
+                        <input type="number" id="carDriverFee" required value="50000" class="form-input" style="font-weight: 700;">
                     </div>
                 </div>
 
@@ -985,7 +1024,7 @@
                                 <div style="display: flex; flex-direction: column; align-items: center; text-align: center;">
                                     <div class="rev-preview-avatar-wrap">
                                         <span id="adminRevLiveCrown" class="rev-preview-crown hidden">
-                                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 19h20v2H2v-2zm1.5-2L2 7l6 4 4-7 4 7 6-4-1.5 10h-17z"/></svg>
+                                            <svg viewBox="0 0 24 24"><defs><linearGradient id="adminCrownGradLive" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#dc2626"/><stop offset="50%" stop-color="#ef4444"/><stop offset="100%" stop-color="#f97316"/></linearGradient></defs><path fill="url(#adminCrownGradLive)" d="M2 19h20v2H2v-2zm1.5-2L2 7l6 4 4-7 4 7 6-4-1.5 10h-17z"/></svg>
                                         </span>
                                         <div class="rev-preview-ring">
                                             <img id="adminRevLiveAvatar" src="https://ui-avatars.com/api/?name=P&background=64748b&color=fff&bold=true" alt="Preview" class="rev-preview-avatar">
@@ -1112,16 +1151,30 @@
                     <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 220px;">
                         <input type="text" id="adminHistorySearch" oninput="filterHistoryTable()" placeholder="Cari nama pelanggan, HP, kode booking, atau armada..." class="form-input" style="font-size: 0.8125rem; background: #ffffff;">
                     </div>
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <span style="font-size: 0.75rem; color: var(--clr-text-muted); font-weight: 600;">Filter:</span>
-                        <select id="adminHistoryFilterStatus" onchange="filterHistoryTable()" class="form-select" style="font-size: 0.8125rem; width: auto; padding-right: 2rem; background: #ffffff;">
-                            <option value="lunas" selected>✓ Pembayaran Lunas (Terverifikasi)</option>
-                            <option value="all">Semua Riwayat (Termasuk Pending/Batal)</option>
-                            <option value="confirmed">Verifikasi</option>
-                            <option value="confirmed_pending">Verifikasi + Menunggu Pembayaran</option>
-                            <option value="pending">Menunggu</option>
-                            <option value="cancelled">Dibatalkan</option>
-                        </select>
+                    <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                        <!-- Filter Periode Real-Time -->
+                        <div style="display: flex; align-items: center; gap: 0.4rem;">
+                            <span style="font-size: 0.75rem; color: var(--clr-text-muted); font-weight: 600;">Periode:</span>
+                            <select id="adminHistoryFilterPeriod" onchange="filterHistoryTable()" class="form-select" style="font-size: 0.8125rem; width: auto; padding-right: 2rem; background: #ffffff; font-weight: 700; color: #059669; border-color: #a7f3d0;">
+                                <option value="all">Semua Waktu</option>
+                                <option value="week">Per Minggu (7 Hari Terakhir)</option>
+                                <option value="month">Per Bulan (Bulan Ini)</option>
+                                <option value="year">Per Tahun (Tahun Ini)</option>
+                            </select>
+                        </div>
+
+                        <!-- Filter Status -->
+                        <div style="display: flex; align-items: center; gap: 0.4rem;">
+                            <span style="font-size: 0.75rem; color: var(--clr-text-muted); font-weight: 600;">Status:</span>
+                            <select id="adminHistoryFilterStatus" onchange="filterHistoryTable()" class="form-select" style="font-size: 0.8125rem; width: auto; padding-right: 2rem; background: #ffffff;">
+                                <option value="lunas" selected>✓ Pembayaran Lunas (Terverifikasi)</option>
+                                <option value="all">Semua Riwayat (Termasuk Pending/Batal)</option>
+                                <option value="confirmed">Verifikasi</option>
+                                <option value="confirmed_pending">Verifikasi + Menunggu Pembayaran</option>
+                                <option value="pending">Menunggu</option>
+                                <option value="cancelled">Dibatalkan</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
@@ -1632,7 +1685,7 @@
     <div id="adminToastContainer" class="admin-toast-container"></div>
 
     <!-- Scripts -->
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" defer></script>
     <script src="/js/data.js"></script>
     <script src="/js/admin.js"></script>
 </body>

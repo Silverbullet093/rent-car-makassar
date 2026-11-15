@@ -35,6 +35,22 @@ class CarController extends Controller
 
             $cars = $query->orderBy('id', 'asc')->get();
 
+            // Ketersediaan otomatis: Jika hari ini sedang dipakai oleh booking aktif/terverifikasi, status otomatis 'in_use'
+            $today = now('Asia/Makassar')->toDateString();
+            $inUseCarIds = \App\Models\Booking::whereIn('status', ['confirmed', 'confirmed_pending'])
+                ->whereDate('start_date', '<=', $today)
+                ->whereDate('end_date', '>=', $today)
+                ->pluck('car_id')
+                ->unique()
+                ->toArray();
+
+            // Set status real-time pada object response secara instan di memori (tanpa N+1 loop save ke cloud)
+            foreach ($cars as $car) {
+                if ($car->status !== 'maintenance') {
+                    $car->status = in_array($car->id, $inUseCarIds) ? 'in_use' : 'ready';
+                }
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'Daftar armada mobil berhasil diambil',
@@ -67,6 +83,7 @@ class CarController extends Controller
             'price_normal' => 'required|numeric',
             'price_holiday' => 'required|numeric',
             'driver_fee' => 'required|numeric',
+            'rental_option' => 'nullable|string|in:both,driver_only',
             'status' => 'required|in:ready,in_use,maintenance',
             'image' => 'nullable|string',
             'image_file' => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:5120',
@@ -80,6 +97,10 @@ class CarController extends Controller
 
         if (empty($validated['car_code'])) {
             $validated['car_code'] = 'car-' . str_pad(Car::max('id') + 1, 2, '0', STR_PAD_LEFT);
+        }
+
+        if (empty($validated['rental_option'])) {
+            $validated['rental_option'] = 'both';
         }
 
         $car = Car::create($validated);
@@ -123,6 +144,7 @@ class CarController extends Controller
             'price_normal' => 'sometimes|required|numeric',
             'price_holiday' => 'sometimes|required|numeric',
             'driver_fee' => 'sometimes|required|numeric',
+            'rental_option' => 'nullable|string|in:both,driver_only',
             'status' => 'sometimes|required|in:ready,in_use,maintenance',
             'image' => 'nullable|string',
             'image_file' => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:5120',

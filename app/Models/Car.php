@@ -22,6 +22,7 @@ class Car extends Model
         'price_normal',
         'price_holiday',
         'driver_fee',
+        'rental_option',
         'status',
         'image',
         'description',

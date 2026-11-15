@@ -264,12 +264,12 @@ function closeAdminSidebar() {
 async function initAdmin() {
     // Bersihkan cache lama (garuda_ keys)
     ['garuda_rent_cars','garuda_rent_config','garuda_rent_reviews','garuda_rent_bookings'].forEach(k => localStorage.removeItem(k));
-    if (localStorage.getItem('rcm_cars_v_rev') !== '4') {
+    if (localStorage.getItem('rcm_cars_v_rev') !== '8') {
         localStorage.removeItem('rcm_rent_cars');
         localStorage.removeItem('rcm_rent_config');
         localStorage.removeItem('rcm_rent_reviews');
         localStorage.removeItem('rcm_rent_bookings');
-        localStorage.setItem('rcm_cars_v_rev', '4');
+        localStorage.setItem('rcm_cars_v_rev', '8');
     }
 
     const savedConfig = localStorage.getItem('rcm_rent_config');
@@ -284,11 +284,13 @@ async function initAdmin() {
         localStorage.setItem('rcm_rent_config', JSON.stringify(adminState.ownerConfig));
     }
 
-    // Load Owner Config, Cars, Reviews & Bookings from Database API
-    await fetchAdminOwnerConfig();
-    await fetchAdminCars();
-    await fetchAdminReviews();
-    await fetchAdminBookings();
+    // Load Owner Config, Cars, Reviews & Bookings from Database API secara paralel agar cepat & responsif
+    await Promise.allSettled([
+        fetchAdminOwnerConfig(),
+        fetchAdminCars(),
+        fetchAdminReviews(),
+        fetchAdminBookings()
+    ]);
 
     adminState.isLoggedIn = sessionStorage.getItem('rcm_admin_logged') === 'true';
     checkAuthView();
@@ -364,7 +366,9 @@ async function fetchAdminCars() {
                     luggage: c.luggage,
                     priceNormal: parseFloat(c.price_normal),
                     priceHoliday: parseFloat(c.price_holiday),
-                    driverFee: parseFloat(c.driver_fee || 150000),
+                    driverFee: parseFloat(c.driver_fee || 50000),
+                    rental_option: c.rental_option || 'both',
+                    rentalOption: c.rental_option || 'both',
                     status: c.status,
                     image: c.image || '',
                     description: c.description
@@ -580,7 +584,7 @@ function renderTopStatus() {
     }
 }
 
-let currentRevenueTimeframe = 'week';
+let currentRevenueTimeframe = 'month';
 
 // Switch Timeframe (Minggu, Bulan, Tahun)
 function setRevenueChartTimeframe(tf, btnEl) {
@@ -596,14 +600,108 @@ function setRevenueChartTimeframe(tf, btnEl) {
         btnEl.style.color = '#ffffff';
     }
 
+    // Sinkronkan filter periode di tabel Kelola Data Booking agar jumlah orderan sama persis dengan tabel
+    const filterSelect = document.getElementById('adminBookingFilterPeriod');
+    if (filterSelect) {
+        filterSelect.value = tf;
+    }
+    renderBookingsTable();
     renderRevenueAnalytics();
+}
+
+// Cek status ketersediaan armada secara otomatis berdasarkan data booking yang sedang berjalan hari ini
+function getCarRealtimeStatus(car) {
+    if (!car) return 'ready';
+    if (car.status === 'maintenance') return 'maintenance';
+
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+
+    const activeBooking = (adminState.bookings || []).find(b => {
+        if (!b) return false;
+        if (typeof isBookingExpired === 'function' && isBookingExpired(b)) return false;
+        const normStatus = normalizeBookingStatusKey(b.status);
+        if (normStatus !== 'confirmed' && normStatus !== 'confirmed_pending') return false;
+
+        const matchCar = (b.car_id && String(b.car_id) === String(car.id)) ||
+                         (b.car && String(b.car.id) === String(car.id)) ||
+                         (b.car_name && car.model && b.car_name.toLowerCase().includes(car.model.toLowerCase()));
+        if (!matchCar) return false;
+
+        const bStart = b.start_date ? String(b.start_date).split('T')[0] : '';
+        const bEnd = b.end_date ? String(b.end_date).split('T')[0] : '';
+        if (!bStart || !bEnd) return false;
+
+        return bStart <= todayStr && bEnd >= todayStr;
+    });
+
+    return activeBooking ? 'in_use' : 'ready';
+}
+
+// Cek apakah tanggal pesanan masuk dalam filter periode (minggu, bulan, tahun)
+function isBookingInPeriod(b, period) {
+    if (!b || !period || period === 'all') return true;
+    const now = new Date();
+
+    const rawDate = b.start_date || b.created_at;
+    if (!rawDate) return true;
+
+    const parts = String(rawDate).split('T')[0].split('-');
+    if (parts.length < 3) return true;
+    const bYear = parseInt(parts[0], 10);
+    const bMonth = parseInt(parts[1], 10) - 1; // 0-indexed
+    const bDay = parseInt(parts[2], 10);
+    const bDate = new Date(bYear, bMonth, bDay);
+
+    if (period === 'week') {
+        const sevenDaysAgo = new Date(now);
+        sevenDaysAgo.setDate(now.getDate() - 6);
+        sevenDaysAgo.setHours(0, 0, 0, 0);
+
+        const endOfRange = new Date(now);
+        endOfRange.setDate(now.getDate() + 7);
+        endOfRange.setHours(23, 59, 59, 999);
+
+        let bEndDate = bDate;
+        if (b.end_date) {
+            const endParts = String(b.end_date).split('T')[0].split('-');
+            if (endParts.length === 3) {
+                bEndDate = new Date(parseInt(endParts[0], 10), parseInt(endParts[1], 10) - 1, parseInt(endParts[2], 10));
+            }
+        }
+        return (bDate >= sevenDaysAgo && bDate <= endOfRange) || (bEndDate >= sevenDaysAgo && bDate <= now);
+    } else if (period === 'month') {
+        const isStartThisMonth = (bYear === now.getFullYear() && bMonth === now.getMonth());
+        let isEndThisMonth = false;
+        if (b.end_date) {
+            const endParts = String(b.end_date).split('T')[0].split('-');
+            if (endParts.length === 3) {
+                isEndThisMonth = (parseInt(endParts[0], 10) === now.getFullYear() && (parseInt(endParts[1], 10) - 1) === now.getMonth());
+            }
+        }
+        return isStartThisMonth || isEndThisMonth;
+    } else if (period === 'year') {
+        const isStartThisYear = (bYear === now.getFullYear());
+        let isEndThisYear = false;
+        if (b.end_date) {
+            const endParts = String(b.end_date).split('T')[0].split('-');
+            if (endParts.length === 3) {
+                isEndThisYear = (parseInt(endParts[0], 10) === now.getFullYear());
+            }
+        }
+        return isStartThisYear || isEndThisYear;
+    }
+    return true;
 }
 
 // Render Pendapatan, Metrik, Analisis Naik/Turun & Grafik
 function renderOverviewMetrics() {
     const total = adminState.cars.length;
-    const ready = adminState.cars.filter(c => c.status === 'ready').length;
-    const inUse = adminState.cars.filter(c => c.status === 'in_use').length;
+    // Unit Ready dan Sedang Disewa disamakan secara real-time dengan apa yang berjalan di data booking hari ini
+    const inUse = adminState.cars.filter(c => getCarRealtimeStatus(c) === 'in_use').length;
+    const maintenance = adminState.cars.filter(c => c.status === 'maintenance').length;
+    const ready = Math.max(0, total - inUse - maintenance);
 
     const totalEl = document.getElementById('statTotalCars');
     const readyEl = document.getElementById('statReadyCars');
@@ -611,12 +709,15 @@ function renderOverviewMetrics() {
 
     if (totalEl) totalEl.textContent = total;
     if (readyEl) readyEl.textContent = `${ready} Unit`;
-    if (inUseEl) inUseEl.textContent = `${inUse} Unit`;
+    if (inUseEl) {
+        inUseEl.textContent = `${inUse} Unit`;
+        inUseEl.title = `${inUse} unit armada aktif beroperasi menurut jadwal booking hari ini`;
+    }
 
     renderRevenueAnalytics();
 }
 
-// Hitung & Render Statistik Analisis Pendapatan (Hanya Menghitung Pembayaran yang Sudah Diverifikasi)
+// Hitung & Render Statistik Analisis Pendapatan & Total Order Masuk berdasarkan Timeframe
 function renderRevenueAnalytics() {
     const bookings = adminState.bookings || [];
     const verifiedBookings = bookings.filter(isBookingVerified);
@@ -624,8 +725,148 @@ function renderRevenueAnalytics() {
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth(); // 0-indexed
 
-    // 1. Hitung Pendapatan Berdasarkan Waktu (Hanya Pesanan Terverifikasi)
+    // 1. Data Kumulatif Keseluruhan
     let totalAllTime = 0;
+    verifiedBookings.forEach(b => {
+        totalAllTime += (parseFloat(b.total_price) || 0);
+    });
+
+    // 2. Data Pelanggan Aktif di Data Booking (harus sama persis dengan yang tampil di tabel Data Booking)
+    const activeDataBookings = bookings.filter(b => !isBookingExpired(b));
+
+    // 3. Hitung Berdasarkan Timeframe (week / month / year) untuk Keseluruhan Pendapatan & Total Order Masuk
+    let activeRevenue = 0;
+    let comparisonRevenue = 0;
+    let activeOrdersCount = 0;
+    let activeVerifiedCount = 0;
+    let timeframeLabel = '';
+    let comparisonText = '';
+    let orderBadgeText = '';
+
+    if (currentRevenueTimeframe === 'week') {
+        timeframeLabel = 'Pendapatan Minggu Ini';
+        orderBadgeText = 'Minggu Ini';
+
+        // Orderan masuk dihitung persis sama dengan berapa pelanggan yang melakukan booking aktif di Data Booking untuk minggu ini
+        const weekDataBookings = activeDataBookings.filter(b => isBookingInPeriod(b, 'week'));
+        activeOrdersCount = weekDataBookings.length;
+
+        // Pendapatan terverifikasi minggu ini
+        const weekVerified = verifiedBookings.filter(b => isBookingInPeriod(b, 'week'));
+        activeRevenue = weekVerified.reduce((sum, b) => sum + (parseFloat(b.total_price) || 0), 0);
+        activeVerifiedCount = weekDataBookings.filter(isBookingVerified).length;
+
+        // Perbandingan minggu lalu
+        const sevenDaysAgo = new Date(now);
+        sevenDaysAgo.setDate(now.getDate() - 6);
+        sevenDaysAgo.setHours(0, 0, 0, 0);
+
+        const fourteenDaysAgo = new Date(now);
+        fourteenDaysAgo.setDate(now.getDate() - 13);
+        fourteenDaysAgo.setHours(0, 0, 0, 0);
+
+        verifiedBookings.forEach(b => {
+            if (!b.start_date) return;
+            const bParts = String(b.start_date).split('T')[0].split('-');
+            if (bParts.length < 3) return;
+            const bDate = new Date(parseInt(bParts[0], 10), parseInt(bParts[1], 10) - 1, parseInt(bParts[2], 10));
+            if (bDate >= fourteenDaysAgo && bDate < sevenDaysAgo) {
+                comparisonRevenue += (parseFloat(b.total_price) || 0);
+            }
+        });
+
+        comparisonText = `Dibandingkan minggu lalu (${formatRupiah(comparisonRevenue)})`;
+    } else if (currentRevenueTimeframe === 'year') {
+        timeframeLabel = 'Pendapatan Tahun Ini';
+        orderBadgeText = 'Tahun Ini';
+
+        // Orderan masuk dihitung persis sama dengan berapa pelanggan yang melakukan booking aktif di Data Booking untuk tahun ini
+        const yearDataBookings = activeDataBookings.filter(b => isBookingInPeriod(b, 'year'));
+        activeOrdersCount = yearDataBookings.length;
+
+        // Pendapatan terverifikasi tahun ini
+        const yearVerified = verifiedBookings.filter(b => isBookingInPeriod(b, 'year'));
+        activeRevenue = yearVerified.reduce((sum, b) => sum + (parseFloat(b.total_price) || 0), 0);
+        activeVerifiedCount = yearDataBookings.filter(isBookingVerified).length;
+
+        verifiedBookings.forEach(b => {
+            if (!b.start_date) return;
+            const bParts = String(b.start_date).split('T')[0].split('-');
+            const bYear = bParts.length === 3 ? parseInt(bParts[0], 10) : new Date(b.start_date).getFullYear();
+            if (bYear === currentYear - 1) {
+                comparisonRevenue += (parseFloat(b.total_price) || 0);
+            }
+        });
+
+        comparisonText = `Dibandingkan tahun lalu (${formatRupiah(comparisonRevenue)})`;
+    } else {
+        // month (default)
+        timeframeLabel = 'Pendapatan Bulan Ini';
+        orderBadgeText = 'Bulan Ini';
+
+        // Orderan masuk dihitung persis sama dengan berapa pelanggan yang melakukan booking aktif di Data Booking untuk bulan ini
+        const monthDataBookings = activeDataBookings.filter(b => isBookingInPeriod(b, 'month'));
+        activeOrdersCount = monthDataBookings.length;
+
+        // Pendapatan terverifikasi bulan ini
+        const monthVerified = verifiedBookings.filter(b => isBookingInPeriod(b, 'month'));
+        activeRevenue = monthVerified.reduce((sum, b) => sum + (parseFloat(b.total_price) || 0), 0);
+        activeVerifiedCount = monthDataBookings.filter(isBookingVerified).length;
+
+        // Perbandingan bulan lalu
+        verifiedBookings.forEach(b => {
+            if (!b.start_date) return;
+            const bParts = String(b.start_date).split('T')[0].split('-');
+            const bYear = bParts.length === 3 ? parseInt(bParts[0], 10) : new Date(b.start_date).getFullYear();
+            const bMonth = bParts.length === 3 ? (parseInt(bParts[1], 10) - 1) : new Date(b.start_date).getMonth();
+            const isLastMonth = (currentMonth === 0 && bYear === currentYear - 1 && bMonth === 11) ||
+                                (bYear === currentYear && bMonth === currentMonth - 1);
+            if (isLastMonth) {
+                comparisonRevenue += (parseFloat(b.total_price) || 0);
+            }
+        });
+
+        comparisonText = `Dibandingkan bulan lalu (${formatRupiah(comparisonRevenue)})`;
+    }
+
+    // 3. Tampilkan di Kartu Metrik Utama
+    const revTitleEl = document.getElementById('statRevenueTitle');
+    if (revTitleEl) revTitleEl.textContent = timeframeLabel;
+
+    const totalRevEl = document.getElementById('statTotalRevenue');
+    if (totalRevEl) totalRevEl.textContent = formatRupiah(activeRevenue);
+
+    const compTextEl = document.getElementById('statRevenueComparisonText');
+    if (compTextEl) compTextEl.textContent = comparisonText;
+
+    const totalCountEl = document.getElementById('statTotalBookingsCount');
+    if (totalCountEl) totalCountEl.textContent = `${activeOrdersCount} Order`;
+
+    const yearBadgeEl = document.getElementById('statYearGrowthBadge');
+    if (yearBadgeEl) yearBadgeEl.textContent = orderBadgeText;
+
+    const totalSalesAllEl = document.getElementById('statTotalSalesAllTime');
+    if (totalSalesAllEl) totalSalesAllEl.textContent = `Terverifikasi (${activeVerifiedCount}): ${formatRupiah(activeRevenue)}`;
+
+    // 4. Hitung Persentase Naik/Turun
+    let growth = 0;
+    let isGrowthUp = true;
+    if (comparisonRevenue > 0) {
+        growth = ((activeRevenue - comparisonRevenue) / comparisonRevenue) * 100;
+        isGrowthUp = growth >= 0;
+    } else if (activeRevenue > 0) {
+        growth = 100;
+        isGrowthUp = true;
+    }
+
+    const growthBadge = document.getElementById('statRevenueGrowthBadge');
+    if (growthBadge) {
+        growthBadge.textContent = `${isGrowthUp ? '▲ +' : '▼ -'}${Math.abs(growth).toFixed(1)}%`;
+        growthBadge.style.background = isGrowthUp ? '#ecfdf5' : '#fef2f2';
+        growthBadge.style.color = isGrowthUp ? '#047857' : '#b91c1c';
+    }
+
+    // 5. Hitung MoM & YoY
     let thisMonthRevenue = 0;
     let lastMonthRevenue = 0;
     let thisYearRevenue = 0;
@@ -633,81 +874,31 @@ function renderRevenueAnalytics() {
 
     verifiedBookings.forEach(b => {
         const price = parseFloat(b.total_price) || 0;
-        totalAllTime += price;
-
         if (b.start_date) {
             const parts = String(b.start_date).split('T')[0].split('-');
             const bYear = parts.length === 3 ? parseInt(parts[0], 10) : new Date(b.start_date).getFullYear();
             const bMonth = parts.length === 3 ? (parseInt(parts[1], 10) - 1) : new Date(b.start_date).getMonth();
 
-            // Cek Tahun Ini vs Tahun Lalu
-            if (bYear === currentYear) {
-                thisYearRevenue += price;
-            } else if (bYear === currentYear - 1) {
-                lastYearRevenue += price;
-            }
+            if (bYear === currentYear) thisYearRevenue += price;
+            else if (bYear === currentYear - 1) lastYearRevenue += price;
 
-            // Cek Bulan Ini vs Bulan Lalu
-            if (bYear === currentYear && bMonth === currentMonth) {
-                thisMonthRevenue += price;
-            } else {
-                // Bulan lalu (handle crossing year, misal Januari vs Desember tahun lalu)
-                const isLastMonth = (currentMonth === 0 && bYear === currentYear - 1 && bMonth === 11) ||
-                                    (bYear === currentYear && bMonth === currentMonth - 1);
-                if (isLastMonth) {
-                    lastMonthRevenue += price;
-                }
+            if (bYear === currentYear && bMonth === currentMonth) thisMonthRevenue += price;
+            else if ((currentMonth === 0 && bYear === currentYear - 1 && bMonth === 11) || (bYear === currentYear && bMonth === currentMonth - 1)) {
+                lastMonthRevenue += price;
             }
         }
     });
 
-    // 2. Tampilkan di Kartu Metrik Utama
-    const totalRevEl = document.getElementById('statTotalRevenue');
-    if (totalRevEl) totalRevEl.textContent = formatRupiah(thisMonthRevenue);
+    let momGrowth = lastMonthRevenue > 0 ? ((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100 : (thisMonthRevenue > 0 ? 100 : 0);
+    let yoyGrowth = lastYearRevenue > 0 ? ((thisYearRevenue - lastYearRevenue) / lastYearRevenue) * 100 : (thisYearRevenue > 0 ? 100 : 0);
 
-    const totalCountEl = document.getElementById('statTotalBookingsCount');
-    if (totalCountEl) totalCountEl.textContent = `${bookings.length} Order`;
-
-    const totalSalesAllEl = document.getElementById('statTotalSalesAllTime');
-    if (totalSalesAllEl) totalSalesAllEl.textContent = `Terverifikasi (${verifiedBookings.length}): ${formatRupiah(totalAllTime)}`;
-
-    // 3. Hitung Persentase Naik/Turun MoM (Month over Month)
-    let momGrowth = 0;
-    let isMomUp = true;
-    if (lastMonthRevenue > 0) {
-        momGrowth = ((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100;
-        isMomUp = momGrowth >= 0;
-    } else if (thisMonthRevenue > 0) {
-        momGrowth = 100;
-        isMomUp = true;
-    }
-
-    const growthBadge = document.getElementById('statRevenueGrowthBadge');
-    if (growthBadge) {
-        growthBadge.textContent = `${isMomUp ? '▲ +' : '▼ -'}${Math.abs(momGrowth).toFixed(1)}%`;
-        growthBadge.style.background = isMomUp ? '#ecfdf5' : '#fef2f2';
-        growthBadge.style.color = isMomUp ? '#047857' : '#b91c1c';
-    }
-
-    // 4. Hitung Persentase Naik/Turun YoY (Year over Year)
-    let yoyGrowth = 0;
-    let isYoyUp = true;
-    if (lastYearRevenue > 0) {
-        yoyGrowth = ((thisYearRevenue - lastYearRevenue) / lastYearRevenue) * 100;
-        isYoyUp = yoyGrowth >= 0;
-    } else if (thisYearRevenue > 0) {
-        yoyGrowth = 100;
-        isYoyUp = true;
-    }
-
-    // Update Baris Perbandingan MoM & YoY
     const cmpMonthCurrent = document.getElementById('cmpMonthCurrent');
     const cmpMonthDiffBadge = document.getElementById('cmpMonthDiffBadge');
     const cmpMonthSub = document.getElementById('cmpMonthSub');
     if (cmpMonthCurrent) cmpMonthCurrent.textContent = formatRupiah(thisMonthRevenue);
     if (cmpMonthDiffBadge) {
-        cmpMonthDiffBadge.textContent = `${isMomUp ? '▲ +' : '▼ -'}${Math.abs(momGrowth).toFixed(1)}%`;
-        cmpMonthDiffBadge.style.color = isMomUp ? '#047857' : '#dc2626';
+        cmpMonthDiffBadge.textContent = `${momGrowth >= 0 ? '▲ +' : '▼ -'}${Math.abs(momGrowth).toFixed(1)}%`;
+        cmpMonthDiffBadge.style.color = momGrowth >= 0 ? '#047857' : '#dc2626';
     }
     if (cmpMonthSub) cmpMonthSub.textContent = `vs bln lalu (${formatRupiah(lastMonthRevenue)})`;
 
@@ -716,8 +907,8 @@ function renderRevenueAnalytics() {
     const cmpYearSub = document.getElementById('cmpYearSub');
     if (cmpYearCurrent) cmpYearCurrent.textContent = formatRupiah(thisYearRevenue);
     if (cmpYearDiffBadge) {
-        cmpYearDiffBadge.textContent = `${isYoyUp ? '▲ +' : '▼ -'}${Math.abs(yoyGrowth).toFixed(1)}%`;
-        cmpYearDiffBadge.style.color = isYoyUp ? '#047857' : '#dc2626';
+        cmpYearDiffBadge.textContent = `${yoyGrowth >= 0 ? '▲ +' : '▼ -'}${Math.abs(yoyGrowth).toFixed(1)}%`;
+        cmpYearDiffBadge.style.color = yoyGrowth >= 0 ? '#047857' : '#dc2626';
     }
     if (cmpYearSub) cmpYearSub.textContent = `vs thn lalu (${formatRupiah(lastYearRevenue)})`;
 
@@ -726,7 +917,7 @@ function renderRevenueAnalytics() {
     const avgOrderEl = document.getElementById('cmpAvgOrder');
     if (avgOrderEl) avgOrderEl.textContent = formatRupiah(avgOrder);
 
-    // 5. Render Grafik Interaktif (Minggu / Bulan / Tahun) hanya dari pesanan terverifikasi
+    // 6. Render Grafik Interaktif (Minggu / Bulan / Tahun) hanya dari pesanan terverifikasi
     renderDynamicRevenueChart(verifiedBookings, currentRevenueTimeframe);
 }
 
@@ -831,7 +1022,9 @@ function renderOverviewQuickCars() {
     }
 
     grid.innerHTML = adminState.cars.map(car => {
-        const isReady = car.status === 'ready';
+        const realtimeStatus = getCarRealtimeStatus(car);
+        const isReady = realtimeStatus === 'ready';
+        const isDriverOnly = (car.rental_option === 'driver_only' || car.rentalOption === 'driver_only');
         const carImg = car.image || 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=150&q=80';
         return `
             <div style="padding: 0.75rem; background: #f8fafc; border: 1px solid var(--clr-border); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;">
@@ -839,12 +1032,17 @@ function renderOverviewQuickCars() {
                     <img src="${carImg}" alt="${car.model}" style="width: 2.5rem; height: 2rem; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--clr-border); flex-shrink: 0;">
                     <div class="truncate">
                         <div style="font-weight: 700; font-size: 0.75rem; color: var(--clr-text-main);" class="truncate">${car.brand} ${car.model}</div>
-                        <div style="font-size: 0.65rem; color: var(--clr-text-subtle);">${car.transmission} • ${formatRupiah(car.priceNormal)}/hr</div>
+                        <div style="font-size: 0.65rem; color: var(--clr-text-subtle); display: flex; align-items: center; gap: 0.3rem;">
+                            <span>${car.transmission}</span>
+                            <span>•</span>
+                            <span>${formatRupiah(car.priceNormal)}/hr</span>
+                            ${isDriverOnly ? '<span style="color: #dc2626; font-weight: 800; font-size: 0.6rem;">(+Supir)</span>' : ''}
+                        </div>
                     </div>
                 </div>
                 <button
                     onclick="toggleCarStatus('${car.id}')"
-                    class="${isReady ? 'status-pill-ready' : 'status-pill-used'}" style="cursor: pointer; flex-shrink: 0;">
+                    class="${isReady ? 'status-pill-ready' : 'status-pill-used'}" style="cursor: pointer; flex-shrink: 0;" title="${isReady ? 'Unit Siap Disewa' : 'Sedang Digunakan (Otomatis dari Booking Hari Ini)'}">
                     ${isReady ? '● Ready' : '● Digunakan'}
                 </button>
             </div>
@@ -875,7 +1073,9 @@ function renderCarsTable() {
     }
 
     tbody.innerHTML = cars.map(car => {
-        const isReady = car.status === 'ready';
+        const realtimeStatus = getCarRealtimeStatus(car);
+        const isReady = realtimeStatus === 'ready';
+        const isDriverOnly = (car.rental_option === 'driver_only' || car.rentalOption === 'driver_only');
         const carImg = car.image || 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=150&q=80';
         return `
             <tr style="border-bottom: 1px solid var(--clr-border);">
@@ -883,30 +1083,37 @@ function renderCarsTable() {
                     <div style="display: flex; align-items: center; gap: 0.75rem;">
                         <img src="${carImg}" alt="${car.model}" style="width: 3.5rem; height: 2.5rem; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--clr-border);">
                         <div>
-                            <div style="font-weight: 800; font-size: 0.875rem; color: var(--clr-text-main);">${car.brand} ${car.model}</div>
-                            <div style="font-size: 0.7rem; color: var(--clr-text-muted);">${car.year || ''} • ${car.category}</div>
+                            <div style="font-weight: 800; font-size: 0.875rem; color: var(--clr-text-main); display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+                                <span>${car.brand} ${car.model}</span>
+                                ${isDriverOnly ? `
+                                    <span style="font-size: 0.65rem; font-weight: 800; padding: 0.1rem 0.4rem; border-radius: 4px; background: #fef2f2; color: #dc2626; border: 1px solid #fecaca;">
+                                        <i class="fa-solid fa-user-tie"></i> Wajib Supir
+                                    </span>
+                                ` : `
+                                    <span style="font-size: 0.65rem; font-weight: 700; padding: 0.1rem 0.4rem; border-radius: 4px; background: #f1f5f9; color: #475569;">
+                                        Lepas Kunci & Supir
+                                    </span>
+                                `}
+                            </div>
+                            <div style="font-size: 0.7rem; color: var(--clr-text-muted); margin-top: 0.15rem;">${car.year || ''} • ${car.category} • ${car.seats} Kursi • ${car.transmission}</div>
                         </div>
                     </div>
                 </td>
-                <td style="padding: 1rem; font-size: 0.8125rem;">
-                    <div>${car.seats} Kursi</div>
-                    <div style="font-size: 0.7rem; color: var(--clr-text-subtle);">${car.transmission} • ${car.fuel}</div>
+                <td style="padding: 1rem; text-align: center;">
+                    <button
+                        onclick="toggleCarStatus('${car.id}')"
+                        class="${isReady ? 'status-pill-ready' : 'status-pill-used'}" style="cursor: pointer;" title="${isReady ? 'Unit Siap Disewa' : 'Sedang Digunakan (Otomatis dari Booking Hari Ini)'}">
+                        ${isReady ? '● Ready (Tersedia)' : '● Sedang Digunakan'}
+                    </button>
                 </td>
                 <td style="padding: 1rem; font-weight: 700; font-size: 0.875rem; color: var(--clr-text-main);">
                     ${formatRupiah(car.priceNormal)}
                 </td>
-                <td style="padding: 1rem; font-weight: 700; font-size: 0.875rem; color: var(--clr-primary);">
+                <td style="padding: 1rem; font-weight: 700; font-size: 0.875rem; color: var(--clr-rose);">
                     ${formatRupiah(car.priceHoliday)}
                 </td>
                 <td style="padding: 1rem; font-size: 0.8125rem; color: var(--clr-emerald); font-weight: 700;">
-                    ${formatRupiah(car.driverFee || 150000)}
-                </td>
-                <td style="padding: 1rem;">
-                    <button
-                        onclick="toggleCarStatus('${car.id}')"
-                        class="${isReady ? 'status-pill-ready' : 'status-pill-used'}" style="cursor: pointer;">
-                        ${isReady ? '● Ready' : '● Sedang Digunakan'}
-                    </button>
+                    ${formatRupiah(car.driverFee || 50000)}
                 </td>
                 <td style="padding: 1rem; text-align: right;">
                     <div style="display: flex; align-items: center; justify-content: flex-end; gap: 0.5rem;">
@@ -1278,7 +1485,7 @@ function updateAdminReviewLivePreview() {
 
     if (avatarEl) {
         const displayName = rawName || 'P';
-        avatarEl.src = avatarVal || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=${isArtis ? '16a34a' : '64748b'}&color=fff&bold=true`;
+        avatarEl.src = avatarVal || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=${isArtis ? 'dc2626' : '64748b'}&color=fff&bold=true`;
     }
     if (liveNameEl) liveNameEl.textContent = rawName || 'Nama Pelanggan';
     if (liveCommentEl) {
@@ -1287,19 +1494,22 @@ function updateAdminReviewLivePreview() {
     }
 
     if (liveStarsEl) {
-        liveStarsEl.innerHTML = Array.from({ length: 5 }, (_, i) =>
-            `<svg style="width:1rem;height:1rem;fill:${i < rating ? '#22c55e' : '#e2e8f0'};" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`
-        ).join('');
+        liveStarsEl.innerHTML = Array.from({ length: 5 }, (_, i) => {
+            if (isArtis && i < rating) {
+                return `<svg style="width:1rem;height:1rem;" viewBox="0 0 24 24"><defs><linearGradient id="adminArtStarGrad_${i}" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#dc2626"/><stop offset="50%" stop-color="#ef4444"/><stop offset="100%" stop-color="#f97316"/></linearGradient></defs><polygon fill="url(#adminArtStarGrad_${i})" stroke="url(#adminArtStarGrad_${i})" points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
+            }
+            return `<svg style="width:1rem;height:1rem;fill:${i < rating ? '#22c55e' : '#e2e8f0'};" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
+        }).join('');
     }
 
     if (liveCarEl) {
-        liveCarEl.style.color = isArtis ? '#16a34a' : '#64748b';
+        liveCarEl.style.color = '#64748b';
         const span = liveCarEl.querySelector('span');
         if (span) span.textContent = rawCar || 'Unit Armada';
     }
 
     if (liveActionEl) {
-        liveActionEl.style.color = isArtis ? '#16a34a' : '#0f172a';
+        liveActionEl.style.color = '#0f172a';
     }
 
     if (liveMediaBadgeEl) {
@@ -1307,7 +1517,7 @@ function updateAdminReviewLivePreview() {
         if (count > 0) {
             liveMediaBadgeEl.style.display = 'inline-block';
             liveMediaBadgeEl.textContent = `▶ ${count}`;
-            liveMediaBadgeEl.style.background = isArtis ? 'linear-gradient(135deg, #16a34a 0%, #22c55e 100%)' : '#f1f5f9';
+            liveMediaBadgeEl.style.background = isArtis ? 'linear-gradient(135deg, #ef4444 0%, #f97316 100%)' : '#f1f5f9';
             liveMediaBadgeEl.style.color = isArtis ? '#ffffff' : '#475569';
         } else {
             liveMediaBadgeEl.style.display = 'none';
@@ -2214,6 +2424,8 @@ function openAddCarModal() {
     document.getElementById('carIdInput').value = '';
     document.getElementById('carForm').reset();
     document.getElementById('carStatus').value = 'ready';
+    const rentOpt = document.getElementById('carRentalOption');
+    if (rentOpt) rentOpt.value = 'both';
     document.getElementById('carImage').value = '';
     const fileInput = document.getElementById('carImageFile');
     if (fileInput) fileInput.value = '';
@@ -2233,12 +2445,14 @@ function openEditCarModal(carId) {
     document.getElementById('carYear').value = car.year || '2023';
     document.getElementById('carCategory').value = car.category;
     document.getElementById('carStatus').value = car.status;
+    const rentOpt = document.getElementById('carRentalOption');
+    if (rentOpt) rentOpt.value = car.rental_option || car.rentalOption || 'both';
     document.getElementById('carSeats').value = car.seats;
     document.getElementById('carTrans').value = car.transmission;
     document.getElementById('carFuel').value = car.fuel;
     document.getElementById('carPriceNormal').value = car.priceNormal;
     document.getElementById('carPriceHoliday').value = car.priceHoliday;
-    document.getElementById('carDriverFee').value = car.driverFee || 150000;
+    document.getElementById('carDriverFee').value = car.driverFee || 50000;
     document.getElementById('carImage').value = car.image || '';
     document.getElementById('carDesc').value = car.description || '';
     const fileInput = document.getElementById('carImageFile');
@@ -2264,12 +2478,13 @@ async function handleSaveCar(e) {
     const year = document.getElementById('carYear').value.trim();
     const category = document.getElementById('carCategory').value;
     const status = document.getElementById('carStatus').value;
+    const rentalOption = document.getElementById('carRentalOption')?.value || 'both';
     const seats = parseInt(document.getElementById('carSeats').value) || 7;
     const transmission = document.getElementById('carTrans').value;
     const fuel = document.getElementById('carFuel').value;
     const priceNormal = parseFloat(document.getElementById('carPriceNormal').value) || 0;
     const priceHoliday = parseFloat(document.getElementById('carPriceHoliday').value) || 0;
-    const driverFee = parseFloat(document.getElementById('carDriverFee').value) || 150000;
+    const driverFee = parseFloat(document.getElementById('carDriverFee').value) || 50000;
     const description = document.getElementById('carDesc').value.trim();
 
     // Construct FormData for multipart API call
@@ -2279,6 +2494,7 @@ async function handleSaveCar(e) {
     formData.append('year', year);
     formData.append('category', category);
     formData.append('status', status);
+    formData.append('rental_option', rentalOption);
     formData.append('seats', seats);
     formData.append('transmission', transmission);
     formData.append('fuel', fuel);
@@ -2327,8 +2543,10 @@ async function handleSaveCar(e) {
                     luggage: c.luggage,
                     priceNormal: parseFloat(c.price_normal),
                     priceHoliday: parseFloat(c.price_holiday),
-                    driverFee: parseFloat(c.driver_fee || 150000),
+                    driverFee: parseFloat(c.driver_fee || 50000),
                     status: c.status,
+                    rental_option: c.rental_option || rentalOption,
+                    rentalOption: c.rental_option || rentalOption,
                     image: c.image || '',
                     description: c.description
                 };
@@ -2341,7 +2559,7 @@ async function handleSaveCar(e) {
     if (!savedCar) {
         savedCar = {
             id: id || ('car-' + Date.now()),
-            brand, model, year, category, status, seats, transmission, fuel,
+            brand, model, year, category, status, rental_option: rentalOption, rentalOption, seats, transmission, fuel,
             priceNormal, priceHoliday, driverFee, description,
             image: imageVal
         };
@@ -2413,10 +2631,10 @@ function formatBookingDateRange(startDateStr, endDateStr, startTimeStr, endTimeS
 async function fetchAdminBookings() {
     let loadedBookings = [];
 
-    // Reset dummy cache jika belum dikosongkan sesuai instruksi user
-    if (!localStorage.getItem('rcm_empty_bookings_clean_v6')) {
+    // Reset dummy cache jika diminta dikosongkan
+    if (!localStorage.getItem('rcm_empty_bookings_clean_v8')) {
         localStorage.removeItem('rcm_rent_bookings');
-        localStorage.setItem('rcm_empty_bookings_clean_v6', 'true');
+        localStorage.setItem('rcm_empty_bookings_clean_v8', 'true');
     }
 
     // 1. Try reading from LocalStorage
@@ -2429,13 +2647,13 @@ async function fetchAdminBookings() {
         }
     }
 
-    // 2. Try fetching from Backend API
+    // 2. Try fetching from Backend API (Utama & Real-time)
     try {
         const res = await fetch('/api/bookings');
         if (res.ok) {
             const result = await res.json();
-            if (result.data && Array.isArray(result.data) && result.data.length > 0) {
-                const apiBookings = result.data.map(b => ({
+            if (result.data && Array.isArray(result.data)) {
+                loadedBookings = result.data.map(b => ({
                     id: b.id.toString(),
                     booking_code: b.booking_code,
                     car_id: b.car_id ? b.car_id.toString() : '',
@@ -2458,18 +2676,9 @@ async function fetchAdminBookings() {
                     payment_proof: b.payment_proof || '',
                     payment_proof_settlement: b.payment_proof_settlement || ''
                 }));
-
-                const apiIds = new Set(apiBookings.map(a => a.id));
-                const localOnly = loadedBookings.filter(l => !apiIds.has(l.id));
-                loadedBookings = [...apiBookings, ...localOnly];
             }
         }
     } catch (err) {}
-
-    // 3. Fallback to DEFAULT_BOOKINGS if still empty
-    if (!loadedBookings || loadedBookings.length === 0) {
-        loadedBookings = [...DEFAULT_BOOKINGS];
-    }
 
     adminState.bookings = loadedBookings;
     localStorage.setItem('rcm_rent_bookings', JSON.stringify(adminState.bookings));
@@ -2726,6 +2935,7 @@ function renderBookingsTable() {
 
     const searchQuery = (document.getElementById('adminBookingSearch')?.value || adminState.bookingSearchQuery || '').toLowerCase();
     const filterStatus = document.getElementById('adminBookingFilterStatus')?.value || adminState.bookingFilterStatus || 'all';
+    const filterPeriod = document.getElementById('adminBookingFilterPeriod')?.value || 'all';
 
     // Hanya tampilkan booking yang MASIH AKTIF (belum diselesaikan via checklist)
     let filtered = (adminState.bookings || []).filter(b => {
@@ -2742,14 +2952,16 @@ function renderBookingsTable() {
             matchesStatus = (normalizeBookingStatusKey(b.status) === filterStatus);
         }
 
-        return matchesSearch && matchesStatus;
+        const matchesPeriod = isBookingInPeriod(b, filterPeriod);
+
+        return matchesSearch && matchesStatus && matchesPeriod;
     });
 
     if (filtered.length === 0) {
         tbody.innerHTML = `
             <tr>
                 <td colspan="9" style="padding: 2.5rem; text-align: center; color: var(--clr-text-muted);">
-                    Belum ada data booking aktif. Pesanan yang telah diselesaikan dapat dilihat di <strong>Riwayat Pemesanan</strong>.
+                    Belum ada data booking aktif yang sesuai kriteria/periode filter. Pesanan yang telah diselesaikan dapat dilihat di <strong>Riwayat Pemesanan</strong>.
                 </td>
             </tr>
         `;
@@ -2766,6 +2978,7 @@ function renderHistoryTable() {
 
     const searchQuery = (document.getElementById('adminHistorySearch')?.value || adminState.historySearchQuery || '').toLowerCase();
     const filterStatus = document.getElementById('adminHistoryFilterStatus')?.value || adminState.historyFilterStatus || 'all';
+    const filterPeriod = document.getElementById('adminHistoryFilterPeriod')?.value || 'all';
 
     // Tampilkan booking yang sudah selesai dan masuk riwayat
     let filtered = (adminState.bookings || []).filter(b => {
@@ -2777,7 +2990,16 @@ function renderHistoryTable() {
             (b.car_name && b.car_name.toLowerCase().includes(searchQuery)) ||
             (b.booking_code && b.booking_code.toLowerCase().includes(searchQuery));
 
-        return matchesSearch;
+        let matchesStatus = true;
+        if (filterStatus === 'lunas') {
+            matchesStatus = isBookingVerified(b);
+        } else if (filterStatus !== 'all') {
+            matchesStatus = (normalizeBookingStatusKey(b.status) === filterStatus);
+        }
+
+        const matchesPeriod = isBookingInPeriod(b, filterPeriod);
+
+        return matchesSearch && matchesStatus && matchesPeriod;
     });
 
     const footerInfo = document.getElementById('historyModalFooterInfo');
@@ -2785,11 +3007,16 @@ function renderHistoryTable() {
         footerInfo.textContent = `Menampilkan ${filtered.length} data pemesanan`;
     }
 
+    const historyCountStat = document.getElementById('historyTotalCountStat');
+    if (historyCountStat) {
+        historyCountStat.textContent = `${filtered.length} Pesanan`;
+    }
+
     if (filtered.length === 0) {
         tbody.innerHTML = `
             <tr>
                 <td colspan="9" style="padding: 2.5rem; text-align: center; color: var(--clr-text-muted);">
-                    Belum ada data pemesanan di Riwayat. Tekan tombol checklist (✔) di kolom Aksi Dashboard untuk menyelesaikan peminjaman dan memindahkannya ke sini.
+                    Belum ada data pemesanan di Riwayat yang sesuai kriteria/periode filter. Tekan tombol checklist (✔) di kolom Aksi Dashboard untuk menyelesaikan peminjaman dan memindahkannya ke sini.
                 </td>
             </tr>
         `;
@@ -2802,6 +3029,23 @@ function renderHistoryTable() {
 function filterBookingsTable() {
     adminState.bookingSearchQuery = document.getElementById('adminBookingSearch')?.value || '';
     adminState.bookingFilterStatus = document.getElementById('adminBookingFilterStatus')?.value || 'all';
+    const period = document.getElementById('adminBookingFilterPeriod')?.value || 'month';
+    if (period === 'week' || period === 'month' || period === 'year') {
+        currentRevenueTimeframe = period;
+        const btnWeek = document.getElementById('btnTimeframeWeek');
+        const btnMonth = document.getElementById('btnTimeframeMonth');
+        const btnYear = document.getElementById('btnTimeframeYear');
+        document.querySelectorAll('.revenue-tf-btn').forEach(btn => {
+            btn.style.background = 'transparent';
+            btn.style.color = '#64748b';
+        });
+        const activeBtn = period === 'week' ? btnWeek : (period === 'year' ? btnYear : btnMonth);
+        if (activeBtn) {
+            activeBtn.style.background = '#dc2626';
+            activeBtn.style.color = '#ffffff';
+        }
+        renderRevenueAnalytics();
+    }
     renderBookingsTable();
 }
 
@@ -2922,26 +3166,26 @@ function updateBookingRealtimeTimers() {
             if (iconEl) iconEl.className = 'fa-solid fa-clock';
         }
 
-        const subEl = document.querySelector(`.booking-penalty-timer-sub[data-penalty-sub-id="${id}"]`);
-        if (subEl) {
-            subEl.innerHTML = '';
-            subEl.style.display = 'none';
-        }
-
-        const totalSubEl = document.querySelector(`.booking-total-penalty-sub[data-penalty-total-id="${id}"]`);
-        if (totalSubEl) {
-            if (timerInfo.hasPenalty) {
-                totalSubEl.innerHTML = `+${formatRupiah(timerInfo.penaltyAmount)}`;
-                totalSubEl.style.display = 'block';
-            } else {
-                totalSubEl.innerHTML = '';
-                totalSubEl.style.display = 'none';
-            }
-        }
-
-        // Cek jika status Verifikasi perlu berubah jadi Denda (atau sebaliknya jika bukti denda diunggah)
         const row = badge.closest('tr');
         if (row) {
+            const subEl = row.querySelector(`.booking-penalty-timer-sub`);
+            if (subEl) {
+                subEl.innerHTML = '';
+                subEl.style.display = 'none';
+            }
+
+            const totalSubEl = row.querySelector(`.booking-total-penalty-sub`);
+            if (totalSubEl) {
+                if (timerInfo.hasPenalty) {
+                    totalSubEl.innerHTML = `+${formatRupiah(timerInfo.penaltyAmount)}`;
+                    totalSubEl.style.display = 'block';
+                } else {
+                    totalSubEl.innerHTML = '';
+                    totalSubEl.style.display = 'none';
+                }
+            }
+
+            // Cek jika status Verifikasi perlu berubah jadi Denda (atau sebaliknya jika bukti denda diunggah)
             const statusCell = row.cells ? row.cells[7] : null;
             if (statusCell) {
                 const normStatus = normalizeBookingStatusKey(b.status);
@@ -4373,13 +4617,35 @@ function calculateAdminBookingPrice() {
     const carId = document.getElementById('abCarId')?.value;
     const startDateVal = document.getElementById('abStartDate')?.value;
     const endDateVal = document.getElementById('abEndDate')?.value;
-    const driverOpt = document.getElementById('abDriverOption')?.value;
+    const driverOptEl = document.getElementById('abDriverOption');
 
     if (!carId || !adminState.cars) {
         updateAdminBookingSummary();
         return;
     }
     const car = adminState.cars.find(c => c.id == carId) || adminState.cars[0];
+
+    // Cek apakah mobil wajib pakai sopir (driver_only)
+    const isDriverOnly = (car && (car.rental_option === 'driver_only' || car.rentalOption === 'driver_only'));
+    if (driverOptEl) {
+        const withoutDriverOpt = driverOptEl.querySelector('option[value="without_driver"]');
+        if (isDriverOnly) {
+            if (withoutDriverOpt) {
+                withoutDriverOpt.disabled = true;
+                withoutDriverOpt.textContent = 'Tanpa Supir (Wajib Driver untuk Unit Ini)';
+            }
+            if (driverOptEl.value === 'without_driver') {
+                driverOptEl.value = 'with_driver';
+            }
+        } else {
+            if (withoutDriverOpt) {
+                withoutDriverOpt.disabled = false;
+                withoutDriverOpt.textContent = 'Tanpa Supir (Lepas Kunci)';
+            }
+        }
+    }
+
+    const driverOpt = driverOptEl?.value || 'with_driver';
     const isHoliday = adminState.ownerConfig ? adminState.ownerConfig.isHolidayPricingActive : false;
     const carRate = car ? (isHoliday ? (car.priceHoliday || car.priceNormal) : car.priceNormal) : 350000;
 
@@ -4394,7 +4660,7 @@ function calculateAdminBookingPrice() {
 
     let driverTotal = 0;
     if (driverOpt === 'with_driver' || driverOpt === 'luar_kota') {
-        const driverRate = car ? (isHoliday ? (car.driverFee || 150000) : (car.driverFee || 150000)) : 150000;
+        const driverRate = car ? (isHoliday ? (car.driverFee || 50000) : (car.driverFee || 50000)) : 50000;
         driverTotal = driverRate * days;
     }
 

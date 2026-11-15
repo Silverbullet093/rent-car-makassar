@@ -848,21 +848,25 @@
                     <div class="form-group">
                         <label class="form-label">Pilihan Jenis Sewa <span style="color: var(--clr-rose);">*</span></label>
                         <div class="grid sm:grid-cols-2 gap-2">
-                            <label style="display: flex; align-items: center; padding: 0.75rem; border: 1px solid var(--clr-border); border-radius: var(--radius-md); cursor: pointer; background: #f8fafc;">
-                                <input type="radio" name="driverOption" value="self" checked style="margin-right: 0.5rem;" />
+                            <label id="driverOptionSelfWrapper" style="display: flex; align-items: center; padding: 0.75rem; border: 1px solid var(--clr-border); border-radius: var(--radius-md); cursor: pointer; background: #f8fafc; transition: all 0.2s;">
+                                <input type="radio" name="driverOption" id="driverOptionSelf" value="self" checked onchange="calculateBookingPrice()" style="margin-right: 0.5rem;" />
                                 <div>
                                     <div style="font-size: 0.8125rem; font-weight: 800; color: var(--clr-text-main);">Lepas Kunci (Berkendara Sendiri)</div>
                                     <div style="font-size: 0.7rem; color: var(--clr-text-subtle);">Tanpa biaya pengemudi</div>
                                 </div>
                             </label>
 
-                            <label style="display: flex; align-items: center; padding: 0.75rem; border: 1px solid var(--clr-border); border-radius: var(--radius-md); cursor: pointer; background: #f8fafc;">
-                                <input type="radio" name="driverOption" value="driver" style="margin-right: 0.5rem;" />
+                            <label id="driverOptionDriverWrapper" style="display: flex; align-items: center; padding: 0.75rem; border: 1px solid var(--clr-border); border-radius: var(--radius-md); cursor: pointer; background: #f8fafc; transition: all 0.2s;">
+                                <input type="radio" name="driverOption" id="driverOptionDriver" value="driver" onchange="calculateBookingPrice()" style="margin-right: 0.5rem;" />
                                 <div>
                                     <div style="font-size: 0.8125rem; font-weight: 800; color: var(--clr-text-main);">Pakai Supir (Driver)</div>
-                                    <div style="font-size: 0.7rem; color: var(--clr-emerald); font-weight: 700;" id="modalCarDriverFeeText">+ Rp 150.000 / hari</div>
+                                    <div style="font-size: 0.7rem; color: var(--clr-emerald); font-weight: 700;" id="modalCarDriverFeeText">+ Rp 50.000 / hari</div>
                                 </div>
                             </label>
+                        </div>
+                        <div id="driverOnlyAlert" class="hidden" style="margin-top: 0.4rem; font-size: 0.73rem; color: #b45309; background: #fffbeb; border: 1px solid #fde68a; padding: 0.45rem 0.75rem; border-radius: var(--radius-md); font-weight: 700; display: flex; align-items: center; gap: 0.4rem;">
+                            <span>⚠️</span>
+                            <span>Armada ini khusus melayani pemesanan <strong>Dengan Supir (Driver)</strong> demi kenyamanan & keamanan perjalanan Anda. Opsi Lepas Kunci tidak tersedia untuk unit ini.</span>
                         </div>
                     </div>
 
@@ -974,11 +978,11 @@
                         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.4rem; flex-wrap: wrap; gap: 0.35rem;">
                             <label class="form-label" style="margin-bottom: 0; color: #92400e; font-weight: 800;">Nominal DP / Uang Muka (Rp)</label>
                             <div style="display: flex; gap: 0.35rem;">
-                                <button type="button" onclick="setDpPercentage(30)" style="font-size: 0.68rem; padding: 0.15rem 0.5rem; border-radius: 4px; border: 1px solid #f59e0b; background: #ffffff; color: #b45309; font-weight: 700; cursor: pointer;">DP 30%</button>
-                                <button type="button" onclick="setDpPercentage(50)" style="font-size: 0.68rem; padding: 0.15rem 0.5rem; border-radius: 4px; border: 1px solid #f59e0b; background: #f59e0b; color: #ffffff; font-weight: 700; cursor: pointer;">DP 50%</button>
+                                <button type="button" id="btnDp30" onclick="setDpPercentage(30)" style="font-size: 0.68rem; padding: 0.18rem 0.55rem; border-radius: 4px; border: 1px solid #f59e0b; background: #ffffff; color: #b45309; font-weight: 700; cursor: pointer; transition: all 0.2s;">DP 30%</button>
+                                <button type="button" id="btnDp50" onclick="setDpPercentage(50)" style="font-size: 0.68rem; padding: 0.18rem 0.55rem; border-radius: 4px; border: 1px solid #f59e0b; background: #f59e0b; color: #ffffff; font-weight: 800; cursor: pointer; transition: all 0.2s; box-shadow: 0 1px 3px rgba(245, 158, 11, 0.3);">DP 50%</button>
                             </div>
                         </div>
-                        <input type="number" id="bookDpAmount" placeholder="Masukkan nominal DP (Contoh: 300000)" class="form-input" style="background: #ffffff; font-weight: 800; color: #0f172a;" oninput="calculateBookingPrice()" />
+                        <input type="number" id="bookDpAmount" placeholder="Masukkan nominal DP (Contoh: 300000)" class="form-input" style="background: #ffffff; font-weight: 800; color: #0f172a;" oninput="handleDpAmountInput()" />
                         <div style="font-size: 0.7rem; color: #b45309; margin-top: 0.35rem;">
                             💡 Anda dapat mengisi nominal DP sesuai kesepakatan (Default: 50% dari total sewa). Transaksi pembayaran DP dilakukan via WhatsApp Admin.
                         </div>
