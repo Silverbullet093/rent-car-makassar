@@ -393,8 +393,42 @@
     }
 
     .header-glass {
-        padding-top: 0.65rem !important;
-        padding-bottom: 0.65rem !important;
+        top: 0.75rem !important;
+        width: calc(100% - 1.5rem) !important;
+        padding: 0 0.5rem 0 0.75rem !important;
+        border-radius: 9999px !important;
+        background: rgba(255, 255, 255, 0.82) !important;
+        backdrop-filter: blur(12px) saturate(160%) !important;
+        -webkit-backdrop-filter: blur(12px) saturate(160%) !important;
+    }
+
+    .header-inner {
+        height: 3.35rem !important;
+    }
+
+    .header-glass.header-scrolled {
+        top: 0.45rem !important;
+        width: calc(100% - 1.25rem) !important;
+        background: rgba(255, 255, 255, 0.9) !important;
+        backdrop-filter: blur(12px) saturate(160%) !important;
+        -webkit-backdrop-filter: blur(12px) saturate(160%) !important;
+    }
+
+    .header-glass.header-scrolled .header-inner {
+        height: 2.95rem !important;
+    }
+
+    .header-glass.header-scrolled .navbar-logo-circle {
+        width: 2.05rem !important;
+        height: 2.05rem !important;
+    }
+
+    .header-glass.header-scrolled .brand-title {
+        font-size: 0.98rem !important;
+    }
+
+    .header-glass.header-scrolled .brand-subtitle {
+        display: none !important;
     }
 }
 
@@ -519,13 +553,16 @@
         bottom: 0;
         width: 17rem !important;
         z-index: 90 !important;
-        transform: translateX(-100%);
-        transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        transform: translate3d(-100%, 0, 0);
+        will-change: transform;
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+        transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
         box-shadow: 10px 0 30px rgba(0, 0, 0, 0.3);
     }
 
     .sidebar.mobile-open {
-        transform: translateX(0);
+        transform: translate3d(0, 0, 0) !important;
     }
 
     #dashboardSection > .flex-1 {
@@ -539,6 +576,12 @@
     #dashboardSection > .flex-1 > main {
         min-height: 0;
         padding: 1rem !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        overscroll-behavior-y: contain !important;
+        scroll-behavior: smooth !important;
+        transform: translateZ(0);
+        will-change: scroll-position;
     }
 
     .admin-fixed-header {
@@ -571,6 +614,12 @@
     #dashboardSection > .flex-1 > main {
         min-height: 0;
         padding: 0.875rem !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        overscroll-behavior-y: contain !important;
+        scroll-behavior: smooth !important;
+        transform: translateZ(0);
+        will-change: scroll-position;
     }
 
     .admin-fixed-header {
@@ -1111,84 +1160,47 @@
     display: none !important;
 }
 
-/* 2. Glassmorphism Header when Scrolled */
-.header-glass.header-scrolled {
-    background: rgba(255, 255, 255, 0.88) !important;
-    backdrop-filter: blur(14px) saturate(180%) !important;
-    -webkit-backdrop-filter: blur(14px) saturate(180%) !important;
-    box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.08), 0 1px 3px rgba(15, 23, 42, 0.04) !important;
-    border-bottom: 1px solid rgba(226, 232, 240, 0.8) !important;
-}
+/* 2. Glassmorphism Header when Scrolled (Handled in style.css with dynamic backdrop blur) */
 
-/* 3. Hero Ambient Glowing Orbs with Smooth Drift Animation */
-.ambient-glow-orb {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(80px);
-    pointer-events: none;
-    z-index: 0;
-    opacity: 0.45;
-    animation: orbFloat 14s ease-in-out infinite alternate;
-}
-
-.orb-primary {
-    width: 28rem;
-    height: 28rem;
-    background: radial-gradient(circle, rgba(220, 38, 38, 0.22) 0%, rgba(220, 38, 38, 0.03) 70%, transparent 100%);
-    top: -6rem;
-    right: 5%;
-}
-
+/* 3. Ambient Glowing Orbs Disabled (Clean Solid Background) */
+.ambient-glow-orb,
+.orb-primary,
 .orb-accent {
-    width: 22rem;
-    height: 22rem;
-    background: radial-gradient(circle, rgba(245, 158, 11, 0.18) 0%, rgba(245, 158, 11, 0.02) 70%, transparent 100%);
-    bottom: -4rem;
-    left: 10%;
-    animation-delay: -5s;
-}
-
-@keyframes orbFloat {
-    0% { transform: translateY(0px) scale(1); }
-    50% { transform: translateY(-30px) scale(1.08); }
-    100% { transform: translateY(15px) scale(0.96); }
+    display: none !important;
 }
 
 /* 4. Scroll Reveal Animations (Fade, Slide Up, Scale) */
 .reveal-on-scroll {
     opacity: 0;
-    transform: translateY(32px);
-    transition: opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1), transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
-    will-change: opacity, transform;
+    transform: translateY(20px);
+    transition: opacity 0.45s ease-out, transform 0.45s ease-out;
 }
 
 .reveal-on-scroll.is-revealed {
     opacity: 1 !important;
-    transform: translateY(0) scale(1) !important;
+    transform: none !important;
+    transition: none !important;
+    will-change: auto !important;
 }
 
 .reveal-scale {
     opacity: 0;
-    transform: scale(0.94) translateY(20px);
-    transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+    transform: scale(0.96) translateY(16px);
+    transition: opacity 0.45s ease-out, transform 0.45s ease-out;
 }
 
 .reveal-scale.is-revealed {
     opacity: 1 !important;
-    transform: scale(1) translateY(0) !important;
+    transform: none !important;
+    transition: none !important;
+    will-change: auto !important;
 }
 
-/* 5. Animated Shimmering Gradient Badges */
+/* 5. Clean Solid Badges (No Animated Gradients) */
 .gradient-shimmer-badge {
-    background: linear-gradient(120deg, #fef2f2 0%, #fff1f2 35%, #ffffff 50%, #fff1f2 65%, #fef2f2 100%);
-    background-size: 200% auto;
-    animation: shimmerBadge 4s linear infinite;
-    border: 1px solid rgba(220, 38, 38, 0.25);
-}
-
-@keyframes shimmerBadge {
-    0% { background-position: -200% center; }
-    100% { background-position: 200% center; }
+    background: #fef2f2 !important;
+    border: 1px solid #fecaca !important;
+    animation: none !important;
 }
 
 /* 6. Modern Interactive Car Card Hover & Gradients */
@@ -1198,27 +1210,16 @@
     border-radius: 1.35rem !important;
     overflow: hidden;
     position: relative;
-    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease !important;
-}
-
-.card-unit::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    padding: 1.5px;
-    background: linear-gradient(135deg, transparent 40%, rgba(220, 38, 38, 0.25) 80%, rgba(245, 158, 11, 0.35) 100%);
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    opacity: 0;
-    transition: opacity 0.35s ease;
-    pointer-events: none;
+    contain: content;
+    content-visibility: auto;
+    contain-intrinsic-size: 380px;
+    transform: translateZ(0);
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease !important;
 }
 
 .card-unit:hover {
-    transform: translateY(-8px) scale(1.01) !important;
-    box-shadow: 0 20px 35px -8px rgba(15, 23, 42, 0.08), 0 10px 15px -3px rgba(220, 38, 38, 0.06) !important;
+    transform: translateY(-6px) !important;
+    box-shadow: 0 16px 30px -6px rgba(15, 23, 42, 0.08), 0 8px 12px -3px rgba(220, 38, 38, 0.05) !important;
     border-color: rgba(220, 38, 38, 0.3) !important;
 }
 

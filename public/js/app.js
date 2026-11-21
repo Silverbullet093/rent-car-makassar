@@ -15,7 +15,8 @@ let state = {
     reviewStories: [],
     selectedReviewRating: 5,
     currentCategoryFilter: 'all',
-    searchQuery: ''
+    searchQuery: '',
+    isCatalogExpanded: false
 };
 
 // Format Rupiah helper
@@ -58,12 +59,12 @@ function formatDisplayDate(dateStr) {
 async function initStorage() {
     // Bersihkan cache lama (garuda_ keys) & paksa refresh data
     ['garuda_rent_cars','garuda_rent_config','garuda_rent_reviews','garuda_rent_bookings'].forEach(k => localStorage.removeItem(k));
-    if (localStorage.getItem('rcm_cars_v_rev') !== '8') {
+    if (localStorage.getItem('rcm_cars_v_rev') !== '9') {
         localStorage.removeItem('rcm_rent_cars');
         localStorage.removeItem('rcm_rent_config');
         localStorage.removeItem('rcm_rent_reviews');
         localStorage.removeItem('rcm_rent_bookings');
-        localStorage.setItem('rcm_cars_v_rev', '8');
+        localStorage.setItem('rcm_cars_v_rev', '9');
     }
 
     // 1. Cars initial cache
@@ -278,18 +279,11 @@ function renderOwnerInfo() {
         ttEl.href = `https://tiktok.com/@${(cfg.socialMedia.tiktok || '').replace('@', '')}`;
     }
 
-    // Holiday Alert Banner
+    // Holiday Alert Banner (bagian atas jika mode liburan dinonaktifkan sesuai permintaan)
     const holidayBanner = document.getElementById('holidayAlertBanner');
     if (holidayBanner) {
-        if (cfg.isHolidayPricingActive) {
-            holidayBanner.classList.remove('hidden');
-            const txt = document.getElementById('holidayBannerText');
-            if (txt) {
-                txt.textContent = `📢 ${cfg.holidayNotes || 'Mode Tarif Musim Liburan / Peak Season Sedang Aktif'}. Harga sewa menyesuaikan tarif libur.`;
-            }
-        } else {
-            holidayBanner.classList.add('hidden');
-        }
+        holidayBanner.classList.add('hidden');
+        holidayBanner.style.display = 'none';
     }
 }
 
@@ -325,7 +319,18 @@ function renderCarsCatalog() {
     const inUseCounter = document.getElementById('inUseCountBadge');
     if (inUseCounter) inUseCounter.textContent = `${totalInUse} Sedang Digunakan`;
 
+    const filterUnitsCount = document.getElementById('filterUnitsCount');
+    if (filterUnitsCount) {
+        filterUnitsCount.textContent = filtered.length;
+    }
+
     if (filtered.length === 0) {
+        const toggleWrapper = document.getElementById('catalogToggleWrapper');
+        if (toggleWrapper) {
+            toggleWrapper.style.display = 'none';
+            toggleWrapper.innerHTML = '';
+        }
+
         grid.innerHTML = `
             <div style="grid-column: 1 / -1; padding: 4rem 1rem; text-align: center; background: white; border-radius: var(--radius-lg); border: 1px solid var(--clr-border);">
                 <div style="width: 3rem; height: 3rem; margin: 0 auto 0.75rem auto; color: var(--clr-text-subtle); display: flex; align-items: center; justify-content: center;">
@@ -342,13 +347,18 @@ function renderCarsCatalog() {
     }
 
     const isHoliday = state.ownerConfig.isHolidayPricingActive;
+    const INITIAL_ROW_LIMIT = 6; // 2 baris pada tampilan desktop 3-kolom
+    const hasMoreCars = filtered.length > INITIAL_ROW_LIMIT;
+    const displayedCars = state.isCatalogExpanded ? filtered : filtered.slice(0, INITIAL_ROW_LIMIT);
 
-    grid.innerHTML = filtered.map(car => {
+    grid.innerHTML = displayedCars.map((car, idx) => {
         const isReady = car.status === 'ready';
         const activePrice = isHoliday ? car.priceHoliday : car.priceNormal;
+        const isExtraCard = idx >= 6 && state.isCatalogExpanded;
+        const delayStyle = isExtraCard ? `style="animation-delay: ${(idx - 6) * 0.08}s;"` : '';
 
         return `
-            <div class="card-unit reveal-on-scroll">
+            <div class="card-unit reveal-on-scroll ${isExtraCard ? 'card-animate-in' : ''}" ${delayStyle}>
                 <div>
                     <!-- Foto & Status Tag -->
                     <div class="card-img-wrap">
@@ -356,6 +366,7 @@ function renderCarsCatalog() {
                             src="${car.image}"
                             alt="${car.brand} ${car.model}"
                             loading="lazy"
+                            decoding="async"
                             onerror="this.src='https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80'"
                         />
 
@@ -385,12 +396,6 @@ function renderCarsCatalog() {
                                 </span>
                             ` : ''}
                         </div>
-
-                        ${isHoliday ? `
-                            <div class="card-holiday-tag" style="position: absolute; bottom: 0.5rem; left: 0.5rem; background: var(--clr-rose); color: white; font-size: 0.65rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: var(--radius-sm);">
-                                Tarif Libur
-                            </div>
-                        ` : ''}
                     </div>
 
                     <!-- Informasi Unit Mobil -->
@@ -402,13 +407,17 @@ function renderCarsCatalog() {
                             ${car.model}
                         </h3>
 
-                        <!-- Spesifikasi Ringkas -->
-                        <div class="card-specs-row" style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: var(--clr-text-muted); margin-bottom: 0.75rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--clr-border);">
-                            <span>${car.seats} Kursi</span>
-                            <span>•</span>
-                            <span>${car.transmission}</span>
-                            <span>•</span>
-                            <span>${car.fuel}</span>
+                        <!-- Spesifikasi Ringkas Interaktif -->
+                        <div class="card-specs-row">
+                            <span class="spec-pill" title="Kapasitas Penumpang">
+                                <i class="fa-solid fa-users"></i> ${car.seats} Kursi
+                            </span>
+                            <span class="spec-pill" title="Tipe Transmisi">
+                                <i class="fa-solid fa-gauge-high"></i> ${car.transmission}
+                            </span>
+                            <span class="spec-pill" title="Bahan Bakar">
+                                <i class="fa-solid fa-gas-pump"></i> ${car.fuel}
+                            </span>
                         </div>
 
                         ${car.description && car.description !== 'null' ? `
@@ -443,8 +452,52 @@ function renderCarsCatalog() {
         `;
     }).join('');
 
+    // Pasang / Perbarui Tombol Swis Up ke Bawah
+    let toggleWrapper = document.getElementById('catalogToggleWrapper');
+    if (!toggleWrapper) {
+        toggleWrapper = document.createElement('div');
+        toggleWrapper.id = 'catalogToggleWrapper';
+        toggleWrapper.className = 'catalog-toggle-wrapper text-center';
+        grid.parentNode.insertBefore(toggleWrapper, grid.nextSibling);
+    }
+
+    if (hasMoreCars) {
+        toggleWrapper.style.display = 'block';
+        toggleWrapper.innerHTML = `
+            <div style="margin-top: 2.5rem; text-align: center;">
+                <button
+                    onclick="toggleCatalogExpand()"
+                    class="btn btn-expand-catalog"
+                    id="btnToggleExpandCars"
+                    type="button"
+                    aria-expanded="${state.isCatalogExpanded ? 'true' : 'false'}"
+                >
+                    <span style="display: inline-flex; align-items: center; gap: 0.5rem;">
+                        <span>${state.isCatalogExpanded ? 'Tampilkan Lebih Sedikit' : `Lihat Semua Armada (${filtered.length} Unit)`}</span>
+                        <i class="fa-solid ${state.isCatalogExpanded ? 'fa-chevron-up' : 'fa-chevron-down'}" style="transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); margin-left: 0.35rem;"></i>
+                    </span>
+                </button>
+            </div>
+        `;
+    } else {
+        toggleWrapper.style.display = 'none';
+        toggleWrapper.innerHTML = '';
+    }
+
     initScrollReveal();
-    setTimeout(initCardTiltEffects, 200);
+}
+
+// Handler Swis Up ke Bawah Katalog Mobil
+function toggleCatalogExpand() {
+    state.isCatalogExpanded = !state.isCatalogExpanded;
+    renderCarsCatalog();
+
+    if (!state.isCatalogExpanded) {
+        const katalogEl = document.getElementById('katalog');
+        if (katalogEl) {
+            katalogEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
 }
 
 // Scroller Interval 5 Detik untuk Ulasan Pelanggan
@@ -544,17 +597,24 @@ function initIntervalReviewScroller(containerId, options = {}) {
         };
     }
 
-    // Loop check saat user drag atau scroll manual
-    container.onscroll = () => {
-        const halfWidth = container.scrollWidth / 2;
-        if (halfWidth > 0) {
-            if (container.scrollLeft >= halfWidth) {
-                container.scrollLeft -= halfWidth;
-            } else if (container.scrollLeft <= 0) {
-                container.scrollLeft += halfWidth;
-            }
+    // Loop check saat user drag atau scroll manual (throttled dengan requestAnimationFrame)
+    let reviewScrollTicking = false;
+    container.addEventListener('scroll', () => {
+        if (!reviewScrollTicking) {
+            window.requestAnimationFrame(() => {
+                const halfWidth = container.scrollWidth / 2;
+                if (halfWidth > 0) {
+                    if (container.scrollLeft >= halfWidth) {
+                        container.scrollLeft -= halfWidth;
+                    } else if (container.scrollLeft <= 0) {
+                        container.scrollLeft += halfWidth;
+                    }
+                }
+                reviewScrollTicking = false;
+            });
+            reviewScrollTicking = true;
         }
-    };
+    }, { passive: true });
 }
 
 // Helper Kategori Artis & Multi-Media Stories
@@ -622,7 +682,7 @@ function renderReviews() {
         container.innerHTML = `
             <div style="flex: 1 1 100%; padding: 3rem 1rem; text-align: center; background: white; border-radius: var(--radius-xl); border: 1px solid var(--clr-border);">
                 <div style="margin-bottom: 0.5rem; display: flex; justify-content: center;">
-                    <svg style="width:2.25rem;height:2.25rem;fill:#eab308;stroke:#eab308" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    <svg style="width:2.25rem;height:2.25rem;fill:#dc2626;stroke:#dc2626" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                 </div>
                 <h4 style="font-size: 1rem; font-weight: 700; color: var(--clr-text-main);">Belum ada ulasan publik</h4>
                 <p style="font-size: 0.8125rem; color: var(--clr-text-muted); margin-bottom: 1rem;">Jadilah pelanggan pertama yang memberikan ulasan untuk layanan kami!</p>
@@ -646,14 +706,10 @@ function renderReviews() {
         const stories = getReviewStories(rev);
         const hasMedia = stories.length > 0;
         const rating = parseInt(rev.rating || 5);
-        const starActiveColor = '#22c55e';
-        const starInactiveColor = '#cbd5e1';
+        const starActiveColor = '#dc2626';
+        const starInactiveColor = '#e2e8f0';
 
         const starsHtml = Array.from({ length: 5 }, (_, i) => {
-            if (isArtis && i < rating) {
-                const gradId = `artistStarGrad_${cardIdx}_${i}`;
-                return `<svg style="width:1.35rem;height:1.35rem;" viewBox="0 0 24 24"><defs><linearGradient id="${gradId}" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#dc2626"/><stop offset="50%" stop-color="#ef4444"/><stop offset="100%" stop-color="#f97316"/></linearGradient></defs><polygon fill="url(#${gradId})" stroke="url(#${gradId})" points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
-            }
             return `<svg style="width:1.35rem;height:1.35rem;fill:${i < rating ? starActiveColor : starInactiveColor};stroke:${i < rating ? starActiveColor : starInactiveColor}" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
         }).join('');
 
@@ -759,11 +815,11 @@ function renderStoryViewerHeader(rev) {
     const dateEl = document.getElementById('storyViewerDate');
     const pauseBtn = document.getElementById('storyPauseBtn');
 
-    if (avatarWrap) avatarWrap.classList.toggle('is-artist', isArtis);
-    if (crownEl) crownEl.classList.toggle('hidden', !isArtis);
+    if (avatarWrap) avatarWrap.classList.toggle('is-artist', false);
+    if (crownEl) crownEl.classList.add('hidden'); // Mahkota dalam story dihilangkan
 
     if (avatarEl) {
-        avatarEl.src = rev.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(rev.name || 'P')}&background=${isArtis ? '16a34a' : '22c55e'}&color=fff&bold=true`;
+        avatarEl.src = rev.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(rev.name || 'P')}&background=${isArtis ? 'dc2626' : '64748b'}&color=fff&bold=true`;
     }
     if (nameEl) nameEl.textContent = rev.name || 'Pelanggan';
     if (subEl) subEl.textContent = `${rev.car_name || 'Unit Rental'} • Story Pelanggan`;
@@ -772,7 +828,7 @@ function renderStoryViewerHeader(rev) {
 
     if (starsEl) {
         const rating = parseInt(rev.rating || 5);
-        starsEl.style.color = '#22c55e';
+        starsEl.style.color = '#dc2626';
         starsEl.innerHTML = Array.from({ length: 5 }, (_, i) => i < rating ? '★' : '☆').join('') +
             ` <span style="font-size:0.75rem; color:#fff; margin-left:0.25rem;">(${rating}.0)</span>`;
     }
@@ -995,6 +1051,23 @@ function prevStory(e) {
     }
 }
 
+// Populate Review Car Select Dropdown from Available Fleet
+function populatePublicReviewCarSelect() {
+    const carSelect = document.getElementById('reviewCarName');
+    if (!carSelect) return;
+
+    let opts = '<option value="">-- Pilih Armada Mobil yang Disewa --</option>';
+    if (state.cars && state.cars.length > 0) {
+        state.cars.forEach(car => {
+            const fullName = `${car.brand} ${car.model}`.trim();
+            const isReady = car.status === 'ready';
+            const statusLabel = isReady ? '🟢 Tersedia (Ready)' : (car.status === 'in_use' ? '🟡 Sedang Digunakan' : '🔴 Perawatan');
+            opts += `<option value="${escapeHtml(fullName)}">${escapeHtml(fullName)} — ${statusLabel}</option>`;
+        });
+    }
+    carSelect.innerHTML = opts;
+}
+
 // Buka Modal Tambah Review Pelanggan
 function openReviewModal() {
     state.selectedReviewRating = 5;
@@ -1004,6 +1077,7 @@ function openReviewModal() {
     const form = document.getElementById('reviewForm');
     if (form) form.reset();
 
+    populatePublicReviewCarSelect();
     renderPublicReviewMediaGrid();
 
     const avatarPrev = document.getElementById('reviewAvatarPreview');
@@ -1030,7 +1104,7 @@ function setReviewRating(stars) {
     const starBtns = document.querySelectorAll('.star-picker-btn');
     starBtns.forEach((btn, idx) => {
         if (idx < stars) {
-            btn.style.color = '#22c55e';
+            btn.style.color = '#dc2626';
             btn.textContent = '★';
         } else {
             btn.style.color = '#cbd5e1';
@@ -1787,7 +1861,7 @@ async function openBookingModal(carId) {
             eventSelect.innerHTML = EVENT_OPTIONS.map(opt => `<option value="${opt.value}">${opt.label}</option>`).join('');
         }
     }
-    selectCustomEventOption('Wisata / Liburan', 'Wisata / Liburan Keluarga', '🏖️', 'Liburan bersama keluarga, kerabat, atau rekan wisata');
+    selectCustomEventOption('Wisata / Liburan', 'Wisata / Liburan Keluarga', '<i class="fa-solid fa-umbrella-beach" style="color: #2563eb;"></i>', 'Liburan bersama keluarga, kerabat, atau rekan wisata');
 
     // Inisialisasi Kalender ke Bulan & Tahun Berjalan Secara Real-Time
     const currentDate = new Date();
@@ -2612,6 +2686,7 @@ ${closingGreeting}
 
 function setCategoryFilter(category, btnElement) {
     state.currentCategoryFilter = category;
+    state.isCatalogExpanded = false;
 
     document.querySelectorAll('.cat-filter-btn').forEach(b => {
         b.classList.remove('btn-primary');
@@ -2629,6 +2704,7 @@ function setCategoryFilter(category, btnElement) {
 function resetFilters() {
     state.currentCategoryFilter = 'all';
     state.searchQuery = '';
+    state.isCatalogExpanded = false;
     const searchInput = document.getElementById('carSearchInput');
     if (searchInput) searchInput.value = '';
 
@@ -2673,32 +2749,42 @@ function closeMobileMenu() {
     document.body.style.overflow = '';
 }
 
-// Scroll Effects (Header Glass & Back to Top - Optimized with requestAnimationFrame)
+// Scroll Effects (Header Glass & Back to Top - Optimized with requestAnimationFrame & state guard)
 function initScrollEffects() {
     const header = document.querySelector('.header-glass');
     const backToTopBtn = document.getElementById('backToTopBtn');
     let ticking = false;
+    let isHeaderScrolled = false;
+    let isBackToTopVisible = false;
 
     window.addEventListener('scroll', () => {
         if (!ticking) {
             window.requestAnimationFrame(() => {
                 const scrollY = window.scrollY || window.pageYOffset;
 
-                // 1. Header Glass Effect
-                if (header) {
-                    if (scrollY > 30) {
-                        header.classList.add('header-scrolled');
-                    } else {
-                        header.classList.remove('header-scrolled');
+                // 1. Header Glass Effect (hanya mutasi DOM jika status berubah)
+                const shouldHeader = scrollY > 30;
+                if (shouldHeader !== isHeaderScrolled) {
+                    isHeaderScrolled = shouldHeader;
+                    if (header) {
+                        if (isHeaderScrolled) {
+                            header.classList.add('header-scrolled');
+                        } else {
+                            header.classList.remove('header-scrolled');
+                        }
                     }
                 }
 
                 // 2. Floating Back to Top Button
-                if (backToTopBtn) {
-                    if (scrollY > 400) {
-                        backToTopBtn.classList.remove('hidden');
-                    } else {
-                        backToTopBtn.classList.add('hidden');
+                const shouldTop = scrollY > 400;
+                if (shouldTop !== isBackToTopVisible) {
+                    isBackToTopVisible = shouldTop;
+                    if (backToTopBtn) {
+                        if (isBackToTopVisible) {
+                            backToTopBtn.classList.remove('hidden');
+                        } else {
+                            backToTopBtn.classList.add('hidden');
+                        }
                     }
                 }
 
@@ -2728,7 +2814,7 @@ function initScrollReveal() {
         });
 
         targets.forEach((target, index) => {
-            target.style.transitionDelay = `${(index % 4) * 0.08}s`;
+            target.style.transitionDelay = `${(index % 4) * 0.06}s`;
             observer.observe(target);
         });
     } else {
@@ -2736,28 +2822,176 @@ function initScrollReveal() {
     }
 }
 
-// Modern Card 3D Tilt Effect on Mouse Move
-function initCardTiltEffects() {
-    // Jalankan hanya di desktop (perangkat dengan hover)
-    if (window.matchMedia('(hover: hover)').matches) {
-        document.querySelectorAll('.card-unit').forEach(card => {
-            card.addEventListener('mousemove', (e) => {
-                const rect = card.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-                const centerX = rect.width / 2;
-                const centerY = rect.height / 2;
-                const deltaX = (x - centerX) / centerX;
-                const deltaY = (y - centerY) / centerY;
+// Smooth Number Counter Animation
+function initCounterAnimation() {
+    const counters = document.querySelectorAll('.counter-number:not(.counter-done)');
+    if (!counters.length) return;
 
-                card.style.transform = `perspective(1000px) rotateY(${deltaX * 5}deg) rotateX(${-deltaY * 5}deg) translateY(-6px)`;
-            });
-
-            card.addEventListener('mouseleave', () => {
-                card.style.transform = '';
-            });
+    if (!('IntersectionObserver' in window)) {
+        counters.forEach(c => {
+            c.textContent = c.getAttribute('data-target') || c.textContent;
+            c.classList.add('counter-done');
         });
+        return;
     }
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const el = entry.target;
+                observer.unobserve(el);
+                el.classList.add('counter-done');
+
+                const target = parseInt(el.getAttribute('data-target'), 10) || 0;
+                const duration = 1200;
+                const startTime = performance.now();
+
+                function updateCounter(now) {
+                    const elapsed = now - startTime;
+                    const progress = Math.min(1, elapsed / duration);
+                    // easeOutExpo
+                    const ease = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+                    el.textContent = Math.floor(ease * target);
+
+                    if (progress < 1) {
+                        requestAnimationFrame(updateCounter);
+                    } else {
+                        el.textContent = target;
+                    }
+                }
+
+                requestAnimationFrame(updateCounter);
+            }
+        });
+    }, { threshold: 0.2 });
+
+    counters.forEach(c => observer.observe(c));
+}
+
+// Interactive City Selector & Route Information di Bagian Jangkauan
+const CITY_ROUTE_DATA = {
+    'Makassar & Sulawesi': {
+        icon: 'fa-plane-departure',
+        highlight: 'Hub Utama Sulawesi & Antar-Kota',
+        desc: 'Melayani Antar-Jemput Bandara Sultan Hasanuddin (UPG), Pelabuhan Soekarno-Hatta, Pettarani, Losari, Gowa, Maros, Bira, hingga Tana Toraja. Pilihan lepas kunci atau supir profesional.'
+    },
+    'Jabodetabek': {
+        icon: 'fa-building',
+        highlight: 'Ibu Kota & Sekitarnya',
+        desc: 'Antar-jemput Bandara Soekarno-Hatta (CGK), Halim Perdanakusuma, kawasan perkantoran Sudirman/Thamrin, Tangerang, BSD, Depok, dan Bekasi. Armada bisnis & keluarga prima.'
+    },
+    'Surabaya & Malang': {
+        icon: 'fa-mountain-sun',
+        highlight: 'Jawa Timur & Wisata Bromo',
+        desc: 'Layanan Bandara Juanda (SUB), Stasiun Gubeng/Pasar Turi, rute wisata Batu-Malang, dan paket privat tour Gunung Bromo dengan supir berpengalaman.'
+    },
+    'Bali & Lombok': {
+        icon: 'fa-umbrella-beach',
+        highlight: 'Destinasi Wisata Favorit',
+        desc: 'Penjemputan Bandara I Gusti Ngurah Rai (DPS), Kuta, Seminyak, Canggu, Ubud, hingga penyeberangan ke Lombok & Sirkuit Mandalika.'
+    },
+    'Medan & Sumatera': {
+        icon: 'fa-route',
+        highlight: 'Sumatera Utara & Lintas Kota',
+        desc: 'Armada siap di Bandara Kualanamu (KNO), pusat kota Medan, Danau Toba, Parapat, Berastagi, hingga kebutuhan perjalanan dinas lintas kabupaten.'
+    },
+    'Kalimantan & Lainnya': {
+        icon: 'fa-truck-plane',
+        highlight: 'IKN & Kota Transit Utama',
+        desc: 'Melayani Balikpapan (BPN), Samarinda, rute proyek IKN Nusantara, Banjarmasin, Pontianak, serta pulau lainnya melalui jaringan mitra resmi RPM.'
+    }
+};
+
+function updateCityRouteInfo(cityName) {
+    const infoContainer = document.getElementById('cityRouteInfoBox');
+    if (!infoContainer) return;
+
+    const data = CITY_ROUTE_DATA[cityName] || {
+        icon: 'fa-location-dot',
+        highlight: `Wilayah ${cityName}`,
+        desc: `RPM Rent Car siap melayani pemesanan sewa mobil dengan supir maupun lepas kunci untuk wilayah ${cityName} dan sekitarnya.`
+    };
+
+    infoContainer.innerHTML = `
+        <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
+            <div style="width: 2.25rem; height: 2.25rem; border-radius: 0.5rem; background: rgba(239, 68, 68, 0.2); color: #ef4444; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; margin-top: 2px;">
+                <i class="fa-solid ${data.icon}"></i>
+            </div>
+            <div>
+                <div style="font-weight: 800; color: #ffffff; font-size: 0.875rem; margin-bottom: 0.2rem;">
+                    ${data.highlight}
+                </div>
+                <div style="color: #94a3b8; font-size: 0.8rem; line-height: 1.5;">
+                    ${data.desc}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function initCitySelector() {
+    const cityBoxes = document.querySelectorAll('.city-box');
+    const waLink = document.querySelector('.city-wa-cta');
+    if (!cityBoxes.length || !waLink) return;
+
+    cityBoxes.forEach(box => {
+        box.style.cursor = 'pointer';
+        box.addEventListener('click', () => {
+            cityBoxes.forEach(b => b.classList.remove('active-city'));
+            box.classList.add('active-city');
+
+            const cityName = box.textContent.trim();
+            updateCityRouteInfo(cityName);
+
+            const waNumber = state?.ownerConfig?.whatsappNumber || '6281234567890';
+            const text = encodeURIComponent(`Halo RPM Rent Car Makassar, saya ingin menanyakan ketersediaan rental mobil di wilayah ${cityName}.`);
+            waLink.href = `https://wa.me/${waNumber}?text=${text}`;
+        });
+    });
+}
+
+// Interactive Mouse Spotlight on Cards (Hardware-Accelerated 60fps)
+function initCardSpotlight() {
+    if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+
+    const cardsContainer = document.getElementById('carsGrid');
+    if (!cardsContainer) return;
+
+    let rafId = null;
+    let targetCard = null;
+    let mouseX = 0;
+    let mouseY = 0;
+
+    cardsContainer.addEventListener('mousemove', (e) => {
+        const card = e.target.closest('.card-unit');
+        if (!card) {
+            targetCard = null;
+            return;
+        }
+
+        targetCard = card;
+        const rect = card.getBoundingClientRect();
+        mouseX = e.clientX - rect.left;
+        mouseY = e.clientY - rect.top;
+
+        if (!rafId) {
+            rafId = requestAnimationFrame(() => {
+                if (targetCard) {
+                    targetCard.style.setProperty('--mouse-x', `${mouseX}px`);
+                    targetCard.style.setProperty('--mouse-y', `${mouseY}px`);
+                }
+                rafId = null;
+            });
+        }
+    }, { passive: true });
+
+    cardsContainer.addEventListener('mouseleave', () => {
+        const cards = cardsContainer.querySelectorAll('.card-unit');
+        cards.forEach(c => {
+            c.style.removeProperty('--mouse-x');
+            c.style.removeProperty('--mouse-y');
+        });
+    }, { passive: true });
 }
 
 // Inisialisasi Event Listeners
@@ -2765,14 +2999,37 @@ document.addEventListener('DOMContentLoaded', () => {
     initStorage();
     initScrollEffects();
     initScrollReveal();
-    setTimeout(initCardTiltEffects, 600);
+    initCounterAnimation();
+    initCitySelector();
+    initCardSpotlight();
 
     const searchInput = document.getElementById('carSearchInput');
+    const clearSearchBtn = document.getElementById('clearSearchBtn');
+
     if (searchInput) {
+        function updateClearBtnVisibility() {
+            if (clearSearchBtn) {
+                clearSearchBtn.style.display = searchInput.value.trim() ? 'flex' : 'none';
+            }
+        }
+
         searchInput.addEventListener('input', (e) => {
             state.searchQuery = e.target.value;
+            state.isCatalogExpanded = false;
+            updateClearBtnVisibility();
             renderCarsCatalog();
         });
+
+        if (clearSearchBtn) {
+            clearSearchBtn.addEventListener('click', () => {
+                searchInput.value = '';
+                state.searchQuery = '';
+                state.isCatalogExpanded = false;
+                updateClearBtnVisibility();
+                renderCarsCatalog();
+                searchInput.focus();
+            });
+        }
     }
 
     const startDate = document.getElementById('bookStartDate');
@@ -2857,7 +3114,7 @@ function selectCustomEventOption(val, title, icon, desc) {
 
     if (titleEl) titleEl.textContent = title;
     if (descEl) descEl.textContent = desc || '';
-    if (iconEl) iconEl.textContent = icon || '🏖️';
+    if (iconEl) iconEl.innerHTML = icon || '<i class="fa-solid fa-umbrella-beach" style="color: #2563eb;"></i>';
 
     // Update active highlight & checkmark in list items
     const items = document.querySelectorAll('.custom-event-item');
@@ -2957,7 +3214,24 @@ function initIntroPreloader() {
     const muteIcon = document.getElementById('introMuteIcon');
     const progressBar = document.getElementById('introProgressBar');
 
-    if (!root.classList.contains('intro-active') || !preloader || !video) {
+    const seen = localStorage.getItem('rpm_intro_seen') || sessionStorage.getItem('rpm_intro_seen');
+    const params = new URLSearchParams(window.location.search);
+    const forceIntro = params.get('intro') === '1';
+
+    if ((seen && !forceIntro) || !root.classList.contains('intro-active') || !preloader || !video) {
+        if (preloader) {
+            preloader.style.display = 'none';
+            try {
+                if (video) {
+                    video.pause();
+                    video.removeAttribute('src');
+                    const sourceEl = video.querySelector('source');
+                    if (sourceEl) sourceEl.removeAttribute('src');
+                    video.load();
+                }
+            } catch (e) {}
+        }
+        root.classList.remove('intro-active', 'intro-merging');
         return;
     }
 
@@ -2975,6 +3249,7 @@ function initIntroPreloader() {
         isFinished = true;
 
         try {
+            localStorage.setItem('rpm_intro_seen', '1');
             sessionStorage.setItem('rpm_intro_seen', '1');
         } catch (e) {}
 
@@ -3055,6 +3330,10 @@ function initIntroPreloader() {
     });
 
     updateMuteUi();
+
+    try {
+        video.load();
+    } catch (e) {}
 
     const playPromise = video.play();
     if (playPromise && typeof playPromise.catch === 'function') {

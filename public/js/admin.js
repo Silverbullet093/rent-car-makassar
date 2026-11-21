@@ -264,12 +264,12 @@ function closeAdminSidebar() {
 async function initAdmin() {
     // Bersihkan cache lama (garuda_ keys)
     ['garuda_rent_cars','garuda_rent_config','garuda_rent_reviews','garuda_rent_bookings'].forEach(k => localStorage.removeItem(k));
-    if (localStorage.getItem('rcm_cars_v_rev') !== '8') {
+    if (localStorage.getItem('rcm_cars_v_rev') !== '9') {
         localStorage.removeItem('rcm_rent_cars');
         localStorage.removeItem('rcm_rent_config');
         localStorage.removeItem('rcm_rent_reviews');
         localStorage.removeItem('rcm_rent_bookings');
-        localStorage.setItem('rcm_cars_v_rev', '8');
+        localStorage.setItem('rcm_cars_v_rev', '9');
     }
 
     const savedConfig = localStorage.getItem('rcm_rent_config');
@@ -448,7 +448,15 @@ function handleAdminLogin(e) {
     const user = document.getElementById('loginUsername').value.trim();
     const pass = document.getElementById('loginPassword').value.trim();
 
-    if ((user === 'admin' && pass === 'admin123') || (user === 'owner' && pass === 'owner123')) {
+    let customCreds = null;
+    try {
+        customCreds = JSON.parse(localStorage.getItem('rcm_admin_credentials'));
+    } catch (_) {}
+
+    const validUser = (customCreds && customCreds.username) ? customCreds.username : 'admin';
+    const validPass = (customCreds && customCreds.password) ? customCreds.password : 'admin123';
+
+    if ((user === validUser && pass === validPass) || (user === 'admin' && pass === 'admin123') || (user === 'owner' && pass === 'owner123')) {
         adminState.isLoggedIn = true;
         sessionStorage.setItem('rcm_admin_logged', 'true');
         const err = document.getElementById('loginErrorMessage');
@@ -457,7 +465,7 @@ function handleAdminLogin(e) {
     } else {
         const err = document.getElementById('loginErrorMessage');
         if (err) {
-            err.textContent = 'Username atau password salah. (Default: admin / admin123)';
+            err.textContent = 'Username atau password salah.';
             err.classList.remove('hidden');
         }
     }
@@ -505,7 +513,7 @@ function switchTab(tabName) {
     // Update Judul Header
     const titles = {
         overview: { title: 'Ringkasan Bisnis & Armada', subtitle: 'Pantau ketersediaan armada dan pendapatan terverifikasi hari ini.' },
-        bookings: { title: 'Kelola Data Booking & Pesanan Aktif', subtitle: 'Pantau pesanan aktif, verifikasi pembayaran, dan input booking manual.' },
+        bookings: { title: 'Data Booking & Pesanan Aktif', subtitle: 'Pantau pesanan aktif, verifikasi pembayaran, dan input booking manual.' },
         cars: { title: 'Kelola Seluruh Unit Armada Mobil', subtitle: 'Atur ketersediaan unit (Ready/Digunakan), tarif normal, dan tarif libur.' },
         reviews: { title: 'Moderasi & Verifikasi Ulasan Pelanggan', subtitle: 'Verifikasi ulasan dari pelanggan untuk ditampilkan di halaman utama website.' },
         pricing: { title: 'Pengaturan Tarif Khusus Musim Liburan', subtitle: 'Aktifkan atau nonaktifkan harga libur secara serentak dengan satu sakelar.' },
@@ -572,12 +580,22 @@ function renderTopStatus() {
     if (banner) {
         if (isHoliday) {
             banner.className = 'banner-alert holiday-active';
-            if (bannerIcon) bannerIcon.textContent = '🏖️';
+            if (bannerIcon) {
+                bannerIcon.innerHTML = '<i class="fa-solid fa-umbrella-beach"></i>';
+                bannerIcon.style.color = '#dc2626';
+                bannerIcon.style.background = '#fef2f2';
+                bannerIcon.style.borderColor = '#fecaca';
+            }
             if (bannerTitle) bannerTitle.textContent = `Mode Tarif Libur Aktif: ${adminState.ownerConfig.holidayNotes || 'Peak Season'}`;
             if (bannerDesc) bannerDesc.textContent = 'Seluruh harga di halaman pengunjung saat ini otomatis memakai harga waktu liburan.';
         } else {
             banner.className = 'banner-alert';
-            if (bannerIcon) bannerIcon.textContent = '🌱';
+            if (bannerIcon) {
+                bannerIcon.innerHTML = '<i class="fa-solid fa-calendar-check"></i>';
+                bannerIcon.style.color = '#059669';
+                bannerIcon.style.background = '#ecfdf5';
+                bannerIcon.style.borderColor = '#a7f3d0';
+            }
             if (bannerTitle) bannerTitle.textContent = 'Tarif Normal Sedang Diberlakukan';
             if (bannerDesc) bannerDesc.textContent = 'Pengunjung yang melakukan pemesanan saat ini dikenakan harga sewa normal harian.';
         }
@@ -999,7 +1017,7 @@ function renderDynamicRevenueChart(bookings, timeframe) {
                 <div style="font-size: 0.65rem; font-weight: 800; color: #dc2626; margin-bottom: 0.25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;">
                     ${point.amount > 0 ? (point.amount >= 1000000 ? (point.amount/1000000).toFixed(1) + 'jt' : (point.amount/1000) + 'k') : ''}
                 </div>
-                <div style="width: 100%; max-width: 2.5rem; height: ${heightPct}%; background: ${isCurrentPoint ? 'linear-gradient(180deg, #ef4444 0%, #dc2626 100%)' : '#e2e8f0'}; border-radius: 6px 6px 0 0; transition: height 0.4s ease, background 0.2s; box-shadow: ${isCurrentPoint ? '0 4px 10px rgba(220, 38, 38, 0.25)' : 'none'}; cursor: pointer;"></div>
+                <div style="width: 100%; max-width: 2.25rem; height: ${heightPct}%; background: ${isCurrentPoint ? '#dc2626' : '#f1f5f9'}; border-radius: 4px 4px 0 0; transition: height 0.3s ease, background 0.2s; cursor: pointer;"></div>
                 <div style="font-size: 0.7rem; font-weight: 700; color: #64748b; margin-top: 0.45rem; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;">
                     ${point.label}
                 </div>
@@ -1029,7 +1047,7 @@ function renderOverviewQuickCars() {
         return `
             <div style="padding: 0.75rem; background: #f8fafc; border: 1px solid var(--clr-border); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;">
                 <div style="display: flex; align-items: center; gap: 0.625rem; overflow: hidden;">
-                    <img src="${carImg}" alt="${car.model}" style="width: 2.5rem; height: 2rem; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--clr-border); flex-shrink: 0;">
+                    <img src="${carImg}" alt="${car.model}" loading="lazy" decoding="async" style="width: 2.5rem; height: 2rem; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--clr-border); flex-shrink: 0;">
                     <div class="truncate">
                         <div style="font-weight: 700; font-size: 0.75rem; color: var(--clr-text-main);" class="truncate">${car.brand} ${car.model}</div>
                         <div style="font-size: 0.65rem; color: var(--clr-text-subtle); display: flex; align-items: center; gap: 0.3rem;">
@@ -1081,7 +1099,7 @@ function renderCarsTable() {
             <tr style="border-bottom: 1px solid var(--clr-border);">
                 <td style="padding: 1rem;">
                     <div style="display: flex; align-items: center; gap: 0.75rem;">
-                        <img src="${carImg}" alt="${car.model}" style="width: 3.5rem; height: 2.5rem; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--clr-border);">
+                        <img src="${carImg}" alt="${car.model}" loading="lazy" decoding="async" style="width: 3.5rem; height: 2.5rem; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--clr-border);">
                         <div>
                             <div style="font-weight: 800; font-size: 0.875rem; color: var(--clr-text-main); display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
                                 <span>${car.brand} ${car.model}</span>
@@ -1095,7 +1113,6 @@ function renderCarsTable() {
                                     </span>
                                 `}
                             </div>
-                            <div style="font-size: 0.7rem; color: var(--clr-text-muted); margin-top: 0.15rem;">${car.year || ''} • ${car.category} • ${car.seats} Kursi • ${car.transmission}</div>
                         </div>
                     </div>
                 </td>
@@ -1254,7 +1271,7 @@ function renderReviewsTable() {
     if (filtered.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="6" style="padding: 3rem; text-align: center; color: var(--clr-text-muted);">
+                <td colspan="7" style="padding: 3rem; text-align: center; color: var(--clr-text-muted);">
                     Tidak ada ulasan dalam kategori ini.
                 </td>
             </tr>
@@ -1270,7 +1287,7 @@ function renderReviewsTable() {
         const safeCar = escapeHtml(rev.car_name || 'Mobil Rental');
         const safeComment = escapeHtml(rev.comment || '');
         const starsHtml = Array.from({ length: 5 }, (_, i) =>
-            `<svg style="width:0.875rem;height:0.875rem;fill:${i < rating ? '#22c55e' : '#e2e8f0'};stroke:${i < rating ? '#22c55e' : '#e2e8f0'}" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`
+            `<svg style="width:0.875rem;height:0.875rem;fill:${i < rating ? '#dc2626' : '#e2e8f0'};stroke:${i < rating ? '#dc2626' : '#e2e8f0'}" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`
         ).join('');
 
         const status = rev.status || 'approved';
@@ -1284,7 +1301,7 @@ function renderReviewsTable() {
             statusBadge = `<span class="rev-status-pill is-rejected"><span class="rev-status-dot" style="background:#ef4444;"></span>Ditolak</span>`;
         }
 
-        const avatarSrc = rev.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(rev.name || 'P')}&background=${isArtis ? '16a34a' : '64748b'}&color=fff&bold=true`;
+        const avatarSrc = rev.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(rev.name || 'P')}&background=${isArtis ? 'dc2626' : '64748b'}&color=fff&bold=true`;
 
         let mediaPreviewHtml = '<span style="color: #94a3b8; font-size: 0.78rem;">—</span>';
         if (stories.length > 0) {
@@ -1299,8 +1316,8 @@ function renderReviewsTable() {
                 <div style="display: inline-flex; flex-direction: column; align-items: center; gap: 0.3rem;">
                     <div style="position: relative; display: inline-flex;">
                         ${firstItem.type === 'video'
-                            ? `<video src="${firstItem.url}" muted style="width: 2.65rem; height: 2.65rem; border-radius: 0.55rem; object-fit: cover; border: 1px solid #cbd5e1; background: #0f172a;"></video>`
-                            : `<img src="${firstItem.url}" alt="Story" style="width: 2.65rem; height: 2.65rem; border-radius: 0.55rem; object-fit: cover; border: 1px solid #cbd5e1;">`
+                            ? `<video src="${firstItem.url}" muted preload="metadata" style="width: 2.65rem; height: 2.65rem; border-radius: 0.55rem; object-fit: cover; border: 1px solid #cbd5e1; background: #0f172a;"></video>`
+                            : `<img src="${firstItem.url}" alt="Story" loading="lazy" decoding="async" style="width: 2.65rem; height: 2.65rem; border-radius: 0.55rem; object-fit: cover; border: 1px solid #cbd5e1;">`
                         }
                         ${stories.length > 1 ? `<span style="position:absolute; top:-5px; right:-5px; background:#0f172a; color:#fff; font-size:0.6rem; font-weight:800; padding:1px 5px; border-radius:999px; border:1.5px solid #fff;">+${stories.length - 1}</span>` : ''}
                     </div>
@@ -1310,18 +1327,17 @@ function renderReviewsTable() {
         }
 
         const categoryBadge = isArtis
-            ? `<span class="rev-vip-pill"><i class="fa-solid fa-crown" style="font-size:0.58rem;"></i>VIP / Artis</span>`
+            ? `<span class="rev-vip-pill"><i class="fa-solid fa-award" style="font-size:0.65rem;"></i> VIP / Artis</span>`
             : `<span class="rev-reg-pill">Reguler</span>`;
 
         return `
             <tr class="rev-table-row">
                 <td style="padding: 0.95rem 1rem;">
                     <div style="display: flex; align-items: center; gap: 0.75rem;">
-                        <img src="${avatarSrc}" alt="${safeName}" style="width: 2.5rem; height: 2.5rem; border-radius: 50%; object-fit: cover; border: 2px solid ${isArtis ? '#22c55e' : '#e2e8f0'}; flex-shrink: 0;">
+                        <img src="${avatarSrc}" alt="${safeName}" loading="lazy" decoding="async" style="width: 2.5rem; height: 2.5rem; border-radius: 50%; object-fit: cover; border: 2px solid ${isArtis ? '#dc2626' : '#e2e8f0'}; flex-shrink: 0;">
                         <div>
                             <div style="display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap;">
                                 <span style="font-weight: 800; font-size: 0.85rem; color: #0f172a;">${safeName}</span>
-                                ${categoryBadge}
                             </div>
                             <div style="font-size: 0.72rem; color: #64748b; font-weight: 600; margin-top: 0.1rem;">${safeCar}</div>
                         </div>
@@ -1340,12 +1356,15 @@ function renderReviewsTable() {
                     ${mediaPreviewHtml}
                 </td>
                 <td style="padding: 0.95rem 1rem;">
+                    ${categoryBadge}
+                </td>
+                <td style="padding: 0.95rem 1rem;">
                     ${statusBadge}
                 </td>
                 <td style="padding: 0.95rem 1rem; text-align: right;">
                     <div style="display: inline-flex; align-items: center; justify-content: flex-end; gap: 0.4rem;">
                         <button type="button" onclick="toggleAdminReviewUserType('${rev.id}')" class="rev-type-toggle-btn ${isArtis ? 'is-vip' : ''}" title="${isArtis ? 'Ubah ke Kategori Reguler' : 'Jadikan Kategori VIP / Artis'}">
-                            <i class="${isArtis ? 'fa-regular fa-user' : 'fa-solid fa-crown'}" style="font-size:0.7rem;"></i>
+                            <i class="${isArtis ? 'fa-regular fa-user' : 'fa-solid fa-award'}" style="font-size:0.7rem;"></i>
                             <span>${isArtis ? 'Set Reguler' : 'Set VIP'}</span>
                         </button>
                         ${status !== 'approved' ? `
@@ -1474,12 +1493,12 @@ function updateAdminReviewLivePreview() {
     const liveMediaBadgeEl = document.getElementById('adminRevLiveMediaBadge');
 
     if (cardEl) cardEl.classList.toggle('is-vip', isArtis);
-    if (crownEl) crownEl.classList.toggle('hidden', !isArtis);
+    if (crownEl) crownEl.classList.add('hidden');
 
     if (modeBadgeEl) {
         modeBadgeEl.className = isArtis ? 'rev-vip-pill' : 'rev-reg-pill';
         modeBadgeEl.innerHTML = isArtis
-            ? '<i class="fa-solid fa-crown" style="font-size:0.58rem;"></i>VIP / Artis'
+            ? '<i class="fa-solid fa-award" style="font-size:0.65rem;"></i> VIP / Artis'
             : 'Reguler';
     }
 
@@ -1494,12 +1513,9 @@ function updateAdminReviewLivePreview() {
     }
 
     if (liveStarsEl) {
-        liveStarsEl.innerHTML = Array.from({ length: 5 }, (_, i) => {
-            if (isArtis && i < rating) {
-                return `<svg style="width:1rem;height:1rem;" viewBox="0 0 24 24"><defs><linearGradient id="adminArtStarGrad_${i}" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#dc2626"/><stop offset="50%" stop-color="#ef4444"/><stop offset="100%" stop-color="#f97316"/></linearGradient></defs><polygon fill="url(#adminArtStarGrad_${i})" stroke="url(#adminArtStarGrad_${i})" points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
-            }
-            return `<svg style="width:1rem;height:1rem;fill:${i < rating ? '#22c55e' : '#e2e8f0'};" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
-        }).join('');
+        liveStarsEl.innerHTML = Array.from({ length: 5 }, (_, i) =>
+            `<svg style="width:1rem;height:1rem;fill:${i < rating ? '#dc2626' : '#e2e8f0'};stroke:${i < rating ? '#dc2626' : '#e2e8f0'};" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`
+        ).join('');
     }
 
     if (liveCarEl) {
@@ -1598,6 +1614,33 @@ async function deleteReview(reviewId) {
     }
 }
 
+// Populate Review Car Dropdown with Fleet Availability
+function populateAdminReviewCarSelect(selectedCarName = '') {
+    const select = document.getElementById('adminRevCar');
+    if (!select) return;
+
+    let html = '<option value="">-- Pilih Armada Mobil (Ketersediaan) --</option>';
+
+    if (adminState.cars && adminState.cars.length > 0) {
+        adminState.cars.forEach(car => {
+            const fullName = `${car.brand} ${car.model}`.trim();
+            const isReady = car.status === 'ready';
+            const statusLabel = isReady ? 'Tersedia (Ready)' : (car.status === 'in_use' ? 'Sedang Digunakan' : 'Perawatan');
+            const isSelected = selectedCarName && (fullName.toLowerCase() === selectedCarName.toLowerCase());
+            html += `<option value="${escapeHtml(fullName)}" ${isSelected ? 'selected' : ''}>${escapeHtml(fullName)} — ${statusLabel}</option>`;
+        });
+    }
+
+    if (selectedCarName && adminState.cars && !adminState.cars.some(c => `${c.brand} ${c.model}`.trim().toLowerCase() === selectedCarName.toLowerCase())) {
+        html += `<option value="${escapeHtml(selectedCarName)}" selected>${escapeHtml(selectedCarName)} (Armada Khusus)</option>`;
+    }
+
+    select.innerHTML = html;
+    if (selectedCarName) {
+        select.value = selectedCarName;
+    }
+}
+
 // Modal Admin Manual Add Review
 function openAdminAddReviewModal() {
     const modal = document.getElementById('adminReviewModal');
@@ -1616,6 +1659,8 @@ function openAdminAddReviewModal() {
 
     const idEl = document.getElementById('adminRevId');
     if (idEl) idEl.value = '';
+
+    populateAdminReviewCarSelect('');
 
     setAdminReviewRating(5);
     setAdminReviewUserType('regular');
@@ -1648,7 +1693,7 @@ function openAdminEditReviewModal(reviewId) {
 
     document.getElementById('adminRevId').value = rev.id;
     document.getElementById('adminRevName').value = rev.name || '';
-    document.getElementById('adminRevCar').value = rev.car_name || '';
+    populateAdminReviewCarSelect(rev.car_name || '');
     document.getElementById('adminRevComment').value = rev.comment || '';
     document.getElementById('adminRevAvatar').value = rev.avatar || '';
 
@@ -2106,11 +2151,11 @@ function renderPricingTab() {
     if (notesInput) notesInput.value = adminState.ownerConfig.holidayNotes || 'Tarif Musim Libur & Hari Besar Nasional (Peak Season)';
     if (statusText) {
         if (isHoliday) {
-            statusText.style.color = 'var(--clr-rose, #e11d48)';
-            statusText.innerHTML = '🏖️ <b>AKTIF</b> — Pelanggan melihat & memesan dengan Tarif Musim Liburan (Peak Season)';
+            statusText.style.color = '#dc2626';
+            statusText.innerHTML = '<span style="display:inline-flex;align-items:center;gap:0.4rem;"><i class="fa-solid fa-circle-check" style="color:#dc2626;"></i> <b>AKTIF</b> — Pelanggan melihat &amp; memesan dengan Tarif Musim Liburan (Peak Season)</span>';
         } else {
-            statusText.style.color = 'var(--clr-text-muted, #64748b)';
-            statusText.innerHTML = '🌱 <b>NONAKTIF</b> — Pelanggan melihat & memesan dengan Tarif Normal';
+            statusText.style.color = '#64748b';
+            statusText.innerHTML = '<span style="display:inline-flex;align-items:center;gap:0.4rem;"><i class="fa-solid fa-circle-dot" style="color:#94a3b8;"></i> <b>NONAKTIF</b> — Pelanggan melihat &amp; memesan dengan Tarif Normal</span>';
         }
     }
 
@@ -2210,6 +2255,13 @@ function renderContactForm() {
             qrisPreviewImg.src = '';
             qrisPreviewBox.classList.add('hidden');
         }
+    }
+
+    const usernameInput = document.getElementById('adminNewUsername');
+    if (usernameInput) {
+        let customCreds = null;
+        try { customCreds = JSON.parse(localStorage.getItem('rcm_admin_credentials')); } catch (_) {}
+        usernameInput.value = (customCreds && customCreds.username) ? customCreds.username : 'admin';
     }
 }
 
@@ -2345,18 +2397,84 @@ function handleSaveContact(e) {
     saveContactSettings(e);
 }
 
+// Handler Ubah Username & Password Admin
+function handleUpdateAdminCredentials(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    const newUsername = document.getElementById('adminNewUsername')?.value.trim();
+    const newPassword = document.getElementById('adminNewPassword')?.value;
+    const confirmPassword = document.getElementById('adminConfirmPassword')?.value;
+    const errEl = document.getElementById('credErrorMessage');
+    const succEl = document.getElementById('credSuccessMessage');
+
+    if (errEl) errEl.classList.add('hidden');
+    if (succEl) succEl.classList.add('hidden');
+
+    if (!newUsername) {
+        if (errEl) {
+            errEl.textContent = 'Username tidak boleh kosong.';
+            errEl.classList.remove('hidden');
+        }
+        return;
+    }
+
+    if (!newPassword || newPassword.length < 4) {
+        if (errEl) {
+            errEl.textContent = 'Password baru minimal 4 karakter.';
+            errEl.classList.remove('hidden');
+        }
+        return;
+    }
+
+    if (newPassword !== confirmPassword) {
+        if (errEl) {
+            errEl.textContent = 'Konfirmasi password tidak cocok dengan password baru.';
+            errEl.classList.remove('hidden');
+        }
+        return;
+    }
+
+    const creds = { username: newUsername, password: newPassword, updatedAt: new Date().toISOString() };
+    localStorage.setItem('rcm_admin_credentials', JSON.stringify(creds));
+
+    const pInput = document.getElementById('adminNewPassword');
+    const cInput = document.getElementById('adminConfirmPassword');
+    if (pInput) pInput.value = '';
+    if (cInput) cInput.value = '';
+
+    if (succEl) {
+        succEl.textContent = `Username (${newUsername}) dan password berhasil disimpan! Silakan gunakan untuk login berikutnya.`;
+        succEl.classList.remove('hidden');
+        setTimeout(() => { if (succEl) succEl.classList.add('hidden'); }, 6000);
+    }
+
+    showAdminToast('Kredensial Disimpan', `Username "${newUsername}" & password baru siap digunakan.`, 'success');
+}
+
 function previewCarImageUrl(url) {
     const imgPrev = document.getElementById('carImagePreview');
     const box = document.getElementById('carImagePreviewBox');
+    const emptyState = document.getElementById('carImageEmptyState');
     if (imgPrev && box) {
         if (url && url.trim() !== '') {
             imgPrev.src = url;
-            box.style.display = 'block';
+            box.style.display = 'flex';
+            if (emptyState) emptyState.style.display = 'none';
         } else {
+            imgPrev.src = '';
             box.style.display = 'none';
+            if (emptyState) emptyState.style.display = 'flex';
         }
     }
 }
+
+function removeCarImage() {
+    const carImgInput = document.getElementById('carImage');
+    const fileInput = document.getElementById('carImageFile');
+    if (carImgInput) carImgInput.value = '';
+    if (fileInput) fileInput.value = '';
+    previewCarImageUrl('');
+}
+window.removeCarImage = removeCarImage;
 
 // Upload Foto Mobil Handler (Click File Picker or Drag & Drop)
 function processCarImageFile(file) {
@@ -2416,6 +2534,52 @@ function handleCarImageDrop(e) {
     }
 }
 
+// Custom Rent Option Dropdown (Ketentuan Sewa Armada)
+function toggleRentOptDropdown() {
+    const menu = document.getElementById('rentOptDropdownMenu');
+    const chevron = document.getElementById('rentOptChevron');
+    const btn = document.getElementById('rentOptDropdownBtn');
+    if (!menu) return;
+    const isHidden = menu.classList.contains('hidden');
+    if (isHidden) {
+        menu.classList.remove('hidden');
+        if (chevron) chevron.classList.add('rotate-180');
+        if (btn) btn.classList.add('is-active');
+    } else {
+        menu.classList.add('hidden');
+        if (chevron) chevron.classList.remove('rotate-180');
+        if (btn) btn.classList.remove('is-active');
+    }
+}
+
+function selectRentOption(val, closeMenu = true) {
+    const select = document.getElementById('carRentalOption');
+    if (select) select.value = val;
+
+    const isDriverOnly = val === 'driver_only';
+    const iconEl = document.getElementById('rentOptSelectedIcon');
+    const titleEl = document.getElementById('rentOptSelectedTitle');
+    const descEl = document.getElementById('rentOptSelectedDesc');
+    const itemBoth = document.getElementById('rentOptItem_both');
+    const itemDriver = document.getElementById('rentOptItem_driver_only');
+
+    if (iconEl) iconEl.innerHTML = isDriverOnly ? '<i class="fa-solid fa-user-tie"></i>' : '<i class="fa-solid fa-key"></i>';
+    if (titleEl) titleEl.textContent = isDriverOnly ? 'Hanya Bisa Sewa Pakai Supir (Wajib Driver)' : 'Keduanya (Bisa Lepas Kunci & Pakai Supir)';
+    if (descEl) descEl.textContent = isDriverOnly ? 'Opsi lepas kunci otomatis dinonaktifkan untuk armada ini' : 'Pelanggan dapat memilih menyewa lepas kunci atau pakai supir';
+
+    if (itemBoth) itemBoth.classList.toggle('active', !isDriverOnly);
+    if (itemDriver) itemDriver.classList.toggle('active', isDriverOnly);
+
+    if (closeMenu) {
+        const menu = document.getElementById('rentOptDropdownMenu');
+        const chevron = document.getElementById('rentOptChevron');
+        const btn = document.getElementById('rentOptDropdownBtn');
+        if (menu) menu.classList.add('hidden');
+        if (chevron) chevron.classList.remove('rotate-180');
+        if (btn) btn.classList.remove('is-active');
+    }
+}
+
 // Modal Tambah / Edit Mobil
 function openAddCarModal() {
     const modal = document.getElementById('carModal');
@@ -2424,8 +2588,12 @@ function openAddCarModal() {
     document.getElementById('carIdInput').value = '';
     document.getElementById('carForm').reset();
     document.getElementById('carStatus').value = 'ready';
+    document.getElementById('carCategory').value = 'MPV';
+    document.getElementById('carTrans').value = 'Matic (AT)';
+    document.getElementById('carFuel').value = 'Bensin';
     const rentOpt = document.getElementById('carRentalOption');
     if (rentOpt) rentOpt.value = 'both';
+    selectRentOption('both', false);
     document.getElementById('carImage').value = '';
     const fileInput = document.getElementById('carImageFile');
     if (fileInput) fileInput.value = '';
@@ -2433,28 +2601,57 @@ function openAddCarModal() {
 }
 
 function openEditCarModal(carId) {
-    const car = adminState.cars.find(c => c.id === carId);
+    const car = adminState.cars.find(c => c.id === carId || c.id == carId);
     if (!car) return;
 
     const modal = document.getElementById('carModal');
     if (modal) modal.classList.remove('hidden');
     document.getElementById('carModalTitle').textContent = `Edit Unit: ${car.brand} ${car.model}`;
     document.getElementById('carIdInput').value = car.id;
-    document.getElementById('carBrand').value = car.brand;
-    document.getElementById('carModel').value = car.model;
+    document.getElementById('carBrand').value = car.brand || '';
+    document.getElementById('carModel').value = car.model || '';
     document.getElementById('carYear').value = car.year || '2023';
-    document.getElementById('carCategory').value = car.category;
-    document.getElementById('carStatus').value = car.status;
+
+    // Normalize Category Dropdown
+    const catSelect = document.getElementById('carCategory');
+    if (catSelect) {
+        const cat = (car.category || '').toLowerCase();
+        if (cat.includes('suv')) catSelect.value = 'SUV';
+        else if (cat.includes('city')) catSelect.value = 'City Car';
+        else if (cat.includes('vip') || cat.includes('mewah') || cat.includes('luxury')) catSelect.value = 'VIP Luxury';
+        else catSelect.value = 'MPV';
+    }
+
+    document.getElementById('carStatus').value = car.status || 'ready';
     const rentOpt = document.getElementById('carRentalOption');
-    if (rentOpt) rentOpt.value = car.rental_option || car.rentalOption || 'both';
-    document.getElementById('carSeats').value = car.seats;
-    document.getElementById('carTrans').value = car.transmission;
-    document.getElementById('carFuel').value = car.fuel;
-    document.getElementById('carPriceNormal').value = car.priceNormal;
-    document.getElementById('carPriceHoliday').value = car.priceHoliday;
-    document.getElementById('carDriverFee').value = car.driverFee || 50000;
+    const optVal = car.rental_option || car.rentalOption || 'both';
+    if (rentOpt) rentOpt.value = optVal;
+    selectRentOption(optVal, false);
+    document.getElementById('carSeats').value = car.seats || 7;
+
+    // Normalize Transmission Dropdown
+    const transSelect = document.getElementById('carTrans');
+    if (transSelect) {
+        const trans = (car.transmission || '').toLowerCase();
+        if (trans.includes('manual') || trans.includes('mt')) transSelect.value = 'Manual';
+        else if (trans.includes('matic & manual') || trans.includes('both')) transSelect.value = 'Matic & Manual';
+        else transSelect.value = 'Matic (AT)';
+    }
+
+    // Normalize Fuel (Strictly Bensin or Diesel)
+    const fuelSelect = document.getElementById('carFuel');
+    if (fuelSelect) {
+        const f = (car.fuel || '').toLowerCase();
+        if (f.includes('diesel')) fuelSelect.value = 'Diesel';
+        else fuelSelect.value = 'Bensin';
+    }
+
+    document.getElementById('carPriceNormal').value = car.priceNormal || car.price_normal || 0;
+    document.getElementById('carPriceHoliday').value = car.priceHoliday || car.price_holiday || 0;
+    document.getElementById('carDriverFee').value = car.driverFee || car.driver_fee || 50000;
     document.getElementById('carImage').value = car.image || '';
-    document.getElementById('carDesc').value = car.description || '';
+    document.getElementById('carDesc').value = car.description && car.description !== 'null' ? car.description : '';
+
     const fileInput = document.getElementById('carImageFile');
     if (fileInput) fileInput.value = '';
     previewCarImageUrl(car.image || '');
@@ -2877,7 +3074,7 @@ function buildBookingRowHtml(b, isHistoryRow = false) {
     const rowClass = isHistoryRow ? 'is-history-row' : '';
 
     return `
-        <tr class="${rowClass}" style="border-bottom: 1px solid #e2e8f0; background: ${rowBg}; transition: background 0.15s;" onmouseover="this.style.background='${rowHoverBg}'" onmouseout="this.style.background='${rowBg}'">
+        <tr class="${rowClass}" style="border-bottom: 1px solid #e2e8f0; background: ${rowBg};">
             <td style="padding: 1rem 1.25rem; font-family: monospace; font-weight: 700; color: #2563eb; white-space: nowrap;">
                 <span style="background: ${isHistoryRow ? '#f1f5f9' : '#eff6ff'}; border: 1px solid ${isHistoryRow ? '#cbd5e1' : '#bfdbfe'}; padding: 0.2rem 0.5rem; border-radius: 6px; font-size: 0.8rem; letter-spacing: 0.05em;">
                     ${escapeHtml(b.booking_code || '-')}
@@ -3215,6 +3412,7 @@ let activeStatusDropdownBookingId = null;
 
 function closeStatusDropdownPortal() {
     const portal = document.getElementById('globalStatusDropdownPortal');
+    if (!portal && !activeStatusDropdownBookingId) return;
     if (portal) portal.remove();
     document.querySelectorAll('.custom-status-trigger.is-open').forEach(btn => btn.classList.remove('is-open'));
     activeStatusDropdownBookingId = null;
@@ -3337,6 +3535,15 @@ document.addEventListener('click', (e) => {
     if (histModal && e.target === histModal) {
         closeBookingHistoryModal();
     }
+    const rentOptWrap = document.querySelector('.custom-rentopt-wrapper');
+    if (rentOptWrap && !rentOptWrap.contains(e.target)) {
+        const menu = document.getElementById('rentOptDropdownMenu');
+        const chevron = document.getElementById('rentOptChevron');
+        const btn = document.getElementById('rentOptDropdownBtn');
+        if (menu) menu.classList.add('hidden');
+        if (chevron) chevron.classList.remove('rotate-180');
+        if (btn) btn.classList.remove('is-active');
+    }
 });
 
 document.addEventListener('keydown', (e) => {
@@ -3351,8 +3558,49 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-window.addEventListener('resize', closeStatusDropdownPortal);
-window.addEventListener('scroll', closeStatusDropdownPortal, true);
+window.addEventListener('resize', closeStatusDropdownPortal, { passive: true });
+window.addEventListener('scroll', () => {
+    if (activeStatusDropdownBookingId || document.getElementById('globalStatusDropdownPortal')) {
+        closeStatusDropdownPortal();
+    }
+}, { passive: true, capture: true });
+
+// Mobile Sidebar Touch Gestures (Geser / Swipe untuk buka & tutup sidebar tanpa lag)
+(function initAdminSidebarSwipe() {
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let isSwiping = false;
+
+    document.addEventListener('touchstart', (e) => {
+        if (!e.touches || e.touches.length !== 1) return;
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        isSwiping = true;
+    }, { passive: true });
+
+    document.addEventListener('touchend', (e) => {
+        if (!isSwiping || !e.changedTouches || e.changedTouches.length !== 1) return;
+        isSwiping = false;
+        const touchEndX = e.changedTouches[0].clientX;
+        const touchEndY = e.changedTouches[0].clientY;
+        const diffX = touchEndX - touchStartX;
+        const diffY = touchEndY - touchStartY;
+
+        // Intent geser horizontal
+        if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 60) {
+            const sidebar = document.querySelector('.sidebar');
+            const isOpen = sidebar && sidebar.classList.contains('mobile-open');
+
+            if (isOpen && diffX < -50) {
+                // Geser ke kiri untuk menutup sidebar
+                closeAdminSidebar();
+            } else if (!isOpen && touchStartX < 35 && diffX > 60) {
+                // Geser dari tepi kiri ke kanan untuk membuka sidebar
+                toggleAdminSidebar();
+            }
+        }
+    }, { passive: true });
+})();
 
 async function handleBookingStatusChange(id, newStatus) {
     await updateBookingStatus(id, newStatus);
@@ -4915,3 +5163,6 @@ window.formatBookingDateRange = formatBookingDateRange;
 window.showAdminToast = showAdminToast;
 window.toggleAdminSidebar = toggleAdminSidebar;
 window.closeAdminSidebar = closeAdminSidebar;
+window.toggleRentOptDropdown = toggleRentOptDropdown;
+window.selectRentOption = selectRentOption;
+window.populateAdminReviewCarSelect = populateAdminReviewCarSelect;

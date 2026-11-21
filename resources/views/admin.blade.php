@@ -14,9 +14,14 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <!-- Custom Vanilla CSS -->
-    <link rel="stylesheet" href="/css/style.css">
+    <!-- Cache Busting Headers -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+
+    <link rel="stylesheet" href="/css/style.css?v={{ file_exists(public_path('css/style.css')) ? filemtime(public_path('css/style.css')) : time() }}">
     <!-- Mobile Responsive Patch -->
-    <link rel="stylesheet" href="/css/responsive-mobile.css">
+    <link rel="stylesheet" href="/css/responsive-mobile.css?v={{ file_exists(public_path('css/responsive-mobile.css')) ? filemtime(public_path('css/responsive-mobile.css')) : time() }}">
 </head>
 <body style="background-color: var(--clr-bg); color: var(--clr-text-main);">
 
@@ -26,7 +31,7 @@
     <div id="loginSection" style="min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem; background-color: #f1f5f9;">
         <div style="max-width: 26rem; width: 100%; background: #ffffff; border-radius: var(--radius-xl); padding: 2rem; border: 1px solid var(--clr-border); box-shadow: var(--shadow-xl);">
             <div style="text-align: center; margin-bottom: 1.5rem;">
-                <div style="width: 4.5rem; height: 4.5rem; background: #dc2626; border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(220, 38, 38, 0.45); overflow: hidden; margin: 0 auto 0.75rem auto;">
+                <div style="width: 4.5rem; height: 4.5rem; background: #dc2626; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(220, 38, 38, 0.45); overflow: hidden; margin: 0 auto 0.75rem auto;">
                     <img src="/logo_rpm_red.png" alt="RPM Rent Car Makassar" style="width: 100%; height: 100%; object-fit: contain; transform: scale(1.35);">
                 </div>
                 <h1 style="font-size: 1.25rem; font-weight: 800; color: var(--clr-text-main);">Portal Dashboard Owner</h1>
@@ -55,9 +60,6 @@
                         placeholder="••••••••" 
                         class="form-input"
                     />
-                    <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--clr-text-subtle); margin-top: 0.35rem;">
-                        <span>Kredensial Default: admin / admin123</span>
-                    </div>
                 </div>
 
                 <button 
@@ -85,7 +87,7 @@
             <!-- Brand Header -->
             <div class="sidebar-header">
                 <div class="flex items-center" style="gap: 1.15rem;">
-                    <div style="width: 2.65rem; height: 2.65rem; background: #dc2626; border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(220, 38, 38, 0.45); overflow: hidden; flex-shrink: 0;">
+                    <div style="width: 2.65rem; height: 2.65rem; background: #dc2626; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(220, 38, 38, 0.45); overflow: hidden; flex-shrink: 0;">
                         <img src="/logo_rpm_red.png" alt="RPM Rent Car" style="width: 100%; height: 100%; object-fit: contain; transform: scale(1.35);">
                     </div>
                     <div style="display: flex; flex-direction: column; gap: 0.15rem;">
@@ -190,7 +192,7 @@
             </header>
 
             <!-- MAIN TAB CONTENTS -->
-            <main style="flex: 1; padding: 1.5rem; overflow-y: auto;" class="flex flex-col gap-6">
+            <main class="admin-main-scroll flex flex-col gap-6">
 
                 <!-- ==================================================== -->
                 <!-- TAB 1: OVERVIEW (RINGKASAN)                          -->
@@ -198,14 +200,14 @@
                 <div id="tab-content-overview" class="tab-pane flex flex-col gap-6">
                     
                     <!-- Alert Status Banner -->
-                    <div id="overviewHolidayBanner" class="banner-alert">
+                    <div id="overviewHolidayBanner" class="banner-alert" style="background: #ffffff; border: 1px solid var(--clr-border); border-left: 3.5px solid #059669; border-radius: var(--radius-md); padding: 0.85rem 1.15rem;">
                         <div class="flex items-center gap-3">
-                            <div id="bannerIconBox" style="width: 2.5rem; height: 2.5rem; border-radius: var(--radius-md); background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
-                                🌱
+                            <div id="bannerIconBox" style="width: 2.25rem; height: 2.25rem; border-radius: var(--radius-md); background: #ecfdf5; border: 1px solid #a7f3d0; color: #059669; display: flex; align-items: center; justify-content: center; font-size: 1rem;">
+                                <i class="fa-solid fa-calendar-check"></i>
                             </div>
                             <div>
-                                <h3 id="bannerTitle" style="font-size: 0.875rem; font-weight: 800;">Tarif Normal Sedang Diberlakukan</h3>
-                                <p id="bannerDesc" style="font-size: 0.75rem; margin-top: 0.1rem;">Pengunjung yang melakukan pemesanan saat ini akan dikenakan harga sewa normal.</p>
+                                <h3 id="bannerTitle" style="font-size: 0.875rem; font-weight: 800; color: #0f172a; margin: 0;">Tarif Normal Sedang Diberlakukan</h3>
+                                <p id="bannerDesc" style="font-size: 0.75rem; margin-top: 0.1rem; color: #64748b;">Pengunjung yang melakukan pemesanan saat ini dikenakan harga sewa normal harian.</p>
                             </div>
                         </div>
                         <button onclick="switchTab('pricing')" class="btn btn-outline btn-sm">
@@ -216,54 +218,46 @@
                     <!-- 4 Kartu Metrik Utama Bisnis & Omzet -->
                     <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         <!-- Total Pendapatan Sesuai Periode -->
-                        <div style="background: #ffffff; padding: 1.25rem; border-radius: var(--radius-lg); border: 1px solid var(--clr-border); box-shadow: var(--shadow-xs); position: relative; overflow: hidden;">
+                        <div style="background: #ffffff; padding: 1.25rem; border-radius: var(--radius-lg); border: 1px solid var(--clr-border); box-shadow: var(--shadow-xs);">
                             <div style="display: flex; align-items: center; justify-content: space-between;">
-                                <div style="font-size: 0.75rem; font-weight: 700; color: var(--clr-text-subtle);" id="statRevenueTitle">Pendapatan Bulan Ini</div>
-                                <span id="statRevenueGrowthBadge" style="font-size: 0.675rem; font-weight: 800; padding: 0.15rem 0.45rem; border-radius: 999px; background: #ecfdf5; color: #047857;">
-                                    +0%
-                                </span>
+                                <div style="font-size: 0.75rem; font-weight: 700; color: #64748b;" id="statRevenueTitle">Pendapatan Bulan Ini</div>
+                                <i class="fa-solid fa-wallet" style="color: #94a3b8; font-size: 0.875rem;"></i>
                             </div>
-                            <div style="font-size: 1.6rem; font-weight: 800; color: #dc2626; margin-top: 0.35rem;" id="statTotalRevenue">Rp 0</div>
-                            <div style="font-size: 0.7rem; color: var(--clr-text-muted); margin-top: 0.2rem;" id="statRevenueComparisonText">Dibandingkan bulan lalu</div>
-                            <div style="position: absolute; right: -0.5rem; bottom: -0.5rem; font-size: 3.5rem; opacity: 0.05; pointer-events: none; color: #dc2626;">
-                                <i class="fa-solid fa-rupiah-sign"></i>
+                            <div style="font-size: 1.5rem; font-weight: 800; color: #0f172a; margin-top: 0.4rem;" id="statTotalRevenue">Rp 0</div>
+                            <div style="display: flex; align-items: center; gap: 0.35rem; margin-top: 0.35rem;">
+                                <span id="statRevenueGrowthBadge" style="font-size: 0.65rem; font-weight: 800; padding: 0.1rem 0.4rem; border-radius: 4px; background: #ecfdf5; color: #047857;">+0%</span>
+                                <span style="font-size: 0.7rem; color: #64748b;" id="statRevenueComparisonText">vs bulan lalu</span>
                             </div>
                         </div>
 
                         <!-- Unit Ready -->
                         <div style="background: #ffffff; padding: 1.25rem; border-radius: var(--radius-lg); border: 1px solid var(--clr-border); box-shadow: var(--shadow-xs);">
                             <div style="display: flex; align-items: center; justify-content: space-between;">
-                                <div style="font-size: 0.75rem; font-weight: 700; color: var(--clr-emerald);">Unit Ready (Tersedia)</div>
-                                <span style="font-size: 0.675rem; font-weight: 800; padding: 0.15rem 0.45rem; border-radius: 999px; background: #ecfdf5; color: #047857;">
-                                    Siap Sewa
-                                </span>
+                                <div style="font-size: 0.75rem; font-weight: 700; color: #64748b;">Unit Ready (Tersedia)</div>
+                                <i class="fa-solid fa-car" style="color: #94a3b8; font-size: 0.875rem;"></i>
                             </div>
-                            <div style="font-size: 1.6rem; font-weight: 800; color: var(--clr-emerald); margin-top: 0.35rem;" id="statReadyCars">0 Unit</div>
-                            <div style="font-size: 0.7rem; color: var(--clr-text-muted); margin-top: 0.2rem;">Dari <span id="statTotalCars">0</span> total armada katalog</div>
+                            <div style="font-size: 1.5rem; font-weight: 800; color: #059669; margin-top: 0.4rem;" id="statReadyCars">0 Unit</div>
+                            <div style="font-size: 0.7rem; color: #64748b; margin-top: 0.35rem;">Dari <span id="statTotalCars">0</span> total armada katalog</div>
                         </div>
 
                         <!-- Sedang Digunakan -->
                         <div style="background: #ffffff; padding: 1.25rem; border-radius: var(--radius-lg); border: 1px solid var(--clr-border); box-shadow: var(--shadow-xs);">
                             <div style="display: flex; align-items: center; justify-content: space-between;">
-                                <div style="font-size: 0.75rem; font-weight: 700; color: #d97706;">Sedang Disewa (In Use)</div>
-                                <span style="font-size: 0.675rem; font-weight: 800; padding: 0.15rem 0.45rem; border-radius: 999px; background: #fffbeb; color: #b45309;">
-                                    Jalan
-                                </span>
+                                <div style="font-size: 0.75rem; font-weight: 700; color: #64748b;">Sedang Disewa (In Use)</div>
+                                <i class="fa-solid fa-clock" style="color: #94a3b8; font-size: 0.875rem;"></i>
                             </div>
-                            <div style="font-size: 1.6rem; font-weight: 800; color: #d97706; margin-top: 0.35rem;" id="statInUseCars">0 Unit</div>
-                            <div style="font-size: 0.7rem; color: var(--clr-text-muted); margin-top: 0.2rem;">Sedang operasional sewa hari ini</div>
+                            <div style="font-size: 1.5rem; font-weight: 800; color: #d97706; margin-top: 0.4rem;" id="statInUseCars">0 Unit</div>
+                            <div style="font-size: 0.7rem; color: #64748b; margin-top: 0.35rem;">Operasional rental aktif</div>
                         </div>
 
                         <!-- Total Transaksi Booking Sesuai Periode -->
                         <div style="background: #ffffff; padding: 1.25rem; border-radius: var(--radius-lg); border: 1px solid var(--clr-border); box-shadow: var(--shadow-xs);">
                             <div style="display: flex; align-items: center; justify-content: space-between;">
-                                <div style="font-size: 0.75rem; font-weight: 700; color: #2563eb;" id="statBookingsTitle">Total Order Masuk</div>
-                                <span style="font-size: 0.675rem; font-weight: 800; padding: 0.15rem 0.45rem; border-radius: 999px; background: #eff6ff; color: #1d4ed8;" id="statYearGrowthBadge">
-                                    Bulan Ini
-                                </span>
+                                <div style="font-size: 0.75rem; font-weight: 700; color: #64748b;" id="statBookingsTitle">Total Order Masuk</div>
+                                <i class="fa-solid fa-receipt" style="color: #94a3b8; font-size: 0.875rem;"></i>
                             </div>
-                            <div style="font-size: 1.6rem; font-weight: 800; color: #2563eb; margin-top: 0.35rem;" id="statTotalBookingsCount">0 Order</div>
-                            <div style="font-size: 0.7rem; color: var(--clr-text-muted); margin-top: 0.2rem;" id="statTotalSalesAllTime">Total omzet terdata</div>
+                            <div style="font-size: 1.5rem; font-weight: 800; color: #2563eb; margin-top: 0.4rem;" id="statTotalBookingsCount">0 Order</div>
+                            <div style="font-size: 0.7rem; color: #64748b; margin-top: 0.35rem;" id="statTotalSalesAllTime">Total omzet terverifikasi</div>
                         </div>
                     </div>
 
@@ -274,13 +268,11 @@
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3" style="margin-bottom: 1.25rem; padding-bottom: 1rem; border-bottom: 1px solid #f1f5f9;">
                             <div>
                                 <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                    <span style="display: inline-flex; width: 2rem; height: 2rem; border-radius: 0.5rem; background: #fef2f2; color: #dc2626; align-items: center; justify-content: center; font-size: 1rem;">
-                                        <i class="fa-solid fa-chart-column"></i>
-                                    </span>
-                                    <h3 style="font-size: 1rem; font-weight: 800; color: var(--clr-text-main);">Grafik & Tren Analisis Pendapatan</h3>
+                                    <i class="fa-solid fa-chart-simple" style="color: #dc2626; font-size: 1rem;"></i>
+                                    <h3 style="font-size: 0.95rem; font-weight: 800; color: var(--clr-text-main);">Grafik Pendapatan</h3>
                                 </div>
-                                <p style="font-size: 0.75rem; color: var(--clr-text-subtle); margin-top: 0.25rem;">
-                                    Lihat perbandingan pendapatan dan grafik kenaikan/penurunan omzet rental secara visual.
+                                <p style="font-size: 0.75rem; color: var(--clr-text-subtle); margin-top: 0.15rem;">
+                                    Perbandingan omzet rental berdasarkan periode terpilih.
                                 </p>
                             </div>
 
@@ -373,14 +365,10 @@
                 <!-- ==================================================== -->
                 <div id="tab-content-cars" class="tab-pane hidden flex flex-col gap-6">
                     
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div>
-                            <h3 style="font-size: 0.875rem; font-weight: 800; color: var(--clr-text-main);">Daftar Lengkap Armada Mobil</h3>
-                            <p style="font-size: 0.75rem; color: var(--clr-text-subtle);">Klik tombol status untuk mengubah unit menjadi Ready atau Digunakan.</p>
-                        </div>
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-end gap-4">
                         <div class="flex items-center gap-2">
-                            <button onclick="openAddCarModal()" class="btn btn-primary btn-sm">
-                                <span>➕</span>
+                            <button onclick="openAddCarModal()" class="btn btn-primary btn-sm" style="display: inline-flex; align-items: center; gap: 0.4rem;">
+                                <i class="fa-solid fa-plus"></i>
                                 <span>Tambah Unit Baru</span>
                             </button>
                         </div>
@@ -402,7 +390,7 @@
                             </div>
                         </div>
 
-                        <div style="overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 0 0 var(--radius-lg) var(--radius-lg);">
+                        <div class="admin-table-scroll" style="border-radius: 0 0 var(--radius-lg) var(--radius-lg);">
                         <table class="data-table" style="min-width: 640px;">
                             <thead>
                                 <tr>
@@ -428,24 +416,17 @@
                 <div id="tab-content-bookings" class="tab-pane hidden flex flex-col gap-6">
                     
                     <!-- Header Actions & Filters -->
-                    <div style="display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
-                        <div>
-                            <h3 style="font-size: 1.125rem; font-weight: 800; color: var(--clr-text-main);">Kelola Data Booking & Pesanan Aktif</h3>
-                            <p style="font-size: 0.75rem; color: var(--clr-text-subtle); margin-top: 0.15rem;">Pesanan yang sudah lewat tanggal peminjaman otomatis berpindah secara real-time ke <strong>Riwayat Pemesanan</strong>.</p>
-                        </div>
-                        
-                        <div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap;">
-                            <button type="button" onclick="openBookingHistoryModal()" class="btn-history-switch" title="Buka Pop Up Riwayat Pemesanan Pembayaran Lunas">
-                                <i class="fa-solid fa-circle-check" style="color: #34d399;"></i>
-                                <span>Riwayat Pemesanan (Lunas)</span>
-                                <span id="headerHistoryCount" style="background: rgba(255,255,255,0.18); color: #ffffff; font-size: 0.7rem; font-weight: 800; padding: 0.1rem 0.5rem; border-radius: 999px;">0</span>
-                            </button>
+                    <div style="display: flex; flex-direction: row; align-items: center; justify-content: flex-end; gap: 0.65rem; flex-wrap: wrap;">
+                        <button type="button" onclick="openBookingHistoryModal()" class="btn-history-switch" title="Buka Pop Up Riwayat Pemesanan Pembayaran Lunas">
+                            <i class="fa-solid fa-circle-check" style="color: #34d399;"></i>
+                            <span>Riwayat Pemesanan (Lunas)</span>
+                            <span id="headerHistoryCount" style="background: rgba(255,255,255,0.18); color: #ffffff; font-size: 0.7rem; font-weight: 800; padding: 0.1rem 0.5rem; border-radius: 999px;">0</span>
+                        </button>
 
-                            <button type="button" onclick="openAdminBookingModal()" class="btn" style="background-color: #dc2626; color: #ffffff; font-weight: 700; display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.65rem 1.25rem; border-radius: var(--radius-md); border: none; cursor: pointer; box-shadow: var(--shadow-sm);">
-                                <span style="font-size: 1.1rem; line-height: 1;">+</span>
-                                <span>Input Booking Manual</span>
-                            </button>
-                        </div>
+                        <button type="button" onclick="openAdminBookingModal()" class="btn" style="background-color: #dc2626; color: #ffffff; font-weight: 700; display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.65rem 1.25rem; border-radius: var(--radius-md); border: none; cursor: pointer; box-shadow: var(--shadow-sm);">
+                            <span style="font-size: 1.1rem; line-height: 1;">+</span>
+                            <span>Input Booking Manual</span>
+                        </button>
                     </div>
 
                     <!-- Search & Filter Controls -->
@@ -481,8 +462,8 @@
 
                     <!-- Table Card -->
                     <div style="background: #ffffff; border-radius: var(--radius-xl); border: 1px solid var(--clr-border); box-shadow: var(--shadow-sm); overflow: hidden;">
-                        <div style="overflow-x: auto;">
-                            <table style="width: 100%; border-collapse: collapse; font-size: 0.8125rem; text-align: left;">
+                        <div class="admin-table-scroll">
+                            <table class="data-table" style="width: 100%; min-width: 880px; border-collapse: collapse; font-size: 0.8125rem; text-align: left;">
                                 <thead style="background: #f8fafc; border-bottom: 1px solid var(--clr-border); color: #64748b; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;">
                                     <tr>
                                         <th style="padding: 0.875rem 1.25rem;">KODE BOOKING</th>
@@ -544,14 +525,15 @@
 
                     <!-- Tabel Moderasi Review -->
                     <div style="background: white; border-radius: var(--radius-xl); border: 1px solid var(--clr-border); overflow: hidden; box-shadow: var(--shadow-sm);">
-                        <div style="overflow-x: auto;">
-                            <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                        <div class="admin-table-scroll">
+                            <table class="data-table" style="width: 100%; min-width: 820px; border-collapse: collapse; text-align: left;">
                                 <thead style="background: #f8fafc; border-bottom: 1px solid var(--clr-border); font-size: 0.72rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.04em;">
                                     <tr>
                                         <th style="padding: 0.85rem 1rem;">Pelanggan &amp; Unit</th>
                                         <th style="padding: 0.85rem 1rem;">Rating</th>
                                         <th style="padding: 0.85rem 1rem;">Ulasan / Testimoni</th>
                                         <th style="padding: 0.85rem 1rem; text-align: center;">Media Story</th>
+                                        <th style="padding: 0.85rem 1rem;">Kategori</th>
                                         <th style="padding: 0.85rem 1rem;">Status</th>
                                         <th style="padding: 0.85rem 1rem; text-align: right;">Aksi</th>
                                     </tr>
@@ -574,7 +556,7 @@
                     <div style="background: #ffffff; border-radius: var(--radius-lg); border: 1px solid var(--clr-border); padding: 1.5rem; box-shadow: var(--shadow-xs);">
                         <div style="max-width: 40rem;">
                             <div class="flex items-center gap-2" style="margin-bottom: 0.25rem;">
-                                <span style="font-size: 1.125rem;">🏖️</span>
+                                <i class="fa-solid fa-calendar-day" style="color: #dc2626; font-size: 1.125rem;"></i>
                                 <h3 style="font-size: 1rem; font-weight: 800; color: var(--clr-text-main);">Pengaturan Tarif Waktu Libur (Peak Season)</h3>
                             </div>
                             <p style="font-size: 0.75rem; color: var(--clr-text-muted); line-height: 1.5; margin-bottom: 1.5rem;">
@@ -586,7 +568,7 @@
                                 <div>
                                     <div style="font-size: 0.75rem; font-weight: 700; color: var(--clr-text-main); margin-bottom: 0.25rem;">Status Mode Tarif Libur Saat Ini:</div>
                                     <div id="holidayToggleStatusText" style="font-size: 0.875rem; font-weight: 800; color: var(--clr-text-muted);">
-                                        🌱 NONAKTIF — Pelanggan melihat & memesan dengan Tarif Normal
+                                        <span style="display:inline-flex;align-items:center;gap:0.4rem;"><i class="fa-solid fa-circle-dot" style="color:#94a3b8;"></i> <b>NONAKTIF</b> — Pelanggan melihat &amp; memesan dengan Tarif Normal</span>
                                     </div>
                                     <div style="font-size: 0.7rem; color: var(--clr-text-subtle); margin-top: 0.25rem;">Geser sakelar di samping untuk mengaktifkan tarif musim liburan.</div>
                                 </div>
@@ -612,7 +594,7 @@
                                         Simpan Catatan
                                     </button>
                                 </div>
-                                <p style="font-size: 0.7rem; color: var(--clr-text-subtle); margin-top: 0.25rem;">Catatan ini akan muncul di spanduk pengumuman bagian atas website pelanggan saat mode libur aktif.</p>
+                                <p style="font-size: 0.7rem; color: var(--clr-text-subtle); margin-top: 0.25rem;">Keterangan musim liburan yang tersimpan di pengaturan sistem.</p>
                             </div>
                         </div>
 
@@ -620,7 +602,7 @@
                         <div style="padding-top: 1.5rem; border-top: 1px solid #f1f5f9;">
                             <h4 style="font-size: 0.75rem; font-weight: 800; color: var(--clr-text-main); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem;">Tabel Perbandingan Tarif Normal vs Tarif Libur</h4>
                             <div class="table-container">
-                                <div style="overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 0 0 var(--radius-lg) var(--radius-lg);">
+                                <div class="admin-table-scroll" style="border-radius: 0 0 var(--radius-lg) var(--radius-lg);">
                                     <table class="data-table" style="min-width: 640px;">
                                         <thead>
                                             <tr>
@@ -653,8 +635,9 @@
                             <p style="font-size: 0.75rem; color: var(--clr-text-subtle); margin-top: 0.25rem;">Ubah nomor WhatsApp tujuan ke mana pesan pemesanan pelanggan akan otomatis terkirim.</p>
                         </div>
 
-                        <div style="padding: 0.875rem 1rem; background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-md); font-size: 0.75rem; color: #1e3a8a; margin-bottom: 1.5rem; line-height: 1.5;">
-                            💡 <strong>Penting:</strong> Masukkan nomor WhatsApp diawali dengan kode negara <strong>62</strong> tanpa tanda plus (+) atau spasi. Contoh: <strong>6281234567890</strong>.
+                        <div style="padding: 0.75rem 1rem; background-color: #f8fafc; border: 1px solid #e2e8f0; border-left: 3px solid #2563eb; border-radius: var(--radius-md); font-size: 0.75rem; color: #334155; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fa-solid fa-circle-info" style="color: #2563eb; font-size: 0.875rem;"></i>
+                            <span>Masukkan nomor WhatsApp diawali dengan kode negara <strong>62</strong> tanpa tanda plus (+) atau spasi. Contoh: <strong>6281234567890</strong>.</span>
                         </div>
 
                         <form onsubmit="saveContactSettings(event)" class="flex flex-col gap-4">
@@ -721,6 +704,40 @@
                         </form>
                     </div>
 
+                    <!-- Kredensial Login Admin (Ubah Username & Password) -->
+                    <div style="background: #ffffff; border-radius: var(--radius-xl); border: 1px solid var(--clr-border); padding: 1.75rem 2rem; box-shadow: var(--shadow-sm); width: 100%; box-sizing: border-box;">
+                        <div style="margin-bottom: 1.25rem;">
+                            <h3 style="font-size: 1rem; font-weight: 800; color: var(--clr-text-main);">Kredensial Login Admin</h3>
+                            <p style="font-size: 0.75rem; color: var(--clr-text-subtle); margin-top: 0.25rem;">Ubah username dan password akun untuk mengakses portal dashboard.</p>
+                        </div>
+
+                        <form onsubmit="handleUpdateAdminCredentials(event)" class="flex flex-col gap-4">
+                            <div class="grid sm:grid-cols-3 gap-4">
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label class="form-label">Username</label>
+                                    <input type="text" id="adminNewUsername" required class="form-input" placeholder="admin">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label class="form-label">Password Baru</label>
+                                    <input type="password" id="adminNewPassword" required minlength="4" class="form-input" placeholder="Minimal 4 karakter">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label class="form-label">Konfirmasi Password</label>
+                                    <input type="password" id="adminConfirmPassword" required minlength="4" class="form-input" placeholder="Ulangi password baru">
+                                </div>
+                            </div>
+
+                            <div id="credErrorMessage" class="hidden" style="padding: 0.65rem 0.85rem; background: #fff1f2; border: 1px solid #fecdd3; color: #e11d48; font-size: 0.75rem; border-radius: var(--radius-md); font-weight: 600;"></div>
+                            <div id="credSuccessMessage" class="hidden" style="padding: 0.65rem 0.85rem; background: #ecfdf5; border: 1px solid #a7f3d0; color: #047857; font-size: 0.75rem; border-radius: var(--radius-md); font-weight: 600;"></div>
+
+                            <div style="padding-top: 0.5rem;">
+                                <button type="submit" class="btn btn-primary btn-md">
+                                    Simpan Username & Password
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
                 </div>
 
             </main>
@@ -728,52 +745,60 @@
     </div>
 
     <!-- ==================================================== -->
-    <!-- MODAL POPUP FORM TAMBAH / EDIT MOBIL                 -->
+    <!-- MODAL POPUP FORM TAMBAH / EDIT MOBIL (REDESIGNED)   -->
     <!-- ==================================================== -->
-    <div id="carModal" class="modal-backdrop hidden">
-        <div class="modal-box max-w-lg" style="padding: 1.5rem; background: #ffffff; border-radius: var(--radius-xl); box-shadow: var(--shadow-xl); border: 1px solid var(--clr-border);">
+    <div id="carModal" class="modal-backdrop hidden" onclick="if(event.target === this) closeCarModal()">
+        <div class="modal-box" style="max-width: 48rem; width: 100%; max-height: 90vh; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; transform: translateZ(0); padding: 2rem; background: #ffffff; border-radius: 1.25rem; box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.3); border: 1px solid #e2e8f0;" onclick="event.stopPropagation()">
             
-            <div style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 0.875rem; margin-bottom: 1rem; border-bottom: 1px solid var(--clr-border);">
-                <div>
-                    <h3 id="carModalTitle" style="font-size: 1rem; font-weight: 800; color: var(--clr-text-main);">Tambah Unit Mobil Baru</h3>
-                    <p style="font-size: 0.75rem; color: var(--clr-text-subtle); margin-top: 0.1rem;">Isi spesifikasi & informasi ketersediaan armada.</p>
+            <!-- Modal Header -->
+            <div style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 1.15rem; margin-bottom: 1.5rem; border-bottom: 1px solid #e2e8f0;">
+                <div style="display: flex; align-items: center; gap: 0.85rem;">
+                    <div style="width: 2.5rem; height: 2.5rem; border-radius: 0.65rem; background: #f8fafc; border: 1px solid #e2e8f0; color: #dc2626; display: flex; align-items: center; justify-content: center; font-size: 1.15rem; flex-shrink: 0;">
+                        <i class="fa-solid fa-car-side"></i>
+                    </div>
+                    <div>
+                        <h3 id="carModalTitle" style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin: 0; line-height: 1.2;">Tambah Unit Mobil Baru</h3>
+                        <p style="font-size: 0.75rem; color: #64748b; margin: 0.2rem 0 0 0;">Kelola spesifikasi, ketersediaan, ketentuan sewa, dan tarif armada.</p>
+                    </div>
                 </div>
-                <button type="button" onclick="closeCarModal()" class="btn btn-outline btn-sm" style="padding: 0.25rem 0.6rem; border-radius: var(--radius-sm);">✕</button>
+                <button type="button" onclick="closeCarModal()" style="width: 2.25rem; height: 2.25rem; border-radius: 50%; border: 1px solid #e2e8f0; background: #ffffff; color: #64748b; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.95rem; transition: all 0.2s ease;" onmouseover="this.style.background='#f1f5f9'; this.style.color='#0f172a';" onmouseout="this.style.background='#ffffff'; this.style.color='#64748b';" title="Tutup">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
             </div>
 
-            <form id="carForm" onsubmit="handleSaveCar(event)" class="flex flex-col gap-3">
+            <form id="carForm" onsubmit="handleSaveCar(event)" class="flex flex-col gap-4">
                 <input type="hidden" id="carIdInput">
 
-                <!-- Merek & Model -->
-                <div class="grid sm:grid-cols-2 gap-3">
+                <!-- 1. Merek & Model -->
+                <div class="grid sm:grid-cols-2 gap-4">
                     <div class="form-group" style="margin-bottom: 0;">
-                        <label class="form-label">Merek Mobil</label>
-                        <input type="text" id="carBrand" required placeholder="Toyota" class="form-input">
+                        <label class="form-label" style="font-weight: 700; color: #1e293b; font-size: 0.825rem; margin-bottom: 0.4rem; display: block;">Merek Mobil <span style="color: #dc2626;">*</span></label>
+                        <input type="text" id="carBrand" required placeholder="Contoh: Toyota, Mitsubishi, Honda..." class="form-input">
                     </div>
                     <div class="form-group" style="margin-bottom: 0;">
-                        <label class="form-label">Model / Tipe</label>
-                        <input type="text" id="carModel" required placeholder="Avanza Veloz" class="form-input">
+                        <label class="form-label" style="font-weight: 700; color: #1e293b; font-size: 0.825rem; margin-bottom: 0.4rem; display: block;">Model / Tipe Mobil <span style="color: #dc2626;">*</span></label>
+                        <input type="text" id="carModel" required placeholder="Contoh: Alphard Gen 4, Innova Zenix..." class="form-input">
                     </div>
                 </div>
 
-                <!-- Tahun, Kategori, Status -->
-                <div class="grid sm:grid-cols-3 gap-3">
+                <!-- 2. Tahun, Kategori, Status Ketersediaan -->
+                <div class="grid sm:grid-cols-3 gap-4">
                     <div class="form-group" style="margin-bottom: 0;">
-                        <label class="form-label">Tahun</label>
-                        <input type="text" id="carYear" required value="2023" class="form-input">
+                        <label class="form-label" style="font-weight: 700; color: #1e293b; font-size: 0.825rem; margin-bottom: 0.4rem; display: block;">Tahun Produksi <span style="color: #dc2626;">*</span></label>
+                        <input type="number" id="carYear" required value="2023" min="2000" max="2030" class="form-input">
                     </div>
                     <div class="form-group" style="margin-bottom: 0;">
-                        <label class="form-label">Kategori</label>
-                        <select id="carCategory" class="form-select">
-                            <option value="MPV">MPV</option>
-                            <option value="SUV">SUV</option>
-                            <option value="City Car">City Car</option>
-                            <option value="Mewah">VIP / Mewah</option>
+                        <label class="form-label" style="font-weight: 700; color: #1e293b; font-size: 0.825rem; margin-bottom: 0.4rem; display: block;">Kategori Armada <span style="color: #dc2626;">*</span></label>
+                        <select id="carCategory" class="form-select" required>
+                            <option value="MPV">MPV Keluarga</option>
+                            <option value="SUV">SUV Gagah</option>
+                            <option value="City Car">City Car Lincah</option>
+                            <option value="VIP Luxury">VIP Luxury / Mewah</option>
                         </select>
                     </div>
                     <div class="form-group" style="margin-bottom: 0;">
-                        <label class="form-label">Status Ketersediaan</label>
-                        <select id="carStatus" class="form-select" style="font-weight: 700; color: var(--clr-emerald);">
+                        <label class="form-label" style="font-weight: 700; color: #1e293b; font-size: 0.825rem; margin-bottom: 0.4rem; display: block;">Status Ketersediaan <span style="color: #dc2626;">*</span></label>
+                        <select id="carStatus" class="form-select" style="font-weight: 600;">
                             <option value="ready">Ready (Tersedia)</option>
                             <option value="in_use">Sedang Digunakan</option>
                             <option value="maintenance">Perawatan / Bengkel</option>
@@ -781,97 +806,162 @@
                     </div>
                 </div>
 
-                <!-- Ketentuan Layanan Sewa (Hanya Supir / Keduanya) -->
-                <div style="background: #fffbeb; border: 1.5px solid #fde68a; border-radius: var(--radius-lg); padding: 1rem 1.15rem; display: flex; flex-direction: column; gap: 0.75rem;">
+                <!-- 3. Ketentuan Layanan Sewa (Custom Modern Dropdown Card) -->
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.875rem; padding: 1.15rem; display: flex; flex-direction: column; gap: 0.65rem;">
                     <div>
-                        <label class="form-label" style="font-weight: 800; color: #92400e; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem;">
-                            <svg style="width: 1rem; height: 1rem; color: #d97706;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-                            Ketentuan Layanan Sewa
+                        <label class="form-label" style="font-weight: 700; color: #1e293b; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.5rem; font-size: 0.825rem;">
+                            <i class="fa-solid fa-sliders" style="color: #64748b;"></i>
+                            Ketentuan Layanan Sewa Armada <span style="color: #dc2626;">*</span>
                         </label>
-                        <select id="carRentalOption" class="form-select" style="font-weight: 700; background: #ffffff; width: 100%; border: 1.5px solid #fcd34d; border-radius: var(--radius-md); padding: 0.65rem 0.85rem; font-size: 0.875rem; color: #1e293b; box-shadow: 0 1px 2px rgba(0,0,0,0.04);">
-                            <option value="both" selected>Keduanya (Bisa Lepas Kunci & Pakai Supir)</option>
-                            <option value="driver_only">Hanya Bisa Sewa Pakai Supir (Wajib Driver)</option>
-                        </select>
+                        
+                        <div class="custom-rentopt-wrapper" style="position: relative;">
+                            <button type="button" id="rentOptDropdownBtn" class="custom-rentopt-trigger-btn" onclick="toggleRentOptDropdown()" aria-haspopup="listbox" aria-expanded="false">
+                                <div style="display: flex; align-items: center; gap: 0.65rem; overflow: hidden;">
+                                    <span id="rentOptSelectedIcon" class="rentopt-icon-badge"><i class="fa-solid fa-key"></i></span>
+                                    <div style="text-align: left;">
+                                        <div id="rentOptSelectedTitle" class="rentopt-item-title">Keduanya (Bisa Lepas Kunci &amp; Pakai Supir)</div>
+                                        <div id="rentOptSelectedDesc" class="rentopt-item-desc">Pelanggan dapat memilih menyewa lepas kunci atau pakai supir</div>
+                                    </div>
+                                </div>
+                                <i class="fa-solid fa-chevron-down rentopt-chevron" id="rentOptChevron"></i>
+                            </button>
+
+                            <div id="rentOptDropdownMenu" class="custom-rentopt-dropdown-menu hidden" role="listbox">
+                                <div class="rentopt-dropdown-item active" id="rentOptItem_both" onclick="selectRentOption('both')">
+                                    <div style="display: flex; align-items: center; gap: 0.65rem;">
+                                        <span class="rentopt-item-icon"><i class="fa-solid fa-key"></i></span>
+                                        <div>
+                                            <div class="rentopt-item-title">Keduanya (Bisa Lepas Kunci &amp; Pakai Supir)</div>
+                                            <div class="rentopt-item-desc">Pelanggan bebas memilih opsi lepas kunci atau paket supir</div>
+                                        </div>
+                                    </div>
+                                    <i class="fa-solid fa-circle-check rentopt-check-icon"></i>
+                                </div>
+                                <div class="rentopt-dropdown-item" id="rentOptItem_driver_only" onclick="selectRentOption('driver_only')">
+                                    <div style="display: flex; align-items: center; gap: 0.65rem;">
+                                        <span class="rentopt-item-icon"><i class="fa-solid fa-user-tie"></i></span>
+                                        <div>
+                                            <div class="rentopt-item-title">Hanya Bisa Sewa Pakai Supir (Wajib Driver)</div>
+                                            <div class="rentopt-item-desc">Opsi lepas kunci otomatis dinonaktifkan untuk armada ini</div>
+                                        </div>
+                                    </div>
+                                    <i class="fa-solid fa-circle-check rentopt-check-icon"></i>
+                                </div>
+                            </div>
+
+                            <select id="carRentalOption" class="hidden" style="display: none;">
+                                <option value="both" selected>Keduanya (Bisa Lepas Kunci &amp; Pakai Supir)</option>
+                                <option value="driver_only">Hanya Bisa Sewa Pakai Supir (Wajib Driver)</option>
+                            </select>
+                        </div>
                     </div>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0.5rem; background: rgba(254, 243, 199, 0.55); border: 1px solid #fde68a; padding: 0.6rem 0.85rem; border-radius: var(--radius-md); font-size: 0.74rem; color: #92400e; line-height: 1.45;">
-                        <div style="display: flex; align-items: flex-start; gap: 0.4rem;">
-                            <span style="font-size: 0.85rem; line-height: 1;">💡</span>
-                            <span><b>Aturan Sewa:</b> Jika diset <i>Hanya Pakai Supir</i>, opsi Lepas Kunci otomatis dinonaktifkan untuk pelanggan.</span>
-                        </div>
-                        <div style="display: flex; align-items: flex-start; gap: 0.4rem;">
-                            <span style="font-size: 0.85rem; line-height: 1;">⚡</span>
-                            <span><b>Ketersediaan Otomatis:</b> Jika mobil sedang dipakai hari ini di Data Booking, status otomatis berubah ke <b>Sedang Digunakan</b>.</span>
-                        </div>
+                    <div style="display: flex; align-items: flex-start; gap: 0.45rem; font-size: 0.75rem; color: #64748b; line-height: 1.45;">
+                        <i class="fa-solid fa-circle-info" style="color: #94a3b8; margin-top: 2px; flex-shrink: 0;"></i>
+                        <span><b>Aturan Sewa:</b> Jika diset <i>Hanya Pakai Supir</i>, opsi Lepas Kunci otomatis dinonaktifkan untuk pelanggan pada unit ini.</span>
                     </div>
                 </div>
 
-                <!-- Kursi, Transmisi, Bahan Bakar -->
-                <div class="grid sm:grid-cols-3 gap-3">
+                <!-- 4. Kursi, Transmisi, Bahan Bakar (Strictly Bensin & Diesel) -->
+                <div class="grid sm:grid-cols-3 gap-4">
                     <div class="form-group" style="margin-bottom: 0;">
-                        <label class="form-label">Kapasitas Kursi</label>
-                        <input type="number" id="carSeats" required value="7" class="form-input">
+                        <label class="form-label" style="font-weight: 700; color: #1e293b; font-size: 0.825rem; margin-bottom: 0.4rem; display: block;">Kapasitas Kursi <span style="color: #dc2626;">*</span></label>
+                        <div style="position: relative;">
+                            <input type="number" id="carSeats" required value="7" min="1" max="30" class="form-input">
+                            <span style="position: absolute; right: 0.85rem; top: 50%; transform: translateY(-50%); font-size: 0.75rem; color: #94a3b8; pointer-events: none; font-weight: 600;">Kursi</span>
+                        </div>
                     </div>
                     <div class="form-group" style="margin-bottom: 0;">
-                        <label class="form-label">Transmisi</label>
-                        <select id="carTrans" class="form-select">
-                            <option value="Otomatis (AT)">Otomatis (AT)</option>
-                            <option value="Otomatis (CVT)">Otomatis (CVT)</option>
-                            <option value="Manual (MT)">Manual (MT)</option>
+                        <label class="form-label" style="font-weight: 700; color: #1e293b; font-size: 0.825rem; margin-bottom: 0.4rem; display: block;">Tipe Transmisi <span style="color: #dc2626;">*</span></label>
+                        <select id="carTrans" class="form-select" required>
+                            <option value="Matic (AT)">Matic (AT)</option>
+                            <option value="Manual">Manual</option>
+                            <option value="Matic & Manual">Matic &amp; Manual</option>
                         </select>
                     </div>
                     <div class="form-group" style="margin-bottom: 0;">
-                        <label class="form-label">Bahan Bakar</label>
-                        <select id="carFuel" class="form-select">
+                        <label class="form-label" style="font-weight: 700; color: #1e293b; font-size: 0.825rem; margin-bottom: 0.4rem; display: block;">Bahan Bakar <span style="color: #dc2626;">*</span></label>
+                        <select id="carFuel" class="form-select" required>
                             <option value="Bensin">Bensin</option>
                             <option value="Diesel">Diesel</option>
-                            <option value="Hybrid">Hybrid</option>
                         </select>
                     </div>
                 </div>
 
-                <!-- Input Tarif Normal vs Libur -->
-                <div style="padding: 0.75rem; background: #f8fafc; border-radius: var(--radius-md); border: 1px solid var(--clr-border);" class="grid sm:grid-cols-3 gap-3">
-                    <div class="form-group" style="margin-bottom: 0;">
-                        <label class="form-label">Harga Normal / Hari</label>
-                        <input type="number" id="carPriceNormal" required value="400000" class="form-input" style="font-weight: 700;">
+                <!-- 5. Tarif Sewa Per Hari (Modern Pricing Box) -->
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.875rem; padding: 1.15rem;">
+                    <div style="font-size: 0.825rem; font-weight: 700; color: #1e293b; margin-bottom: 0.85rem; display: flex; align-items: center; gap: 0.45rem;">
+                        <i class="fa-solid fa-money-bill-wave" style="color: #64748b;"></i>
+                        <span>Pengaturan Tarif Sewa Harian</span>
                     </div>
-                    <div class="form-group" style="margin-bottom: 0;">
-                        <label class="form-label" style="color: var(--clr-rose);">Harga Waktu Libur</label>
-                        <input type="number" id="carPriceHoliday" required value="550000" class="form-input" style="font-weight: 700; color: var(--clr-rose);">
-                    </div>
-                    <div class="form-group" style="margin-bottom: 0;">
-                        <label class="form-label">Biaya Supir / Hari</label>
-                        <input type="number" id="carDriverFee" required value="50000" class="form-input" style="font-weight: 700;">
-                    </div>
-                </div>
-
-                <!-- Upload Foto Mobil Input & Preview -->
-                <div class="form-group" style="margin-bottom: 0;">
-                    <label class="form-label">Foto Mobil</label>
-                    <div id="carImageDropZone" ondragover="handleCarImageDragOver(event)" ondragleave="handleCarImageDragLeave(event)" ondrop="handleCarImageDrop(event)" style="display: flex; flex-direction: column; gap: 0.5rem; background: #f8fafc; border: 2px dashed var(--clr-border); padding: 0.85rem; border-radius: var(--radius-md); transition: all 0.2s ease;">
-                        <input type="file" id="carImageFile" accept="image/*" class="form-input" style="padding: 0.35rem 0.5rem; font-size: 0.75rem; background: white;" onchange="handleCarImageFileUpload(event)">
-                        <span style="font-size: 0.75rem; color: #64748b; text-align: center; font-weight: 500;">💡 Klik <b>Choose File</b> atau <b>Tarik & Lepas (Drag & Drop)</b> file foto dari laptop ke area ini</span>
-                        <!-- Hidden text field to store photo data/URL without showing raw base64 string -->
-                        <input type="hidden" id="carImage">
-                        <div id="carImagePreviewBox" style="margin-top: 0.25rem; display: none; text-align: center;">
-                            <img id="carImagePreview" src="" alt="Preview Foto" style="max-height: 140px; border-radius: var(--radius-md); border: 1px solid var(--clr-border); object-fit: cover; display: inline-block;">
+                    <div class="grid sm:grid-cols-3 gap-3">
+                        <div>
+                            <label class="form-label" style="font-weight: 700; color: #334155; font-size: 0.775rem; margin-bottom: 0.35rem; display: block;">Harga Normal / Hari <span style="color: #dc2626;">*</span></label>
+                            <div class="admin-currency-group">
+                                <span class="admin-currency-badge">Rp</span>
+                                <input type="number" id="carPriceNormal" required value="400000" class="form-input admin-currency-input" placeholder="0">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="form-label" style="font-weight: 700; color: #dc2626; font-size: 0.775rem; margin-bottom: 0.35rem; display: block;">Harga Waktu Libur <span style="color: #dc2626;">*</span></label>
+                            <div class="admin-currency-group">
+                                <span class="admin-currency-badge badge-holiday">Rp</span>
+                                <input type="number" id="carPriceHoliday" required value="550000" class="form-input admin-currency-input input-holiday" placeholder="0">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="form-label" style="font-weight: 700; color: #334155; font-size: 0.775rem; margin-bottom: 0.35rem; display: block;">Biaya Supir / Hari <span style="color: #dc2626;">*</span></label>
+                            <div class="admin-currency-group">
+                                <span class="admin-currency-badge">Rp</span>
+                                <input type="number" id="carDriverFee" required value="50000" class="form-input admin-currency-input" placeholder="0">
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Deskripsi Ringkas -->
+                <!-- 6. Upload Foto Mobil & Preview (Modern Drag & Drop Zone) -->
                 <div class="form-group" style="margin-bottom: 0;">
-                    <label class="form-label">Deskripsi Ringkas</label>
-                    <textarea id="carDesc" rows="2" placeholder="Catatan atau keunggulan unit..." class="form-textarea"></textarea>
+                    <label class="form-label" style="font-weight: 700; color: #1e293b; font-size: 0.825rem; margin-bottom: 0.4rem; display: flex; align-items: center; justify-content: space-between;">
+                        <span>Foto Armada Mobil</span>
+                        <span style="font-size: 0.72rem; color: #64748b; font-weight: 500;">Format: PNG, JPG, WEBP (Latar Putih/Transparan Disarankan)</span>
+                    </label>
+                    <div id="carImageDropZone" ondragover="handleCarImageDragOver(event)" ondragleave="handleCarImageDragLeave(event)" ondrop="handleCarImageDrop(event)" style="border: 2px dashed #cbd5e1; border-radius: 0.875rem; padding: 1.25rem; background: #f8fafc; text-align: center; transition: all 0.2s ease;">
+                        <div id="carImageEmptyState" style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
+                            <div style="width: 3rem; height: 3rem; border-radius: 50%; background: #ffffff; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center; color: #dc2626; font-size: 1.25rem; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
+                                <i class="fa-solid fa-cloud-arrow-up"></i>
+                            </div>
+                            <div style="font-size: 0.8125rem; color: #334155; font-weight: 600;">
+                                Tarik &amp; lepas foto mobil ke sini, atau <label for="carImageFile" style="color: #dc2626; cursor: pointer; text-decoration: underline; font-weight: 700;">Pilih Berkas</label>
+                            </div>
+                            <span style="font-size: 0.725rem; color: #94a3b8;">Ukuran maksimal file 5 MB</span>
+                            <input type="file" id="carImageFile" accept="image/*" style="display: none;" onchange="handleCarImageFileUpload(event)">
+                        </div>
+                        <input type="hidden" id="carImage">
+                        <div id="carImagePreviewBox" style="margin-top: 0.25rem; display: none; flex-direction: column; align-items: center; gap: 0.65rem;">
+                            <div style="position: relative; display: inline-block;">
+                                <img id="carImagePreview" src="" alt="Preview Foto" style="max-height: 150px; max-width: 100%; border-radius: 0.75rem; border: 1px solid #e2e8f0; background: #ffffff; object-fit: contain; padding: 0.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
+                                <button type="button" onclick="removeCarImage()" style="position: absolute; top: -8px; right: -8px; width: 24px; height: 24px; border-radius: 50%; background: #dc2626; color: #ffffff; border: 2px solid #ffffff; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; box-shadow: 0 2px 6px rgba(0,0,0,0.2);" title="Hapus Foto">✕</button>
+                            </div>
+                            <label for="carImageFile" class="btn btn-outline btn-sm" style="font-size: 0.75rem; padding: 0.35rem 0.85rem; border-radius: 9999px; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem;">
+                                <i class="fa-solid fa-arrows-rotate"></i> Ganti Foto Lain
+                            </label>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Action Buttons -->
-                <div class="flex items-center justify-end gap-2" style="padding-top: 0.5rem; border-top: 1px solid var(--clr-border);">
-                    <button type="button" onclick="closeCarModal()" class="btn btn-outline btn-sm">
+                <!-- 7. Deskripsi Ringkas -->
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label" style="font-weight: 700; color: #1e293b; font-size: 0.825rem; margin-bottom: 0.4rem; display: block;">Deskripsi Ringkas Unit</label>
+                    <textarea id="carDesc" rows="2" placeholder="Catatan fasilitas, keunggulan, atau kelengkapan unit..." class="form-textarea" style="resize: vertical;"></textarea>
+                </div>
+
+                <!-- Footer Actions -->
+                <div style="display: flex; align-items: center; justify-content: flex-end; gap: 0.75rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; margin-top: 0.5rem;">
+                    <button type="button" onclick="closeCarModal()" class="btn btn-outline" style="border-radius: 0.75rem; font-weight: 700; padding: 0.65rem 1.35rem; font-size: 0.875rem;">
                         Batal
                     </button>
-                    <button type="submit" class="btn btn-primary btn-sm">
-                        Simpan Unit
+                    <button type="submit" class="btn btn-primary" style="border-radius: 0.75rem; font-weight: 700; padding: 0.65rem 1.65rem; font-size: 0.875rem; display: inline-flex; align-items: center; gap: 0.5rem; box-shadow: 0 6px 16px rgba(220, 38, 38, 0.25);">
+                        <i class="fa-solid fa-floppy-disk"></i>
+                        <span>Simpan Unit Armada</span>
                     </button>
                 </div>
             </form>
@@ -908,8 +998,10 @@
                                 <input type="text" id="adminRevName" required placeholder="Contoh: Sofia Lestari" class="form-input" oninput="updateAdminReviewLivePreview()">
                             </div>
                             <div class="form-group">
-                                <label class="form-label" for="adminRevCar">Armada Mobil</label>
-                                <input type="text" id="adminRevCar" placeholder="Contoh: Toyota Alphard Gen 4" class="form-input" oninput="updateAdminReviewLivePreview()">
+                                <label class="form-label" for="adminRevCar">Armada Mobil <span style="font-size: 0.72rem; color: #64748b; font-weight: 600;">(Ketersediaan Unit)</span></label>
+                                <select id="adminRevCar" class="form-select" onchange="updateAdminReviewLivePreview()" style="font-weight: 600;">
+                                    <option value="">-- Pilih Armada Mobil (Ketersediaan) --</option>
+                                </select>
                             </div>
                         </div>
 
@@ -1131,7 +1223,7 @@
             </div>
 
             <!-- Modal Body (Scrollable) -->
-            <div style="flex: 1; overflow-y: auto; padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
+            <div style="flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; transform: translateZ(0); padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
                 
                 <!-- Summary Stats Bar -->
                 <div>
@@ -1180,8 +1272,8 @@
 
                 <!-- Table Card -->
                 <div style="background: #ffffff; border-radius: var(--radius-lg); border: 1px solid var(--clr-border); box-shadow: var(--shadow-xs); overflow: hidden;">
-                    <div style="overflow-x: auto;">
-                        <table style="width: 100%; border-collapse: collapse; font-size: 0.8125rem; text-align: left;">
+                    <div class="admin-table-scroll">
+                        <table class="data-table" style="width: 100%; min-width: 880px; border-collapse: collapse; font-size: 0.8125rem; text-align: left;">
                             <thead style="background: #f8fafc; border-bottom: 1px solid var(--clr-border); color: #64748b; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;">
                                 <tr>
                                     <th style="padding: 0.875rem 1.25rem;">KODE BOOKING</th>
@@ -1297,11 +1389,21 @@
                             <div class="rev-field-row">
                                 <div class="form-group">
                                     <label class="form-label" for="abStartDate">Tanggal Mulai <span style="color: #dc2626;">*</span></label>
-                                    <input type="date" id="abStartDate" required class="form-input" onchange="handleAdminStartDateChange()">
+                                    <div class="booking-date-input-wrap">
+                                        <div class="date-input-icon-box">
+                                            <i class="fa-solid fa-calendar-day"></i>
+                                        </div>
+                                        <input type="date" id="abStartDate" required class="form-input booking-date-input" onchange="handleAdminStartDateChange()">
+                                    </div>
                                 </div>
                                 <div class="form-group">
                                     <label class="form-label" for="abEndDate">Tanggal Selesai <span style="color: #dc2626;">*</span></label>
-                                    <input type="date" id="abEndDate" required class="form-input" onchange="calculateAdminBookingPrice()">
+                                    <div class="booking-date-input-wrap">
+                                        <div class="date-input-icon-box">
+                                            <i class="fa-solid fa-calendar-check"></i>
+                                        </div>
+                                        <input type="date" id="abEndDate" required class="form-input booking-date-input" onchange="calculateAdminBookingPrice()">
+                                    </div>
                                 </div>
                             </div>
 
@@ -1454,11 +1556,13 @@
         <div class="modal-box max-w-lg" style="background: #ffffff; border-radius: var(--radius-xl); box-shadow: var(--shadow-xl); border: 1px solid var(--clr-border); width: 100%; max-width: 38rem; max-height: 90vh; overflow-y: auto;">
             
             <div style="display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--clr-border); position: sticky; top: 0; background: #ffffff; z-index: 5;">
-                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <span id="docModalIcon" style="font-size: 1.25rem;">📄</span>
+                <div style="display: flex; align-items: center; gap: 0.65rem;">
+                    <div style="width: 2.25rem; height: 2.25rem; border-radius: var(--radius-md); background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 1rem; border: 1px solid #bfdbfe;">
+                        <i class="fa-solid fa-file-invoice"></i>
+                    </div>
                     <div>
                         <h3 id="docModalTitle" style="font-size: 1.05rem; font-weight: 800; color: var(--clr-text-main); margin: 0;">Dokumen KTP & Bukti Pembayaran</h3>
-                        <p id="docModalSubtitle" style="font-size: 0.75rem; color: var(--clr-text-subtle); margin: 0;">Verifikasi identitas, bukti bayar & permintaan pembayaran via WhatsApp</p>
+                        <p id="docModalSubtitle" style="font-size: 0.75rem; color: var(--clr-text-subtle); margin: 0;">Verifikasi identitas dan konfirmasi bukti pembayaran sewa.</p>
                     </div>
                 </div>
                 <button type="button" onclick="closeDocumentViewModal()" class="btn btn-outline btn-sm" style="padding: 0.25rem 0.6rem; border-radius: var(--radius-sm);">✕</button>
@@ -1501,18 +1605,18 @@
                     </div>
                 </div>
 
-                <!-- Kotak Keterangan & Tombol Permintaan Pembayaran via WhatsApp -->
-                <div id="docPaymentWaSection" style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: var(--radius-md); padding: 0.85rem 1rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+                <!-- Kotak Keterangan & Tombol Permintaan Pembayaran via WhatsApp (Tunggal & Bersih) -->
+                <div id="docPaymentWaSection" style="background: #ffffff; border: 1px solid #e2e8f0; border-left: 3.5px solid #16a34a; border-radius: var(--radius-md); padding: 0.9rem 1.15rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);">
                     <div style="flex: 1; min-width: 14rem;">
-                        <div style="font-size: 0.78rem; font-weight: 800; color: #065f46; display: flex; align-items: center; gap: 0.35rem;">
-                            <i class="fa-brands fa-whatsapp" style="color: #10b981; font-size: 1rem;"></i>
+                        <div style="font-size: 0.8rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 0.4rem;">
+                            <i class="fa-brands fa-whatsapp" style="color: #16a34a; font-size: 1rem;"></i>
                             <span>Permintaan Pembayaran via WhatsApp</span>
                         </div>
-                        <div id="docPaymentWaNote" style="font-size: 0.7rem; color: #047857; margin-top: 0.15rem; line-height: 1.4;">
-                            Kirim rincian tagihan (DP / Lunas / Pelunasan) beserta info Nomor Rekening & QRIS langsung ke WhatsApp pelanggan.
+                        <div id="docPaymentWaNote" style="font-size: 0.72rem; color: #64748b; margin-top: 0.15rem; line-height: 1.4;">
+                            Kirim rincian tagihan beserta info nomor rekening &amp; QRIS resmi langsung ke nomor WhatsApp pelanggan.
                         </div>
                     </div>
-                    <a id="docRequestPaymentWaBtn" href="#" target="_blank" style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.9rem; background: #10b981; color: #ffffff; border-radius: 0.5rem; font-size: 0.75rem; font-weight: 800; text-decoration: none; white-space: nowrap; box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25);">
+                    <a id="docRequestPaymentWaBtn" href="#" target="_blank" style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.95rem; background: #16a34a; color: #ffffff; border-radius: var(--radius-md); font-size: 0.75rem; font-weight: 700; text-decoration: none; white-space: nowrap;">
                         <i class="fa-brands fa-whatsapp" style="font-size: 0.95rem;"></i>
                         <span>Kirim Permintaan Bayar WA</span>
                     </a>
@@ -1522,36 +1626,36 @@
                 <div id="docPaymentProofSection">
                     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem; flex-wrap: wrap; gap: 0.35rem;">
                         <label id="docPaymentProofLabel" style="font-size: 0.75rem; font-weight: 700; color: #475569; display: flex; align-items: center; gap: 0.35rem;">
-                            <span id="docPaymentProofTitle">💳 Bukti Pembayaran (DP / Lunas / Transaksi Langsung):</span>
+                            <i class="fa-solid fa-credit-card" style="color: #64748b; font-size: 0.85rem;"></i>
+                            <span id="docPaymentProofTitle">Bukti Pembayaran (DP / Lunas / Transaksi Langsung):</span>
                             <span id="docPaymentProofBadge" style="font-size: 0.68rem; font-weight: 800; padding: 0.1rem 0.4rem; border-radius: 4px;" class="hidden"></span>
                         </label>
                         <div style="display: flex; gap: 0.35rem;">
                             <input type="file" id="adminDocPaymentProofFileInput" accept="image/*" class="hidden" onchange="handleAdminUploadPaymentProof(event)">
-                            <button type="button" onclick="document.getElementById('adminDocPaymentProofFileInput').click()" class="btn btn-outline btn-sm" style="padding: 0.25rem 0.6rem; font-size: 0.7rem; display: inline-flex; align-items: center; gap: 0.25rem; border-color: #2563eb; color: #2563eb; font-weight: 700;">
-                                <span>📤</span>
+                            <button type="button" onclick="document.getElementById('adminDocPaymentProofFileInput').click()" class="btn btn-outline btn-sm" style="padding: 0.25rem 0.6rem; font-size: 0.7rem; display: inline-flex; align-items: center; gap: 0.35rem; border-color: #2563eb; color: #2563eb; font-weight: 700;">
+                                <i class="fa-solid fa-upload"></i>
                                 <span id="docUploadProofBtnText">Upload Bukti Bayar (Admin)</span>
                             </button>
-                            <a id="docOpenProofFullBtn" href="#" onclick="openDocumentImagePreview(this); return false;" class="btn btn-outline btn-sm hidden" style="padding: 0.25rem 0.55rem; font-size: 0.7rem;">
-                                🔍 Penuh
+                            <a id="docOpenProofFullBtn" href="#" onclick="openDocumentImagePreview(this); return false;" class="btn btn-outline btn-sm hidden" style="padding: 0.25rem 0.55rem; font-size: 0.7rem; display: inline-flex; align-items: center; gap: 0.25rem;">
+                                <i class="fa-solid fa-expand"></i>
+                                <span>Lihat Penuh</span>
                             </a>
                         </div>
                     </div>
 
-                    <div id="docPaymentProofWrapper" style="border: 2px dashed #cbd5e1; border-radius: var(--radius-lg); background: #f8fafc; min-height: 11rem; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 0.5rem; position: relative;">
+                    <div id="docPaymentProofWrapper" style="border: 1px dashed #cbd5e1; border-radius: var(--radius-lg); background: #f8fafc; min-height: 11rem; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 0.5rem; position: relative;">
                         <img id="docPaymentProofImage" src="" alt="Bukti Pembayaran" onclick="openDocumentImagePreview(this)" class="hidden" style="max-height: 18rem; max-width: 100%; object-fit: contain; border-radius: var(--radius-sm); cursor: pointer;" title="Klik untuk memperbesar" />
                         <div id="docNoPaymentProofMsg" style="text-align: center; color: #94a3b8; padding: 1.5rem;">
-                            <span style="font-size: 2rem; display: block; margin-bottom: 0.35rem;">🧾</span>
+                            <i class="fa-solid fa-receipt" style="font-size: 1.75rem; color: #cbd5e1; display: block; margin-bottom: 0.35rem;"></i>
                             <div id="docNoProofTitle" style="font-weight: 700; font-size: 0.85rem; color: #475569;">Bukti Pembayaran Belum Diunggah</div>
-                            <div id="docNoProofDesc" style="font-size: 0.72rem; margin-top: 0.2rem; max-width: 24rem; margin-left: auto; margin-right: auto;">
-                                Pelanggan belum mengunggah bukti transfer/QRIS pada form, atau melakukan transaksi secara langsung dengan Admin.
+                            <div id="docNoProofDesc" style="font-size: 0.72rem; margin-top: 0.2rem; max-width: 24rem; margin-left: auto; margin-right: auto; color: #64748b;">
+                                Pelanggan belum mengunggah bukti transfer/QRIS pada form, atau melakukan pembayaran langsung ke rekening Admin.
                             </div>
                             <div style="display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.75rem; flex-wrap: wrap;">
-                                <button type="button" onclick="document.getElementById('adminDocPaymentProofFileInput').click()" style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.4rem 0.85rem; background: #2563eb; color: white; border: none; border-radius: 0.375rem; font-size: 0.75rem; font-weight: 700; cursor: pointer;">
-                                    <span id="docUploadProofInnerBtnText">📷 Upload Bukti Pembayaran</span>
+                                <button type="button" onclick="document.getElementById('adminDocPaymentProofFileInput').click()" class="btn btn-primary btn-sm" style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.45rem 1rem;">
+                                    <i class="fa-solid fa-upload"></i>
+                                    <span id="docUploadProofInnerBtnText">Upload Bukti Pembayaran</span>
                                 </button>
-                                <a id="docRequestPaymentWaBtnInner" href="#" target="_blank" style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.4rem 0.85rem; background: #10b981; color: white; border-radius: 0.375rem; font-size: 0.75rem; font-weight: 700; text-decoration: none;">
-                                    💬 Minta Pembayaran via WA
-                                </a>
                             </div>
                         </div>
                     </div>
@@ -1561,32 +1665,35 @@
                 <div id="docSettlementProofSection" class="hidden">
                     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem; flex-wrap: wrap; gap: 0.35rem;">
                         <label style="font-size: 0.75rem; font-weight: 700; color: #047857; display: flex; align-items: center; gap: 0.35rem;">
-                            <span>🏁 Bukti Pembayaran Pelunasan:</span>
+                            <i class="fa-solid fa-check-double" style="color: #059669;"></i>
+                            <span>Bukti Pembayaran Pelunasan:</span>
                             <span id="docSettlementAmountBadge" style="font-size: 0.68rem; font-weight: 800; background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; padding: 0.1rem 0.4rem; border-radius: 4px;"></span>
                         </label>
                         <div style="display: flex; gap: 0.35rem;">
                             <input type="file" id="adminDocSettlementProofFileInput" accept="image/*" class="hidden" onchange="handleAdminUploadSettlementProof(event)">
                             <button type="button" onclick="document.getElementById('adminDocSettlementProofFileInput').click()" class="btn btn-outline btn-sm" style="padding: 0.25rem 0.6rem; font-size: 0.7rem; display: inline-flex; align-items: center; gap: 0.25rem; border-color: #059669; color: #059669; font-weight: 700;">
-                                <span>📤</span>
+                                <i class="fa-solid fa-upload"></i>
                                 <span>Upload Bukti Pelunasan (Admin)</span>
                             </button>
-                            <a id="docOpenSettlementProofFullBtn" href="#" onclick="openDocumentImagePreview(this); return false;" class="btn btn-outline btn-sm hidden" style="padding: 0.25rem 0.55rem; font-size: 0.7rem;">
-                                🔍 Penuh
+                            <a id="docOpenSettlementProofFullBtn" href="#" onclick="openDocumentImagePreview(this); return false;" class="btn btn-outline btn-sm hidden" style="padding: 0.25rem 0.55rem; font-size: 0.7rem; display: inline-flex; align-items: center; gap: 0.25rem;">
+                                <i class="fa-solid fa-expand"></i>
+                                <span>Lihat Penuh</span>
                             </a>
                         </div>
                     </div>
 
-                    <div id="docSettlementProofWrapper" style="border: 2px dashed #a7f3d0; border-radius: var(--radius-lg); background: #f0fdf4; min-height: 11rem; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 0.5rem; position: relative;">
+                    <div id="docSettlementProofWrapper" style="border: 1px dashed #a7f3d0; border-radius: var(--radius-lg); background: #f0fdf4; min-height: 11rem; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 0.5rem; position: relative;">
                         <img id="docSettlementProofImage" src="" alt="Bukti Pelunasan" onclick="openDocumentImagePreview(this)" class="hidden" style="max-height: 18rem; max-width: 100%; object-fit: contain; border-radius: var(--radius-sm); cursor: pointer;" title="Klik untuk memperbesar" />
                         <div id="docNoSettlementProofMsg" style="text-align: center; color: #065f46; padding: 1.5rem;">
-                            <span style="font-size: 2rem; display: block; margin-bottom: 0.35rem;">🏁</span>
+                            <i class="fa-solid fa-flag-checkered" style="font-size: 1.75rem; color: #059669; display: block; margin-bottom: 0.35rem;"></i>
                             <div id="docNoSettlementTitle" style="font-weight: 700; font-size: 0.85rem; color: #065f46;">Bukti Pelunasan Belum Diunggah</div>
                             <div id="docNoSettlementDesc" style="font-size: 0.72rem; margin-top: 0.2rem; max-width: 24rem; margin-left: auto; margin-right: auto; color: #047857;">
                                 Pelanggan baru membayar DP dan belum melunasi sisa tagihan sewa. Unggah foto struk/transfer pelunasan saat pelunasan diterima.
                             </div>
                             <div style="display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.75rem; flex-wrap: wrap;">
-                                <button type="button" onclick="document.getElementById('adminDocSettlementProofFileInput').click()" style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.4rem 0.85rem; background: #059669; color: white; border: none; border-radius: 0.375rem; font-size: 0.75rem; font-weight: 700; cursor: pointer;">
-                                    📷 Upload Bukti Pelunasan
+                                <button type="button" onclick="document.getElementById('adminDocSettlementProofFileInput').click()" class="btn btn-primary btn-sm" style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.45rem 1rem; background: #059669; border: none;">
+                                    <i class="fa-solid fa-upload"></i>
+                                    <span>Upload Bukti Pelunasan</span>
                                 </button>
                             </div>
                         </div>
@@ -1597,32 +1704,35 @@
                 <div id="docPenaltyProofSection" class="hidden" style="border-top: 1px dashed #fecaca; padding-top: 0.85rem;">
                     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem; flex-wrap: wrap; gap: 0.35rem;">
                         <label style="font-size: 0.75rem; font-weight: 700; color: #dc2626; display: flex; align-items: center; gap: 0.35rem;">
-                            <span>⚠️ Bukti Pembayaran Denda Keterlambatan:</span>
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                            <span>Bukti Pembayaran Denda Keterlambatan:</span>
                             <span id="docPenaltyAmountBadge" style="font-size: 0.68rem; font-weight: 800; background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; padding: 0.1rem 0.4rem; border-radius: 4px;">Denda: Rp 0</span>
                         </label>
                         <div style="display: flex; gap: 0.35rem; align-items: center;">
                             <input type="file" id="adminDocPenaltyProofFileInput" accept="image/*" class="hidden" onchange="handleAdminUploadPenaltyProof(event)">
                             <button type="button" onclick="document.getElementById('adminDocPenaltyProofFileInput').click()" class="btn btn-outline btn-sm" style="padding: 0.25rem 0.6rem; font-size: 0.7rem; display: inline-flex; align-items: center; gap: 0.25rem; border-color: #dc2626; color: #dc2626; font-weight: 700;">
-                                <span>📤</span>
+                                <i class="fa-solid fa-upload"></i>
                                 <span id="docUploadPenaltyBtnText">Upload Bukti Denda (Admin)</span>
                             </button>
-                            <a id="docOpenPenaltyProofFullBtn" href="#" onclick="openDocumentImagePreview(this); return false;" class="btn btn-outline btn-sm hidden" style="padding: 0.25rem 0.55rem; font-size: 0.7rem; border-color: #dc2626; color: #dc2626;">
-                                🔍 Penuh
+                            <a id="docOpenPenaltyProofFullBtn" href="#" onclick="openDocumentImagePreview(this); return false;" class="btn btn-outline btn-sm hidden" style="padding: 0.25rem 0.55rem; font-size: 0.7rem; border-color: #dc2626; color: #dc2626; display: inline-flex; align-items: center; gap: 0.25rem;">
+                                <i class="fa-solid fa-expand"></i>
+                                <span>Lihat Penuh</span>
                             </a>
                         </div>
                     </div>
 
-                    <div id="docPenaltyProofWrapper" style="border: 2px dashed #fca5a5; border-radius: var(--radius-lg); background: #fff5f5; min-height: 10rem; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 0.5rem; position: relative;">
+                    <div id="docPenaltyProofWrapper" style="border: 1px dashed #fca5a5; border-radius: var(--radius-lg); background: #fff5f5; min-height: 10rem; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 0.5rem; position: relative;">
                         <img id="docPenaltyProofImage" src="" alt="Bukti Pembayaran Denda" onclick="openDocumentImagePreview(this)" class="hidden" style="max-height: 18rem; max-width: 100%; object-fit: contain; border-radius: var(--radius-sm); cursor: pointer;" title="Klik untuk memperbesar" />
                         <div id="docNoPenaltyProofMsg" style="text-align: center; color: #991b1b; padding: 1.25rem;">
-                            <span style="font-size: 2rem; display: block; margin-bottom: 0.35rem;">⚠️</span>
+                            <i class="fa-solid fa-circle-exclamation" style="font-size: 1.75rem; color: #dc2626; display: block; margin-bottom: 0.35rem;"></i>
                             <div id="docNoPenaltyTitle" style="font-weight: 700; font-size: 0.85rem; color: #991b1b;">Bukti Pembayaran Denda Belum Diunggah</div>
                             <div id="docNoPenaltyDesc" style="font-size: 0.72rem; margin-top: 0.2rem; max-width: 24rem; margin-left: auto; margin-right: auto; color: #b91c1c;">
                                 Keterlambatan pengembalian unit dikenakan denda Rp 50.000/jam. Unggah foto bukti transfer/pelunasan denda di sini untuk memverifikasi.
                             </div>
                             <div style="display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.75rem; flex-wrap: wrap;">
-                                <button type="button" onclick="document.getElementById('adminDocPenaltyProofFileInput').click()" style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.4rem 0.85rem; background: #dc2626; color: white; border: none; border-radius: 0.375rem; font-size: 0.75rem; font-weight: 700; cursor: pointer;">
-                                    📷 Upload Bukti Denda
+                                <button type="button" onclick="document.getElementById('adminDocPenaltyProofFileInput').click()" class="btn btn-primary btn-sm" style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.45rem 1rem; background: #dc2626; border: none;">
+                                    <i class="fa-solid fa-upload"></i>
+                                    <span>Upload Bukti Denda</span>
                                 </button>
                             </div>
                         </div>
@@ -1632,17 +1742,18 @@
                 <!-- Preview Dokumen KTP (Disembunyikan otomatis jika dilihat dari Riwayat Pemesanan) -->
                 <div id="docKtpSectionWrapper">
                     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem; flex-wrap: wrap; gap: 0.35rem;">
-                        <label style="font-size: 0.75rem; font-weight: 700; color: #475569;">
-                            🪪 Foto KTP / Kartu Identitas Pelanggan:
+                        <label style="font-size: 0.75rem; font-weight: 700; color: #475569; display: flex; align-items: center; gap: 0.35rem;">
+                            <i class="fa-solid fa-id-card" style="color: #2563eb;"></i>
+                            <span>Foto KTP / Kartu Identitas Pelanggan:</span>
                         </label>
                         <div style="display: flex; gap: 0.35rem; align-items: center;">
                             <input type="file" id="adminDocKtpFileInput" accept="image/*" class="hidden" onchange="handleAdminUploadKtp(event)">
-                            <button type="button" onclick="document.getElementById('adminDocKtpFileInput').click()" class="btn btn-outline btn-sm" style="padding: 0.25rem 0.6rem; font-size: 0.7rem; display: inline-flex; align-items: center; gap: 0.25rem; border-color: #2563eb; color: #2563eb; font-weight: 700;">
-                                <span>📤</span>
+                            <button type="button" onclick="document.getElementById('adminDocKtpFileInput').click()" class="btn btn-outline btn-sm" style="padding: 0.25rem 0.6rem; font-size: 0.7rem; display: inline-flex; align-items: center; gap: 0.35rem; border-color: #2563eb; color: #2563eb; font-weight: 700;">
+                                <i class="fa-solid fa-cloud-arrow-up"></i>
                                 <span>Upload / Ganti KTP (Admin)</span>
                             </button>
-                            <a id="docOpenFullBtn" href="#" onclick="openDocumentImagePreview(this); return false;" class="btn btn-outline btn-sm hidden" style="padding: 0.25rem 0.6rem; font-size: 0.7rem; display: inline-flex; align-items: center; gap: 0.25rem; border-color: #2563eb; color: #2563eb; font-weight: 700;">
-                                <span>🔍</span>
+                            <a id="docOpenFullBtn" href="#" onclick="openDocumentImagePreview(this); return false;" class="btn btn-outline btn-sm hidden" style="padding: 0.25rem 0.6rem; font-size: 0.7rem; display: inline-flex; align-items: center; gap: 0.35rem; border-color: #2563eb; color: #2563eb; font-weight: 700;">
+                                <i class="fa-solid fa-magnifying-glass"></i>
                                 <span>Lihat KTP Penuh</span>
                             </a>
                         </div>
@@ -1651,7 +1762,7 @@
                     <div id="docImageWrapper" style="border: 2px dashed #cbd5e1; border-radius: var(--radius-lg); background: #f8fafc; min-height: 12rem; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 0.5rem; position: relative;">
                         <img id="docKtpImage" src="" alt="Foto KTP" onclick="openDocumentImagePreview(this)" style="max-height: 18rem; max-width: 100%; object-fit: contain; border-radius: var(--radius-sm); cursor: pointer;" title="Klik untuk membuka ukuran penuh" />
                         <div id="docNoImageMsg" class="hidden" style="text-align: center; color: #94a3b8; padding: 1.5rem;">
-                            <span style="font-size: 2rem; display: block; margin-bottom: 0.35rem;">📇</span>
+                            <i class="fa-solid fa-address-card" style="font-size: 2.25rem; display: block; margin-bottom: 0.5rem; color: #cbd5e1;"></i>
                             <div style="font-weight: 700; font-size: 0.85rem; color: #475569;">Dokumen KTP Belum Diunggah di Web</div>
                             <div style="font-size: 0.72rem; margin-top: 0.2rem; max-width: 22rem; margin-left: auto; margin-right: auto;">Pelanggan belum melampirkan foto KTP di formulir web, atau mengirimkannya secara langsung ke Admin.</div>
                             <div style="display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.75rem; flex-wrap: wrap;">
@@ -1670,7 +1781,7 @@
                         Batal
                     </button>
                     <button type="button" id="docSubmitAllBtn" onclick="submitAllDocuments()" class="btn btn-primary btn-sm" style="padding: 0.5rem 1.35rem; font-weight: 800; display: inline-flex; align-items: center; gap: 0.4rem; cursor: pointer;">
-                        <span>💾</span>
+                        <i class="fa-solid fa-floppy-disk"></i>
                         <span id="docSubmitAllBtnText">Submit & Simpan Semua Dokumen</span>
                     </button>
                 </div>
@@ -1686,7 +1797,7 @@
 
     <!-- Scripts -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" defer></script>
-    <script src="/js/data.js"></script>
-    <script src="/js/admin.js"></script>
+    <script src="/js/data.js?v={{ file_exists(public_path('js/data.js')) ? filemtime(public_path('js/data.js')) : time() }}"></script>
+    <script src="/js/admin.js?v={{ file_exists(public_path('js/admin.js')) ? filemtime(public_path('js/admin.js')) : time() }}"></script>
 </body>
 </html>

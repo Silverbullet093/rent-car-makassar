@@ -4,8 +4,105 @@
 @source '../../storage/framework/views/*.php';
 @source '../**/*.blade.php';
 @source '../**/*.js';
+@source '../**/*.jsx';
 
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+}
+
+a, a:hover, a:focus, a:active {
+    text-decoration: none !important;
+}
+
+.nav-link, .nav-link:hover {
+    text-decoration: none !important;
+}
+
+.brand-title, .brand-title a {
+    text-decoration: none !important;
+}
+
+/* Ensure all scroll-reveal elements are always visible in React */
+.reveal-on-scroll,
+.reveal-scale {
+    opacity: 1 !important;
+    transform: none !important;
+    visibility: visible !important;
+    transition: opacity 0.3s ease-out, transform 0.3s ease-out !important;
+}
+
+.reveal-on-scroll.is-revealed,
+.reveal-scale.is-revealed {
+    opacity: 1 !important;
+    transform: none !important;
+}
+
+/* Ensure Hero section and Header are never hidden by intro-active classes */
+#home .hero-main-grid > div:first-child,
+#home .hero-metric-bar {
+    opacity: 1 !important;
+    transform: none !important;
+}
+
+.header-glass {
+    opacity: 1 !important;
+    transform: none !important;
+}
+
+/* Modern Sleek Expand/Collapse Catalog Toggle Button */
+.catalog-toggle-wrapper {
+    position: relative;
+    z-index: 5;
+    margin-top: 2rem;
+}
+
+.btn-expand-catalog {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.65rem;
+    padding: 0.85rem 2.25rem;
+    font-size: 0.9375rem;
+    font-weight: 800;
+    color: #dc2626;
+    background: #ffffff;
+    border: 2px solid #dc2626;
+    border-radius: 9999px;
+    box-shadow: 0 4px 16px rgba(220, 38, 38, 0.12);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    outline: none;
+    text-decoration: none;
+}
+
+.btn-expand-catalog:hover {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    color: #ffffff;
+    border-color: transparent;
+    box-shadow: 0 10px 24px rgba(220, 38, 38, 0.32);
+    transform: translateY(-2px);
+}
+
+.btn-expand-catalog:active {
+    transform: translateY(0);
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
+}
+
+.btn-expand-catalog i {
+    font-size: 0.85rem;
+    transition: transform 0.3s ease;
+}
+
+.btn-expand-catalog:hover i {
+    transform: scale(1.15);
+}
+
+@media (max-width: 640px) {
+    .btn-expand-catalog {
+        width: 100%;
+        max-width: 22rem;
+        padding: 0.8rem 1.5rem;
+        font-size: 0.875rem;
+    }
 }

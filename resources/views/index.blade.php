@@ -14,17 +14,22 @@
     <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+    <!-- Cache Busting Headers -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+
     <!-- Custom Red Crimson Vanilla CSS -->
-    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/style.css?v={{ file_exists(public_path('css/style.css')) ? filemtime(public_path('css/style.css')) : time() }}">
     <!-- Mobile Responsive Patch -->
-    <link rel="stylesheet" href="/css/responsive-mobile.css">
+    <link rel="stylesheet" href="/css/responsive-mobile.css?v={{ file_exists(public_path('css/responsive-mobile.css')) ? filemtime(public_path('css/responsive-mobile.css')) : time() }}">
     <script>
         try {
-            var params = new URLSearchParams(window.location.search);
-            if (params.get('intro') === '1') {
-                sessionStorage.removeItem('rpm_intro_seen');
-            }
-            if (!sessionStorage.getItem('rpm_intro_seen')) {
+            // Tampilkan video intro hanya 1 kali saja
+            const params = new URLSearchParams(window.location.search);
+            const forceIntro = params.get('intro') === '1';
+            const introSeen = localStorage.getItem('rpm_intro_seen') || sessionStorage.getItem('rpm_intro_seen');
+            if (forceIntro || !introSeen) {
                 document.documentElement.classList.add('intro-active');
             }
         } catch (e) {}
@@ -44,10 +49,9 @@
         <video
             id="introPreloaderVideo"
             class="intro-preloader-video"
-            autoplay
             muted
             playsinline
-            preload="auto"
+            preload="none"
         >
             <source src="/videos/intro-rpm.mp4" type="video/mp4">
         </video>
@@ -78,25 +82,20 @@
         </div>
     </div>
 
-    <!-- ANNOUNCEMENT BANNER: TARIF LIBUR / PEAK SEASON (JIKA AKTIF) -->
-    <div id="holidayAlertBanner" class="hidden" style="background-color: var(--clr-primary); color: white; font-size: 0.75rem; padding: 0.5rem 1rem; text-align: center; font-weight: 700;">
-        <span id="holidayBannerText">Mode Tarif Hari Libur / Peak Season Sedang Aktif</span>
-    </div>
-
     <!-- NAVBAR GLASSMORPHISM -->
     <header class="header-glass">
         <div class="container-fluid header-inner">
             
             <!-- BRAND LOGO -->
-            <a href="#home" class="flex items-center gap-3">
-                <div style="width: 2.75rem; height: 2.75rem; background: var(--clr-primary); border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25); overflow: hidden;">
+            <a href="#home" class="flex items-center gap-3" style="text-decoration: none !important;">
+                <div class="navbar-logo-circle" style="width: 2.75rem; height: 2.75rem; background: var(--clr-primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(220, 38, 38, 0.25); overflow: hidden; flex-shrink: 0;">
                     <img src="/logo_rpm_red.png" alt="RPM Rent Car" style="width: 100%; height: 100%; object-fit: contain; transform: scale(1.35);">
                 </div>
-                <div>
-                    <span class="brand-title" data-custom-brand="rpm" style="font-size: 1.25rem; font-weight: 800; color: var(--clr-text-main); line-height: 1.1; display: block; font-family: 'Plus Jakarta Sans', sans-serif;">
-                        RPM <span style="color: var(--clr-primary);">Rent Car</span>
+                <div style="text-decoration: none !important;">
+                    <span class="brand-title" data-custom-brand="rpm" style="text-decoration: none !important;">
+                        RPM <span style="color: var(--clr-primary); text-decoration: none !important;">Rent Car</span>
                     </span>
-                    <span style="font-size: 0.65rem; font-weight: 800; color: #64748b; letter-spacing: 0.15em; text-transform: uppercase; display: block; margin-top: 2px;">
+                    <span class="brand-subtitle" style="text-decoration: none !important;">
                         MAKASSAR
                     </span>
                 </div>
@@ -104,12 +103,12 @@
 
             <!-- DESKTOP NAVIGATION -->
             <nav class="nav-desktop flex items-center gap-1">
-                <a href="#home" class="nav-link">Beranda</a>
-                <a href="#katalog" class="nav-link">Armada Mobil</a>
-                <a href="#jangkauan" class="nav-link">Jangkauan</a>
-                <a href="#layanan" class="nav-link">Layanan</a>
-                <a href="#reviews" class="nav-link">Ulasan</a>
-                <a href="#kontak" class="nav-link">Kontak</a>
+                <a href="#home" class="nav-link" style="text-decoration: none !important;">Beranda</a>
+                <a href="#katalog" class="nav-link" style="text-decoration: none !important;">Armada Mobil</a>
+                <a href="#jangkauan" class="nav-link" style="text-decoration: none !important;">Jangkauan</a>
+                <a href="#layanan" class="nav-link" style="text-decoration: none !important;">Layanan</a>
+                <a href="#reviews" class="nav-link" style="text-decoration: none !important;">Ulasan</a>
+                <a href="#kontak" class="nav-link" style="text-decoration: none !important;">Kontak</a>
             </nav>
 
             <!-- RIGHT ACTIONS -->
@@ -138,7 +137,7 @@
     <div id="mobileDrawer" class="mobile-drawer">
         <div class="mobile-drawer-header">
             <div class="flex items-center gap-2.5">
-                <div style="width: 2.25rem; height: 2.25rem; background: var(--clr-primary); border-radius: 0.65rem; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                <div style="width: 2.35rem; height: 2.35rem; background: var(--clr-primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; box-shadow: 0 2px 10px rgba(220, 38, 38, 0.25);">
                     <img src="/logo_rpm_red.png" alt="RPM" style="width: 100%; height: 100%; object-fit: contain; transform: scale(1.35);">
                 </div>
                 <div>
@@ -194,10 +193,7 @@
         <!-- ==================================================== -->
         <!-- HERO SECTION (FULL-BLEED STUDIO CAR DISPLAY)         -->
         <!-- ==================================================== -->
-        <!-- ==================================================== -->
-        <!-- HERO SECTION (FULL-BLEED STUDIO CAR DISPLAY)         -->
-        <!-- ==================================================== -->
-        <section id="home" class="hero-fullscreen-laptop" style="position: relative; padding: 4.5rem 0 3rem 0; background-color: #ffffff; border-bottom: 1px solid var(--clr-border); overflow: hidden;">
+        <section id="home" class="hero-fullscreen-laptop" style="position: relative; padding: 6.75rem 0 3.5rem 0; background-color: #ffffff; border-bottom: 1px solid var(--clr-border); overflow: hidden;">
             
             <!-- Background Car Graphic (White Alphard) with Gradient Fade -->
             <div class="hero-alphard-bg">
@@ -209,8 +205,8 @@
                     
                     <!-- Left Hero Text Content -->
                     <div class="reveal-on-scroll" style="max-width: 42rem;">
-                        <!-- Capsule Badge with Shimmering Gradient -->
-                        <div class="hero-capsule-badge gradient-shimmer-badge" style="display: inline-flex; align-items: center; gap: 0.6rem; padding: 0.5rem 1.25rem; border-radius: 9999px; color: #dc2626; font-size: 0.85rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 1.25rem; box-shadow: 0 4px 14px rgba(220, 38, 38, 0.1);">
+                        <!-- Capsule Badge -->
+                        <div class="hero-capsule-badge" style="display: inline-flex; align-items: center; gap: 0.6rem; padding: 0.5rem 1.25rem; border-radius: 9999px; color: #dc2626; background-color: #fef2f2; border: 1px solid #fecaca; font-size: 0.85rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 1.25rem; box-shadow: 0 2px 8px rgba(220, 38, 38, 0.06);">
                             <i class="fa-solid fa-shield-halved"></i>
                             <span>RENTAL MOBIL RESMI MAKASSAR &amp; SULAWESI</span>
                         </div>
@@ -265,7 +261,7 @@
                             <i class="fa-solid fa-car"></i>
                         </div>
                         <div>
-                            <div class="metric-title">10+ Unit</div>
+                            <div class="metric-title"><span class="counter-number" data-target="10">10</span>+ Unit</div>
                             <div class="metric-sub">Armada Prima</div>
                         </div>
                     </div>
@@ -323,38 +319,59 @@
                     <p style="font-size: 0.875rem; color: var(--clr-text-muted); margin-top: 0.5rem;">Seluruh unit terawat dengan inspeksi berkala. Pilih unit dan isi formulir pemesanan langsung via WhatsApp.</p>
                 </div>
 
-                <!-- Filter & Search Bar -->
-                <div style="background: #ffffff; padding: 0.6rem; border-radius: var(--radius-xl); border: 1px solid var(--clr-border); margin-bottom: 2.5rem; display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; box-shadow: var(--shadow-sm);">
+                <!-- Modern Luxury Filter & Search Controls (2 Baris: Atas Kategori, Bawah Pencarian) -->
+                <div class="catalog-controls-container">
                     
-                    <!-- Kategori Tab -->
-                    <div class="flex items-center gap-1" style="overflow-x: auto; padding: 0.25rem;">
-                        <button onclick="setCategoryFilter('all', this)" class="cat-filter-btn btn btn-primary btn-sm">
-                            Semua Tipe
-                        </button>
-                        <button onclick="setCategoryFilter('MPV', this)" class="cat-filter-btn btn btn-outline btn-sm">
-                            MPV Keluarga
-                        </button>
-                        <button onclick="setCategoryFilter('SUV', this)" class="cat-filter-btn btn btn-outline btn-sm">
-                            SUV Gagah
-                        </button>
-                        <button onclick="setCategoryFilter('City Car', this)" class="cat-filter-btn btn btn-outline btn-sm">
-                            City Car Lincah
-                        </button>
-                        <button onclick="setCategoryFilter('Mewah', this)" class="cat-filter-btn btn btn-outline btn-sm">
-                            VIP / Mewah
-                        </button>
+                    <!-- Baris 1 (Atas): Kategori Filter & Unit Counter -->
+                    <div class="catalog-filter-top">
+                        <!-- Kategori Tabs -->
+                        <div class="catalog-category-scroller">
+                            <button onclick="setCategoryFilter('all', this)" class="cat-filter-btn btn-primary" data-category="all">
+                                <i class="fa-solid fa-layer-group"></i>
+                                <span>Semua Tipe</span>
+                            </button>
+                            <button onclick="setCategoryFilter('MPV', this)" class="cat-filter-btn btn-outline" data-category="MPV">
+                                <i class="fa-solid fa-van-shuttle"></i>
+                                <span>MPV Keluarga</span>
+                            </button>
+                            <button onclick="setCategoryFilter('SUV', this)" class="cat-filter-btn btn-outline" data-category="SUV">
+                                <i class="fa-solid fa-mountain"></i>
+                                <span>SUV Gagah</span>
+                            </button>
+                            <button onclick="setCategoryFilter('City Car', this)" class="cat-filter-btn btn-outline" data-category="City Car">
+                                <i class="fa-solid fa-bolt"></i>
+                                <span>City Car Lincah</span>
+                            </button>
+                            <button onclick="setCategoryFilter('Mewah', this)" class="cat-filter-btn btn-outline" data-category="Mewah">
+                                <i class="fa-solid fa-crown"></i>
+                                <span>VIP / Mewah</span>
+                            </button>
+                        </div>
+
+                        <!-- Unit Counter Badge -->
+                        <div class="catalog-counter-badge" id="catalogUnitBadge">
+                            <span class="counter-dot"></span>
+                            <span><strong id="filterUnitsCount">10</strong> Pilihan Unit</span>
+                        </div>
                     </div>
 
-                    <!-- Search Input -->
-                    <div style="width: 16rem; padding: 0.25rem;">
-                        <input 
-                            type="text" 
-                            id="carSearchInput" 
-                            placeholder="Cari merek / tipe mobil..." 
-                            class="form-input"
-                            style="padding: 0.45rem 0.85rem; font-size: 0.8125rem;"
-                        />
+                    <!-- Baris 2 (Bawah): Pencarian Unit Mobil -->
+                    <div class="catalog-search-row">
+                        <div class="catalog-search-capsule">
+                            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                            <input 
+                                type="text" 
+                                id="carSearchInput" 
+                                placeholder="Cari unit mobil (contoh: Innova Reborn, Fortuner, Alphard, Brio...)" 
+                                class="catalog-search-input"
+                                autocomplete="off"
+                            />
+                            <button type="button" id="clearSearchBtn" class="clear-search-btn" title="Hapus pencarian">
+                                <i class="fa-solid fa-circle-xmark"></i>
+                            </button>
+                        </div>
                     </div>
+
                 </div>
 
                 <!-- CARS GRID (Injected by app.js) -->
@@ -386,13 +403,13 @@
                         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.875rem;">
                             <div style="background: #161f33; padding: 1.15rem; border-radius: 1rem; border: 1px solid #1e293b;">
                                 <div style="display: flex; align-items: center; gap: 0.5rem; color: #ef4444; font-weight: 800; font-size: 1.05rem; margin-bottom: 0.25rem;">
-                                    <i class="fa-solid fa-city"></i> 34+ Provinsi
+                                    <i class="fa-solid fa-city"></i> <span class="counter-number" data-target="34">34</span>+ Provinsi
                                 </div>
                                 <p style="font-size: 0.75rem; color: #94a3b8; margin: 0; line-height: 1.4;">Antar jemput bandara &amp; hotel terdekat.</p>
                             </div>
                             <div style="background: #161f33; padding: 1.15rem; border-radius: 1rem; border: 1px solid #1e293b;">
                                 <div style="display: flex; align-items: center; gap: 0.5rem; color: #ef4444; font-weight: 800; font-size: 1.05rem; margin-bottom: 0.25rem;">
-                                    <i class="fa-solid fa-headset"></i> 24/7 Layanan
+                                    <i class="fa-solid fa-headset"></i> <span class="counter-number" data-target="24">24</span>/7 Layanan
                                 </div>
                                 <p style="font-size: 0.75rem; color: #94a3b8; margin: 0; line-height: 1.4;">Bantuan darurat di jalan kapanpun.</p>
                             </div>
@@ -413,6 +430,22 @@
                                 <div class="city-box">Medan &amp; Sumatera</div>
                                 <div class="city-box active-city">Makassar &amp; Sulawesi</div>
                                 <div class="city-box">Kalimantan &amp; Lainnya</div>
+                            </div>
+                            <!-- Interactive Live Route Info Box -->
+                            <div id="cityRouteInfoBox" class="city-route-info-box" style="margin-bottom: 1.25rem;">
+                                <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
+                                    <div style="width: 2.25rem; height: 2.25rem; border-radius: 0.5rem; background: rgba(239, 68, 68, 0.2); color: #ef4444; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; margin-top: 2px;">
+                                        <i class="fa-solid fa-plane-departure"></i>
+                                    </div>
+                                    <div>
+                                        <div style="font-weight: 800; color: #ffffff; font-size: 0.875rem; margin-bottom: 0.2rem;">
+                                            Hub Utama Sulawesi &amp; Antar-Kota
+                                        </div>
+                                        <div style="color: #94a3b8; font-size: 0.8rem; line-height: 1.5;">
+                                            Melayani Antar-Jemput Bandara Sultan Hasanuddin (UPG), Pelabuhan Soekarno-Hatta, Pettarani, Losari, Gowa, Maros, Bira, hingga Tana Toraja. Pilihan lepas kunci atau supir profesional.
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             <div style="padding-top: 1rem; border-top: 1px solid rgba(30, 41, 59, 0.8); text-align: center;">
                                 <p style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 0.85rem;">Butuh sewa di kota lain di luar daftar di atas?</p>
@@ -636,13 +669,13 @@
 
                         <!-- Hidden select for form value compatibility -->
                         <select id="bookEvent" name="bookEvent" required class="hidden">
-                            <option value="Wisata / Liburan" selected>🏖️ Wisata / Liburan Keluarga</option>
-                            <option value="Acara Pernikahan (Wedding)">💍 Acara Pernikahan / Iring-iringan</option>
-                            <option value="Dinas Kantor / Bisnis">💼 Kunjungan Bisnis / Perjalanan Dinas</option>
-                            <option value="Antar Jemput Bandara">✈️ Antar / Jemput Bandara</option>
-                            <option value="Mudik / Pulang Kampung">🏡 Mudik / Pulang Kampung</option>
-                            <option value="Acara Keluarga / Hajatan">👨‍👩‍👧‍👦 Acara Keluarga / Hajatan</option>
-                            <option value="Lainnya">✨ Keperluan Lainnya</option>
+                            <option value="Wisata / Liburan" selected>Wisata / Liburan Keluarga</option>
+                            <option value="Acara Pernikahan (Wedding)">Acara Pernikahan / Iring-iringan</option>
+                            <option value="Dinas Kantor / Bisnis">Kunjungan Bisnis / Perjalanan Dinas</option>
+                            <option value="Antar Jemput Bandara">Antar / Jemput Bandara</option>
+                            <option value="Mudik / Pulang Kampung">Mudik / Pulang Kampung</option>
+                            <option value="Acara Keluarga / Hajatan">Acara Keluarga / Hajatan</option>
+                            <option value="Lainnya">Keperluan Lainnya</option>
                         </select>
 
                         <!-- Custom Modern Select Box -->
@@ -656,7 +689,7 @@
                                 aria-expanded="false"
                             >
                                 <div style="display: flex; align-items: center; gap: 0.75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                                    <span id="customEventSelectedIconBox" class="custom-event-icon-box">🏖️</span>
+                                    <span id="customEventSelectedIconBox" class="custom-event-icon-box"><i class="fa-solid fa-umbrella-beach" style="color: #2563eb;"></i></span>
                                     <div style="text-align: left; overflow: hidden; text-overflow: ellipsis;">
                                         <div id="customEventSelectedTitle" class="custom-event-title">Wisata / Liburan Keluarga</div>
                                         <div id="customEventSelectedDesc" class="custom-event-desc">Liburan bersama keluarga, kerabat, atau rekan wisata</div>
@@ -674,9 +707,9 @@
                                     <span>Pilih Jenis Keperluan Acara:</span>
                                 </div>
                                 <div class="custom-event-options-list">
-                                    <div class="custom-event-item active" data-value="Wisata / Liburan" onclick="selectCustomEventOption('Wisata / Liburan', 'Wisata / Liburan Keluarga', '🏖️', 'Liburan bersama keluarga, kerabat, atau rekan wisata')">
+                                    <div class="custom-event-item active" data-value="Wisata / Liburan" onclick="selectCustomEventOption('Wisata / Liburan', 'Wisata / Liburan Keluarga', '<i class=\'fa-solid fa-umbrella-beach\' style=\'color: #2563eb;\'></i>', 'Liburan bersama keluarga, kerabat, atau rekan wisata')">
                                         <div class="event-item-left">
-                                            <span class="event-item-icon">🏖️</span>
+                                            <span class="event-item-icon"><i class="fa-solid fa-umbrella-beach" style="color: #2563eb;"></i></span>
                                             <div>
                                                 <div class="event-item-name">Wisata / Liburan Keluarga</div>
                                                 <div class="event-item-sub">Liburan bersama keluarga, kerabat, atau rekan wisata</div>
@@ -685,9 +718,9 @@
                                         <i class="fa-solid fa-circle-check event-item-check"></i>
                                     </div>
 
-                                    <div class="custom-event-item" data-value="Acara Pernikahan (Wedding)" onclick="selectCustomEventOption('Acara Pernikahan (Wedding)', 'Acara Pernikahan / Iring-iringan', '💍', 'Mobil pengantin, rombongan keluarga, & iring-iringan resepsi')">
+                                    <div class="custom-event-item" data-value="Acara Pernikahan (Wedding)" onclick="selectCustomEventOption('Acara Pernikahan (Wedding)', 'Acara Pernikahan / Iring-iringan', '<i class=\'fa-solid fa-gem\' style=\'color: #db2777;\'></i>', 'Mobil pengantin, rombongan keluarga, & iring-iringan resepsi')">
                                         <div class="event-item-left">
-                                            <span class="event-item-icon">💍</span>
+                                            <span class="event-item-icon"><i class="fa-solid fa-gem" style="color: #db2777;"></i></span>
                                             <div>
                                                 <div class="event-item-name">Acara Pernikahan / Iring-iringan</div>
                                                 <div class="event-item-sub">Mobil pengantin, rombongan keluarga, & iring-iringan resepsi</div>
@@ -696,9 +729,9 @@
                                         <i class="fa-solid fa-circle-check event-item-check hidden"></i>
                                     </div>
 
-                                    <div class="custom-event-item" data-value="Dinas Kantor / Bisnis" onclick="selectCustomEventOption('Dinas Kantor / Bisnis', 'Kunjungan Bisnis / Perjalanan Dinas', '💼', 'Kunjungan dinas pemerintah, perusahaan, & agenda bisnis resmi')">
+                                    <div class="custom-event-item" data-value="Dinas Kantor / Bisnis" onclick="selectCustomEventOption('Dinas Kantor / Bisnis', 'Kunjungan Bisnis / Perjalanan Dinas', '<i class=\'fa-solid fa-briefcase\' style=\'color: #475569;\'></i>', 'Kunjungan dinas pemerintah, perusahaan, & agenda bisnis resmi')">
                                         <div class="event-item-left">
-                                            <span class="event-item-icon">💼</span>
+                                            <span class="event-item-icon"><i class="fa-solid fa-briefcase" style="color: #475569;"></i></span>
                                             <div>
                                                 <div class="event-item-name">Kunjungan Bisnis / Perjalanan Dinas</div>
                                                 <div class="event-item-sub">Kunjungan dinas pemerintah, perusahaan, & agenda bisnis resmi</div>
@@ -707,9 +740,9 @@
                                         <i class="fa-solid fa-circle-check event-item-check hidden"></i>
                                     </div>
 
-                                    <div class="custom-event-item" data-value="Antar Jemput Bandara" onclick="selectCustomEventOption('Antar Jemput Bandara', 'Antar / Jemput Bandara', '✈️', 'Penjemputan & drop-off Bandara Sultan Hasanuddin Makassar')">
+                                    <div class="custom-event-item" data-value="Antar Jemput Bandara" onclick="selectCustomEventOption('Antar Jemput Bandara', 'Antar / Jemput Bandara', '<i class=\'fa-solid fa-plane-departure\' style=\'color: #0284c7;\'></i>', 'Penjemputan & drop-off Bandara Sultan Hasanuddin Makassar')">
                                         <div class="event-item-left">
-                                            <span class="event-item-icon">✈️</span>
+                                            <span class="event-item-icon"><i class="fa-solid fa-plane-departure" style="color: #0284c7;"></i></span>
                                             <div>
                                                 <div class="event-item-name">Antar / Jemput Bandara</div>
                                                 <div class="event-item-sub">Penjemputan & drop-off Bandara Sultan Hasanuddin Makassar</div>
@@ -718,9 +751,9 @@
                                         <i class="fa-solid fa-circle-check event-item-check hidden"></i>
                                     </div>
 
-                                    <div class="custom-event-item" data-value="Mudik / Pulang Kampung" onclick="selectCustomEventOption('Mudik / Pulang Kampung', 'Mudik / Pulang Kampung', '🏡', 'Perjalanan antar kota / daerah Sulawesi Selatan & sekitarnya')">
+                                    <div class="custom-event-item" data-value="Mudik / Pulang Kampung" onclick="selectCustomEventOption('Mudik / Pulang Kampung', 'Mudik / Pulang Kampung', '<i class=\'fa-solid fa-house\' style=\'color: #16a34a;\'></i>', 'Perjalanan antar kota / daerah Sulawesi Selatan & sekitarnya')">
                                         <div class="event-item-left">
-                                            <span class="event-item-icon">🏡</span>
+                                            <span class="event-item-icon"><i class="fa-solid fa-house" style="color: #16a34a;"></i></span>
                                             <div>
                                                 <div class="event-item-name">Mudik / Pulang Kampung</div>
                                                 <div class="event-item-sub">Perjalanan antar kota / daerah Sulawesi Selatan & sekitarnya</div>
@@ -729,9 +762,9 @@
                                         <i class="fa-solid fa-circle-check event-item-check hidden"></i>
                                     </div>
 
-                                    <div class="custom-event-item" data-value="Acara Keluarga / Hajatan" onclick="selectCustomEventOption('Acara Keluarga / Hajatan', 'Acara Keluarga / Hajatan', '👨‍👩‍👧‍👦', 'Hajatan keluarga, wisuda, ziarah, & silaturahmi')">
+                                    <div class="custom-event-item" data-value="Acara Keluarga / Hajatan" onclick="selectCustomEventOption('Acara Keluarga / Hajatan', 'Acara Keluarga / Hajatan', '<i class=\'fa-solid fa-users\' style=\'color: #ea580c;\'></i>', 'Hajatan keluarga, wisuda, ziarah, & silaturahmi')">
                                         <div class="event-item-left">
-                                            <span class="event-item-icon">👨‍👩‍👧‍👦</span>
+                                            <span class="event-item-icon"><i class="fa-solid fa-users" style="color: #ea580c;"></i></span>
                                             <div>
                                                 <div class="event-item-name">Acara Keluarga / Hajatan</div>
                                                 <div class="event-item-sub">Hajatan keluarga, wisuda, ziarah, & silaturahmi</div>
@@ -740,9 +773,9 @@
                                         <i class="fa-solid fa-circle-check event-item-check hidden"></i>
                                     </div>
 
-                                    <div class="custom-event-item" data-value="Lainnya" onclick="selectCustomEventOption('Lainnya', 'Keperluan Lainnya', '✨', 'Keperluan transportasi harian atau kebutuhan personal lainnya')">
+                                    <div class="custom-event-item" data-value="Lainnya" onclick="selectCustomEventOption('Lainnya', 'Keperluan Lainnya', '<i class=\'fa-solid fa-car\' style=\'color: #64748b;\'></i>', 'Keperluan transportasi harian atau kebutuhan personal lainnya')">
                                         <div class="event-item-left">
-                                            <span class="event-item-icon">✨</span>
+                                            <span class="event-item-icon"><i class="fa-solid fa-car" style="color: #64748b;"></i></span>
                                             <div>
                                                 <div class="event-item-name">Keperluan Lainnya</div>
                                                 <div class="event-item-sub">Keperluan transportasi harian atau kebutuhan personal lainnya</div>
@@ -759,7 +792,10 @@
                     <div class="grid sm:grid-cols-2 gap-3">
                         <div class="form-group" style="position: relative;">
                             <label class="form-label">Waktu Pemakaian (Tanggal Mulai) <span style="color: var(--clr-rose);">*</span></label>
-                            <div style="position: relative;">
+                            <div class="booking-date-input-wrap">
+                                <div class="date-input-icon-box">
+                                    <i class="fa-solid fa-calendar-day"></i>
+                                </div>
                                 <input 
                                     type="text" 
                                     id="bookStartDate" 
@@ -767,10 +803,8 @@
                                     onclick="toggleBookingCalendar('start')" 
                                     placeholder="Pilih Tanggal Mulai" 
                                     required 
-                                    class="form-input" 
-                                    style="padding-left: 2.5rem; cursor: pointer;"
+                                    class="form-input booking-date-input" 
                                 />
-                                <i class="fa-solid fa-calendar-day" style="position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); color: #94a3b8; pointer-events: none;"></i>
                             </div>
 
                             <!-- Dropdown Kalender Kustom Start -->
@@ -794,7 +828,10 @@
 
                         <div class="form-group" style="position: relative;">
                             <label class="form-label">Waktu Pemakaian (Tanggal Selesai) <span style="color: var(--clr-rose);">*</span></label>
-                            <div style="position: relative;">
+                            <div class="booking-date-input-wrap">
+                                <div class="date-input-icon-box">
+                                    <i class="fa-solid fa-calendar-check"></i>
+                                </div>
                                 <input 
                                     type="text" 
                                     id="bookEndDate" 
@@ -802,10 +839,8 @@
                                     onclick="toggleBookingCalendar('end')" 
                                     placeholder="Pilih Tanggal Selesai" 
                                     required 
-                                    class="form-input" 
-                                    style="padding-left: 2.5rem; cursor: pointer;"
+                                    class="form-input booking-date-input" 
                                 />
-                                <i class="fa-solid fa-calendar-check" style="position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); color: #94a3b8; pointer-events: none;"></i>
                             </div>
 
                             <!-- Dropdown Kalender Kustom End -->
@@ -833,14 +868,14 @@
                     <!-- Notifikasi Jadwal yang Sudah Dikonfirmasi -->
                     <div id="confirmedDatesNotice" class="hidden" style="background: #fff1f2; border: 1px solid #fecdd3; border-radius: var(--radius-md); padding: 0.75rem 1rem; font-size: 0.75rem; color: #9f1239;">
                         <div style="font-weight: 700; display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0.25rem;">
-                            <span>⚠️</span> Jadwal Terisi & Sudah Dikonfirmasi:
+                            <i class="fa-solid fa-calendar-xmark" style="color: #d97706;"></i> Jadwal Terisi & Sudah Dikonfirmasi:
                         </div>
                         <div id="confirmedDatesList"></div>
                     </div>
 
                     <!-- Peringatan Bentrok Tanggal -->
                     <div id="dateConflictAlert" class="hidden" style="background: #fef2f2; border: 1px solid #ef4444; border-radius: var(--radius-md); padding: 0.75rem 1rem; font-size: 0.75rem; color: #b91c1c; font-weight: 700; display: flex; align-items: center; gap: 0.5rem;">
-                        <span>🚫</span>
+                        <i class="fa-solid fa-circle-xmark" style="color: #dc2626; font-size: 1rem; flex-shrink: 0;"></i>
                         <div>Maaf, mobil ini sudah dikonfirmasi dipesan untuk tanggal yang Anda pilih. Pelanggan lain tidak dapat booking di tanggal tersebut. Silakan pilih tanggal lain!</div>
                     </div>
 
@@ -864,9 +899,9 @@
                                 </div>
                             </label>
                         </div>
-                        <div id="driverOnlyAlert" class="hidden" style="margin-top: 0.4rem; font-size: 0.73rem; color: #b45309; background: #fffbeb; border: 1px solid #fde68a; padding: 0.45rem 0.75rem; border-radius: var(--radius-md); font-weight: 700; display: flex; align-items: center; gap: 0.4rem;">
-                            <span>⚠️</span>
-                            <span>Armada ini khusus melayani pemesanan <strong>Dengan Supir (Driver)</strong> demi kenyamanan & keamanan perjalanan Anda. Opsi Lepas Kunci tidak tersedia untuk unit ini.</span>
+                        <div id="driverOnlyAlert" class="hidden" style="margin-top: 0.5rem; font-size: 0.73rem; color: #92400e; background: #fffbeb; border: 1px solid #fde68a; padding: 0.5rem 0.75rem; border-radius: var(--radius-md); font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fa-solid fa-circle-exclamation" style="color: #d97706; font-size: 0.85rem; flex-shrink: 0;"></i>
+                            <span>Armada ini khusus melayani pemesanan <strong>Dengan Supir (Driver)</strong> demi kenyamanan & keamanan. Opsi Lepas Kunci tidak tersedia untuk unit ini.</span>
                         </div>
                     </div>
 
@@ -983,32 +1018,30 @@
                             </div>
                         </div>
                         <input type="number" id="bookDpAmount" placeholder="Masukkan nominal DP (Contoh: 300000)" class="form-input" style="background: #ffffff; font-weight: 800; color: #0f172a;" oninput="handleDpAmountInput()" />
-                        <div style="font-size: 0.7rem; color: #b45309; margin-top: 0.35rem;">
-                            💡 Anda dapat mengisi nominal DP sesuai kesepakatan (Default: 50% dari total sewa). Transaksi pembayaran DP dilakukan via WhatsApp Admin.
+                        <div style="font-size: 0.7rem; color: #b45309; margin-top: 0.35rem; display: flex; align-items: flex-start; gap: 0.35rem;">
+                            <i class="fa-solid fa-circle-info" style="color: #d97706; margin-top: 2px;"></i>
+                            <span>Nominal DP dapat disesuaikan dengan kesepakatan (Standar: 50% dari total sewa). Pembayaran dikonfirmasi via WhatsApp Admin.</span>
                         </div>
                     </div>
 
                     <!-- KARTU INFORMASI TRANSAKSI & PEMBAYARAN VIA WHATSAPP RESMI -->
-                    <div id="whatsappPaymentRequestNotice" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1.5px solid #86efac; border-radius: var(--radius-lg); padding: 1rem 1.15rem; display: flex; align-items: flex-start; gap: 0.85rem; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.08);">
-                        <div style="width: 2.5rem; height: 2.5rem; border-radius: 50%; background: linear-gradient(135deg, #22c55e, #16a34a); color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; flex-shrink: 0; box-shadow: 0 4px 12px rgba(34, 197, 94, 0.35);">
+                    <div id="whatsappPaymentRequestNotice" style="background: #ffffff; border: 1px solid #e2e8f0; border-left: 3.5px solid #16a34a; border-radius: var(--radius-md); padding: 0.95rem 1.15rem; display: flex; align-items: flex-start; gap: 0.85rem; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);">
+                        <div style="width: 2.25rem; height: 2.25rem; border-radius: 0.5rem; background: #f0fdf4; border: 1px solid #bbf7d0; color: #16a34a; display: flex; align-items: center; justify-content: center; font-size: 1.15rem; flex-shrink: 0;">
                             <i class="fa-brands fa-whatsapp"></i>
                         </div>
                         <div style="flex: 1;">
-                            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.2rem;">
-                                <div id="whatsappNoticeTitle" style="font-size: 0.875rem; font-weight: 800; color: #14532d;">
-                                    Transaksi & Pembayaran via WhatsApp Admin
+                            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.4rem;">
+                                <div id="whatsappNoticeTitle" style="font-size: 0.85rem; font-weight: 800; color: #0f172a;">
+                                    Konfirmasi & Pembayaran via WhatsApp Admin
                                 </div>
-                                <span style="font-size: 0.65rem; background: #22c55e; color: #ffffff; padding: 0.12rem 0.5rem; border-radius: 999px; font-weight: 800;">
-                                    Resmi & Terpercaya
-                                </span>
                             </div>
-                            <div id="whatsappPaymentNoticeText" style="font-size: 0.775rem; color: #166534; line-height: 1.45;">
+                            <div id="whatsappPaymentNoticeText" style="font-size: 0.775rem; color: #475569; line-height: 1.45; margin-top: 0.2rem;">
                                 Anda memilih opsi <strong>Bayar Lunas di Awal</strong>. Admin akan mengirimkan invoice total tagihan dan nomor rekening transfer / QRIS resmi langsung di chat WhatsApp.
                             </div>
-                            <div style="display: flex; gap: 0.75rem; margin-top: 0.45rem; font-size: 0.7rem; color: #15803d; font-weight: 700; flex-wrap: wrap;">
-                                <span>✓ Pembayaran Aman via Admin</span>
-                                <span>✓ Rekening BCA / BRI / QRIS</span>
-                                <span>✓ Konfirmasi Jadwal Instan</span>
+                            <div style="display: flex; gap: 0.75rem; margin-top: 0.35rem; font-size: 0.7rem; color: #64748b; font-weight: 600; flex-wrap: wrap;">
+                                <span>Rekening BCA / BRI / Mandiri / QRIS</span>
+                                <span>•</span>
+                                <span>Verifikasi Cepat & Langsung Terjadwal</span>
                             </div>
                         </div>
                     </div>
@@ -1038,7 +1071,7 @@
             <!-- Header Modal -->
             <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--clr-border); display: flex; align-items: center; justify-content: space-between;">
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <svg style="width: 1.25rem; height: 1.25rem; fill: #eab308; stroke: #eab308;" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    <svg style="width: 1.25rem; height: 1.25rem; fill: #dc2626; stroke: #dc2626;" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                     <h3 style="font-size: 1.15rem; font-weight: 800; color: var(--clr-text-main);">Tulis Ulasan & Pengalaman Anda</h3>
                 </div>
                 <button onclick="closeReviewModal()" class="btn btn-outline btn-sm" style="padding: 0.35rem 0.6rem;">
@@ -1054,11 +1087,11 @@
                     <div class="form-group">
                         <label class="form-label" style="font-weight: 700;">Berapa Bintang Penilaian Anda?</label>
                         <div style="display: flex; gap: 0.5rem; font-size: 2rem; cursor: pointer; justify-content: center; padding: 0.5rem 0; background: #f8fafc; border-radius: var(--radius-md); border: 1px solid var(--clr-border);">
-                            <button type="button" class="star-picker-btn" onclick="setReviewRating(1)" style="background: none; border: none; cursor: pointer; padding: 0; color: #22c55e;">★</button>
-                            <button type="button" class="star-picker-btn" onclick="setReviewRating(2)" style="background: none; border: none; cursor: pointer; padding: 0; color: #22c55e;">★</button>
-                            <button type="button" class="star-picker-btn" onclick="setReviewRating(3)" style="background: none; border: none; cursor: pointer; padding: 0; color: #22c55e;">★</button>
-                            <button type="button" class="star-picker-btn" onclick="setReviewRating(4)" style="background: none; border: none; cursor: pointer; padding: 0; color: #22c55e;">★</button>
-                            <button type="button" class="star-picker-btn" onclick="setReviewRating(5)" style="background: none; border: none; cursor: pointer; padding: 0; color: #22c55e;">★</button>
+                            <button type="button" class="star-picker-btn" onclick="setReviewRating(1)" style="background: none; border: none; cursor: pointer; padding: 0; color: #dc2626;">★</button>
+                            <button type="button" class="star-picker-btn" onclick="setReviewRating(2)" style="background: none; border: none; cursor: pointer; padding: 0; color: #dc2626;">★</button>
+                            <button type="button" class="star-picker-btn" onclick="setReviewRating(3)" style="background: none; border: none; cursor: pointer; padding: 0; color: #dc2626;">★</button>
+                            <button type="button" class="star-picker-btn" onclick="setReviewRating(4)" style="background: none; border: none; cursor: pointer; padding: 0; color: #dc2626;">★</button>
+                            <button type="button" class="star-picker-btn" onclick="setReviewRating(5)" style="background: none; border: none; cursor: pointer; padding: 0; color: #dc2626;">★</button>
                         </div>
                         <input type="hidden" id="reviewRatingInput" value="5">
                     </div>
@@ -1071,8 +1104,10 @@
 
                     <!-- Mobil yang Disewa -->
                     <div class="form-group">
-                        <label class="form-label">Unit Mobil yang Disewa (Opsional)</label>
-                        <input type="text" id="reviewCarName" placeholder="Contoh: Toyota Innova Zenix / Honda HRV" class="form-input">
+                        <label class="form-label">Unit Mobil yang Disewa <span style="font-size: 0.72rem; color: var(--clr-text-muted); font-weight: 500;">(Pilih dari ketersediaan armada)</span></label>
+                        <select id="reviewCarName" class="form-select">
+                            <option value="">-- Pilih Armada Mobil yang Disewa --</option>
+                        </select>
                     </div>
 
                     <!-- Isi Ulasan -->
@@ -1094,7 +1129,7 @@
                     <div class="form-group" style="padding: 1rem; background: #fff1f2; border: 1.5px dashed #f43f5e; border-radius: var(--radius-md);">
                         <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.35rem; flex-wrap: wrap;">
                             <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                <span style="font-size: 1.1rem;">📸</span>
+                                <i class="fa-solid fa-photo-film" style="font-size: 1.1rem; color: #be123c;"></i>
                                 <label class="form-label" style="font-weight: 800; color: #be123c; margin-bottom: 0;">Upload Banyak Foto / Video Story</label>
                             </div>
                             <span id="reviewMediaCountBadge" style="font-size: 0.68rem; font-weight: 800; background: #ffe4e6; color: #be123c; padding: 0.15rem 0.55rem; border-radius: 999px;">0 Media Dipilih</span>
@@ -1140,9 +1175,6 @@
             <div class="story-header-bar">
                 <div class="story-header-user">
                     <div id="storyHeaderAvatarWrap" class="story-header-avatar-wrap">
-                        <span id="storyViewerCrown" class="story-viewer-crown hidden" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 19h20v2H2v-2zm1.5-2L2 7l6 4 4-7 4 7 6-4-1.5 10h-17z"/></svg>
-                        </span>
                         <img id="storyViewerAvatar" src="" class="story-header-avatar" alt="User">
                     </div>
                     <div class="story-header-info">
@@ -1152,13 +1184,13 @@
                 </div>
                 <div style="display: flex; align-items: center; gap: 0.4rem;">
                     <button id="storyMuteBtn" onclick="toggleStoryMute(event)" class="story-control-btn hidden" aria-label="Suara Video" title="Aktifkan/Matikan Suara">
-                        🔇
+                        <i class="fa-solid fa-volume-xmark"></i>
                     </button>
                     <button id="storyPauseBtn" onclick="toggleStoryPause(event)" class="story-control-btn" aria-label="Jeda/Lanjutkan Story" title="Jeda / Putar">
-                        ⏸
+                        <i class="fa-solid fa-pause"></i>
                     </button>
                     <button onclick="closeStoryViewer()" class="story-close-btn" aria-label="Tutup Story">
-                        ✕
+                        <i class="fa-solid fa-xmark"></i>
                     </button>
                 </div>
             </div>
@@ -1211,7 +1243,7 @@
                 <!-- Profil Perusahaan -->
                 <div class="md:col-span-5" style="display: flex; flex-direction: column; gap: 1rem;">
                     <div class="flex items-center gap-3">
-                        <div style="width: 2.75rem; height: 2.75rem; background: #dc2626; border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(220, 38, 38, 0.45); overflow: hidden;">
+                        <div style="width: 2.75rem; height: 2.75rem; background: #dc2626; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(220, 38, 38, 0.45); overflow: hidden; flex-shrink: 0;">
                             <img src="/logo_rpm_red.png" alt="RPM Rent Car" style="width: 100%; height: 100%; object-fit: contain; transform: scale(1.35);">
                         </div>
                         <div>
@@ -1319,6 +1351,7 @@
             id="floatingWaBtn"
             title="Chat WhatsApp dengan Admin"
             aria-label="Chat WhatsApp Admin">
+            <span class="floating-wa-tooltip">Butuh Sewa Mobil? Chat Kami</span>
             <i class="fa-brands fa-whatsapp"></i>
         </a>
     </aside>
@@ -1335,7 +1368,7 @@
     </button>
 
     <!-- Application Scripts -->
-    <script src="/js/data.js"></script>
-    <script src="/js/app.js"></script>
+    <script src="/js/data.js?v={{ file_exists(public_path('js/data.js')) ? filemtime(public_path('js/data.js')) : time() }}"></script>
+    <script src="/js/app.js?v={{ file_exists(public_path('js/app.js')) ? filemtime(public_path('js/app.js')) : time() }}"></script>
 </body>
 </html>
