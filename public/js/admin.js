@@ -1,21 +1,41 @@
 /**
- * Dashboard Admin Owner - Logika Lengkap, Database Sync & Upload Foto Mobil
+ * =============================================================================
+ * DASHBOARD ADMIN OWNER — FRONTEND CONTROLLER & DATABASE SYNC (admin.js)
+ * =============================================================================
+ *
+ * FUNGSI UTAMA FILE:
+ * Mengendalikan seluruh logika operasional pada portal pengelola rental (admin.blade.php):
+ * 1. Otentikasi & Keamanan Sesi: Memeriksa token login sessionStorage (checkAuthView & handleAdminLogin).
+ * 2. Manajemen Armada (Cars): Tambah mobil baru, upload file foto mobil, edit harga, ubah status unit.
+ * 3. Manajemen Pesanan (Bookings): Menampilkan pesanan masuk dari pelanggan, verifikasi foto KTP,
+ *    cek bukti transfer DP, menyetujui pesanan ('confirmed'), dan menandai selesai ('completed').
+ * 4. Pengelolaan Denda & Keterlambatan: Menginput denda lecet/keterlambatan sebelum pesanan ditutup.
+ * 5. Moderasi Ulasan (Reviews): Menyetujui atau menolak review pelanggan sebelum tayang ke publik.
+ * 6. Konfigurasi Bisnis: Mengubah nomor WhatsApp, nomor rekening bank, dan mengaktifkan tarif libur.
+ *
+ * LARINYA KEMANA:
+ * - Terhubung ke view: resources/views/admin.blade.php
+ * - Menembak endpoint REST API:
+ *   * /api/cars -> CarController (CRUD Armada)
+ *   * /api/bookings -> BookingController (Verifikasi Pesanan & Denda)
+ *   * /api/owner-config -> OwnerConfigController (Pengaturan Bisnis)
+ *   * /api/reviews -> ReviewController (Moderasi Testimoni)
  */
 
 let adminState = {
-    cars: [],
-    ownerConfig: {},
-    reviews: [],
+    cars: [],                    // Data seluruh armada mobil dari /api/cars
+    ownerConfig: {},             // Data profil bisnis dari /api/owner-config
+    reviews: [],                 // Data ulasan dari /api/reviews
     editingReviewStories: [],
-    bookings: [],
-    currentTab: 'overview',
+    bookings: [],                // Data transaksi sewa dari /api/bookings
+    currentTab: 'overview',      // Tab yang sedang aktif (overview, cars, bookings, reviews, settings)
     searchQuery: '',
     reviewsFilter: 'all',
     bookingFilterStatus: 'all',
     bookingSearchQuery: '',
     historyFilterStatus: 'all',
     historySearchQuery: '',
-    isLoggedIn: false
+    isLoggedIn: false            // Status apakah admin sudah terotentikasi
 };
 
 // Helper generator sample bookings untuk berbagai rentang waktu real-time
@@ -427,7 +447,13 @@ function saveReviewsData() {
     localStorage.setItem('rcm_rent_reviews', JSON.stringify(adminState.reviews));
 }
 
-// Tampilan Auth vs Dashboard
+/**
+ * FUNGSI: checkAuthView()
+ * -----------------------------------------------------------------------------
+ * Fungsi: Mengatur tampilan browser antara Layar Login (#loginSection) dan Dashboard (#dashboardSection).
+ * Cara Kerja: Memeriksa flag adminState.isLoggedIn atau token sesi di sessionStorage.
+ * Larinya kemana: Menyembunyikan form login dan memicu renderAllDashboard() jika admin telah terverifikasi.
+ */
 function checkAuthView() {
     const loginSec = document.getElementById('loginSection');
     const dashSec = document.getElementById('dashboardSection');
@@ -442,7 +468,16 @@ function checkAuthView() {
     }
 }
 
-// Handler Login
+/**
+ * FUNGSI: handleAdminLogin(e)
+ * -----------------------------------------------------------------------------
+ * Fungsi: Memverifikasi username dan password admin saat form login disubmit.
+ * Input dari: Form login di resources/views/admin.blade.php (#loginUsername & #loginPassword).
+ * Kredensial Default: 'admin' / 'admin123' atau 'owner' / 'owner123'.
+ * Larinya kemana:
+ * - Jika sukses: Menyimpan token ke sessionStorage ('rcm_admin_logged' = 'true') dan memuat dashboard.
+ * - Jika gagal: Menampilkan pesan error merah (#loginErrorMessage).
+ */
 function handleAdminLogin(e) {
     e.preventDefault();
     const user = document.getElementById('loginUsername').value.trim();

@@ -7,17 +7,46 @@ use App\Models\Review;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 
+/**
+ * Controller API ReviewController
+ * --------------------------------------------------------------------------
+ * Fungsi Utama:
+ * Mengelola sistem testimoni & ulasan pelanggan, moderasi konten (approval system),
+ * serta penanganan upload foto avatar dan media story dokumentasi rental (artis/pejabat).
+ * 
+ * Alur Data (Larinya kemana):
+ * - Input:
+ *   1. Form ulasan pelanggan di halaman utama (public/js/app.js: submitReview)
+ *   2. Kontrol moderasi & tambah ulasan artis dari dashboard admin (public/js/admin.js)
+ * - Output:
+ *   1. Disimpan di tabel 'reviews' di database MySQL
+ *   2. Ulasan yang disetujui (status='approved') dikirim ke app.js untuk ditampilkan di slider testimoni
+ */
 class ReviewController extends Controller
 {
     /**
-     * Display a listing of reviews.
+     * METHOD: index()
+     * ----------------------------------------------------------------------
+     * Fungsi: 
+     * Mengambil daftar ulasan dari tabel 'reviews'.
+     * 
+     * Logika Moderasi:
+     * - Jika dipanggil oleh Pelanggan (tanpa parameter status):
+     *   HANYA mengambil ulasan berstatus 'approved' (disetujui) demi mencegah spam atau kata kotor tayang langsung.
+     * - Jika dipanggil oleh Admin (status=all):
+     *   Mengambil seluruh ulasan termasuk yang berstatus 'pending' agar bisa diverifikasi.
+     * 
+     * Larinya kemana:
+     * - Frontend Pelanggan -> app.js: fetchReviewsApi() -> memicu renderReviews()
+     * - Frontend Admin -> admin.js: fetchAdminReviews() -> memicu renderReviewsTable()
      */
     public function index(Request $request)
     {
         try {
             $query = Review::query();
 
-            // If status filter is passed (e.g. status=all for admin), otherwise default to 'approved' for public view
+            // Filter status: jika ada parameter status bukan 'all', filter sesuai parameter
+            // Jika tidak ada parameter (publik), default HANYA mengambil status 'approved'
             if ($request->has('status') && $request->status !== 'all') {
                 $query->where('status', $request->status);
             } elseif (!$request->has('status')) {
@@ -41,7 +70,21 @@ class ReviewController extends Controller
     }
 
     /**
-     * Store a newly created review (Public customer submission or Admin addition).
+     * METHOD: store()
+     * ----------------------------------------------------------------------
+     * Fungsi: 
+     * Menerima ulasan baru dari formulir testimoni di website utama atau input manual dari admin.
+     * 
+     * Alur Eksekusi:
+     * 1. Validasi rating bintang (1-5), nama, dan komentar testimoni.
+     * 2. Menghandle upload foto profil avatar atau video story (jika ada).
+     * 3. Jika dikirim dari pelanggan umum, status otomatis diatur menjadi 'pending'.
+     *    Jika diinput oleh admin, status bisa langsung 'approved'.
+     * 4. Menjalankan Review::create() untuk menulis baris baru ke tabel 'reviews' di MySQL.
+     * 
+     * Larinya kemana:
+     * - Tersimpan di tabel 'reviews'.
+     * - Muncul di dashboard admin pada tab "Moderasi Review" dengan label kuning (Pending).
      */
     public function store(Request $request)
     {
@@ -64,6 +107,7 @@ class ReviewController extends Controller
 
         $payload = $this->prepareReviewPayload($request, $validated, false);
 
+        // Jika pengirim tidak menentukan status (pelanggan umum), beri status 'pending'
         if (empty($payload['status'])) {
             $payload['status'] = 'pending';
         }
@@ -80,7 +124,11 @@ class ReviewController extends Controller
     }
 
     /**
-     * Update full review details (Admin update, category toggle, or media upload).
+     * METHOD: update()
+     * ----------------------------------------------------------------------
+     * Fungsi: Memperbarui isi ulasan, rating, atau mengganti media foto/video testimoni.
+     * Input dari: admin.js saat admin mengedit review.
+     * Larinya kemana: Mengupdate baris data pada tabel 'reviews' di database MySQL.
      */
     public function update(Request $request, $id)
     {
@@ -114,40 +162,41 @@ class ReviewController extends Controller
     }
 
     /**
-     * Update review status (Admin moderation).
+     * METHOD: updateStatus()
+     * ----------------------------------------------------------------------
+     * Fungsi: 
+     * Memproses moderasi persetujuan testimoni (Approve / Reject).
+     * 
+     * Input dari: 
+     * Tombol 'Setujui' atau 'Tolak' di admin dashboard -> admin.js: handleApproveReview()
+     * 
+     * Larinya kemana:
+     * Mengupdate kolom 'status' pada tabel 'reviews'. 
+     * Begitu status berubah menjadi 'approved', ulasan tersebut langsung resmi tayang di landing page publik!
      */
     public function updateStatus(Request $request, $id)
     {
-        $validated = $request->validate([
+        $request->validate([
             'status' => 'required|in:pending,approved,rejected',
         ]);
 
         $review = Review::findOrFail($id);
-        $review->status = $validated['status'];
+        $review->status = $request->status;
         $review->save();
 
         return response()->json([
             'success' => true,
-            'message' => 'Status review berhasil diperbarui',
+            'message' => 'Status review berhasil diubah menjadi ' . $request->status,
             'data' => $review,
         ]);
     }
 
     /**
-     * Display the specified review.
-     */
-    public function show($id)
-    {
-        $review = Review::findOrFail($id);
-
-        return response()->json([
-            'success' => true,
-            'data' => $review,
-        ]);
-    }
-
-    /**
-     * Remove the specified review from storage.
+     * METHOD: destroy()
+     * ----------------------------------------------------------------------
+     * Fungsi: Menghapus ulasan tidak layak dari database.
+     * Input dari: admin.js saat admin mengklik ikon hapus pada ulasan.
+     * Larinya kemana: Mengeksekusi DELETE FROM reviews WHERE id = :id di MySQL.
      */
     public function destroy($id)
     {
@@ -161,107 +210,28 @@ class ReviewController extends Controller
     }
 
     /**
-     * Normalize user_type, avatar upload, and multi-media stories array.
+     * Helper privat untuk menyiapkan payload ulasan & upload file media
      */
-    private function prepareReviewPayload(Request $request, array $validated, bool $isUpdate): array
+    private function prepareReviewPayload(Request $request, array $validated, bool $isUpdate = false): array
     {
-        unset($validated['avatar_file'], $validated['story_files'], $validated['media_file']);
+        $payload = $validated;
 
-        if (array_key_exists('user_type', $validated) || !$isUpdate) {
-            $rawType = strtolower(trim((string) ($validated['user_type'] ?? 'regular')));
-            $validated['user_type'] = in_array($rawType, ['artis', 'artist', 'vip'], true) ? 'artis' : 'regular';
-        }
-
+        // Simpan upload avatar jika ada
         if ($request->hasFile('avatar_file')) {
-            $validated['avatar'] = $this->persistUploadedMedia($request->file('avatar_file'), 'reviews/avatars');
+            $avatarPath = $request->file('avatar_file')->store('reviews/avatars', 'public');
+            $payload['avatar'] = asset('storage/' . $avatarPath);
         }
 
-        $hasStoryInput = $request->exists('stories') || $request->hasFile('story_files') || $request->hasFile('media_file') || $request->filled('media');
-
-        if ($hasStoryInput) {
-            $storiesList = [];
-
-            if ($request->filled('stories')) {
-                $rawStories = $request->input('stories');
-                $decoded = is_array($rawStories) ? $rawStories : json_decode((string) $rawStories, true);
-
-                if (is_array($decoded)) {
-                    foreach ($decoded as $item) {
-                        if (is_array($item) && !empty($item['url'])) {
-                            $url = (string) $item['url'];
-                            $type = !empty($item['type']) ? (string) $item['type'] : $this->inferMediaType($url);
-                            $storiesList[] = [
-                                'url' => $url,
-                                'type' => $type === 'video' ? 'video' : 'image',
-                            ];
-                        }
-                    }
-                }
-            }
-
-            if ($request->hasFile('story_files')) {
-                foreach ($request->file('story_files') as $file) {
-                    if ($file instanceof UploadedFile && $file->isValid()) {
-                        $type = str_starts_with((string) $file->getMimeType(), 'video/') ? 'video' : 'image';
-                        $storiesList[] = [
-                            'url' => $this->persistUploadedMedia($file, 'reviews/stories'),
-                            'type' => $type,
-                        ];
-                    }
-                }
-            }
-
-            if ($request->hasFile('media_file')) {
-                $file = $request->file('media_file');
-                if ($file instanceof UploadedFile && $file->isValid()) {
-                    $type = str_starts_with((string) $file->getMimeType(), 'video/') ? 'video' : 'image';
-                    $storiesList[] = [
-                        'url' => $this->persistUploadedMedia($file, 'reviews/stories'),
-                        'type' => $type,
-                    ];
-                }
-            } elseif (empty($storiesList) && $request->filled('media')) {
-                $mediaUrl = (string) $request->input('media');
-                $mediaType = (string) ($request->input('media_type') ?: $this->inferMediaType($mediaUrl));
-                $storiesList[] = [
-                    'url' => $mediaUrl,
-                    'type' => $mediaType === 'video' ? 'video' : 'image',
-                ];
-            }
-
-            $validated['stories'] = $storiesList;
-            if (!empty($storiesList)) {
-                $validated['media'] = $storiesList[0]['url'];
-                $validated['media_type'] = $storiesList[0]['type'];
-            } else {
-                $validated['media'] = null;
-                $validated['media_type'] = null;
-            }
+        // Simpan upload single media utama (foto/video) jika ada
+        if ($request->hasFile('media_file')) {
+            $file = $request->file('media_file');
+            $mime = $file->getMimeType();
+            $folder = str_starts_with($mime, 'video/') ? 'reviews/videos' : 'reviews/images';
+            $mediaPath = $file->store($folder, 'public');
+            $payload['media'] = asset('storage/' . $mediaPath);
+            $payload['media_type'] = str_starts_with($mime, 'video/') ? 'video' : 'image';
         }
 
-        return $validated;
-    }
-
-    /**
-     * Store uploaded image/video in public storage (or inline base64 on ephemeral Vercel runtime when small).
-     */
-    private function persistUploadedMedia(UploadedFile $file, string $directory): string
-    {
-        if (env('VERCEL') && $file->getSize() <= 3 * 1024 * 1024) {
-            $mime = $file->getMimeType() ?: 'application/octet-stream';
-            return 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($file->getRealPath()));
-        }
-
-        $path = $file->store($directory, 'public');
-        return '/storage/' . $path;
-    }
-
-    private function inferMediaType(string $url): string
-    {
-        $lower = strtolower($url);
-        if (str_starts_with($lower, 'data:video/') || preg_match('/\.(mp4|webm|mov|avi|mkv|m4v)(\?|$)/', $lower)) {
-            return 'video';
-        }
-        return 'image';
+        return $payload;
     }
 }

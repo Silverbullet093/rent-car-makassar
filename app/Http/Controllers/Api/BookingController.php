@@ -7,24 +7,54 @@ use App\Models\Booking;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
+/**
+ * Controller API BookingController
+ * --------------------------------------------------------------------------
+ * Fungsi Utama:
+ * Mengelola seluruh siklus pemesanan sewa mobil (Booking Lifecycle), mulai dari:
+ * 1. Pelanggan submit pesanan dari website utama.
+ * 2. Pencegahan tanggal sewa bentrok (Conflict Prevention) agar 1 mobil tidak bisa disewa 2 orang di tanggal sama.
+ * 3. Penerimaan berkas KTP dan bukti pembayaran DP.
+ * 4. Verifikasi dan pengubahan status (pending -> confirmed -> completed).
+ * 5. Pencatatan denda (keterlambatan/kerusakan unit).
+ * 
+ * Alur Data (Larinya kemana):
+ * - Input:
+ *   1. Form booking pelanggan (public/js/app.js: handleBookingSubmit)
+ *   2. Kontrol dashboard admin (public/js/admin.js: handleBookingStatusChange, handleSavePenalty)
+ * - Output:
+ *   1. Tabel 'bookings' di database MySQL
+ *   2. Respon JSON dikirim kembali ke JavaScript untuk update tampilan UI
+ */
 class BookingController extends Controller
 {
     /**
-     * Display a listing of bookings.
+     * METHOD: index()
+     * ----------------------------------------------------------------------
+     * Fungsi: 
+     * Mengambil daftar seluruh transaksi pemesanan beserta data relasi mobilnya (with('car')).
+     * Mendukung filter berdasarkan car_id, status pesanan, dan mode active_only.
+     * 
+     * Larinya kemana:
+     * - Frontend Admin -> admin.js: fetchAdminBookings() -> merender tabel "Daftar Booking" di dashboard
+     * - Digunakan admin untuk memantau pesanan masuk yang perlu diverifikasi
      */
     public function index(Request $request)
     {
         try {
             $query = Booking::with('car');
 
+            // Filter berdasarkan mobil tertentu
             if ($request->has('car_id') && $request->car_id != '') {
                 $query->where('car_id', $request->car_id);
             }
 
+            // Filter berdasarkan status (pending, confirmed, completed, cancelled)
             if ($request->has('status') && $request->status != '') {
                 $query->where('status', $request->status);
             }
 
+            // Opsi hanya menampilkan pesanan yang belum selesai
             if ($request->boolean('active_only')) {
                 $query->where('status', '!=', 'completed');
             }
@@ -45,7 +75,24 @@ class BookingController extends Controller
     }
 
     /**
-     * Store a newly created booking in storage.
+     * METHOD: store()
+     * ----------------------------------------------------------------------
+     * Fungsi: 
+     * Memproses pesanan baru saat pelanggan menekan tombol 'Pesan Sekarang' di web.
+     * 
+     * Logika Kritis yang Berjalan:
+     * 1. Validasi Input: Memastikan nama, no hp, tanggal, total harga, dan file KTP ada.
+     * 2. Pencegahan Bentrok Tanggal (Conflict Check):
+     *    Mengecek apakah mobil yang dipilih sudah memiliki pesanan berstatus 'confirmed'
+     *    pada rentang tanggal yang bersinggungan. Jika bentrok, request DITOLAK (HTTP 422).
+     * 3. Pembuatan Kode Booking Otomatis (RCM-XXXXXX).
+     * 4. Penyimpanan ke Database MySQL melalui Booking::create().
+     * 
+     * Larinya kemana:
+     * - Tersimpan di tabel 'bookings'.
+     * - Respon JSON dikirim ke app.js: handleBookingSubmit().
+     * - Di app.js, data ini juga langsung dirangkai menjadi pesan WhatsApp ke nomor Owner.
+     * - Admin yang sedang membuka dashboard langsung melihat pesanan ini muncul di baris teratas!
      */
     public function store(Request $request)
     {
@@ -85,7 +132,7 @@ class BookingController extends Controller
         $startDate = \Carbon\Carbon::parse($validated['start_date'])->toDateString();
         $endDate = \Carbon\Carbon::parse($validated['end_date'])->toDateString();
 
-        // Cegah booking mobil jika sudah berstatus 'confirmed' atau 'confirmed_pending' (dan belum lewat tanggal) pada tanggal yang sama / bentrok
+        // CEK BENTROK TANGGAL: Cegah booking jika armada sudah dikonfirmasi pada rentang tanggal yang sama
         $todayMakassar = now('Asia/Makassar')->toDateString();
         $conflict = Booking::where('car_id', $validated['car_id'])
             ->whereIn('status', ['confirmed', 'confirmed_pending'])
@@ -105,8 +152,10 @@ class BookingController extends Controller
             ], 422);
         }
 
+        // Generate kode transaksi unik format: RCM-XXXXXX
         $validated['booking_code'] = 'RCM-' . strtoupper(Str::random(6));
         
+        // Atur status supir
         if ($request->has('with_driver')) {
             $validated['with_driver'] = (bool)$request->with_driver;
         } elseif ($request->has('driver_option')) {
@@ -115,6 +164,7 @@ class BookingController extends Controller
             $validated['with_driver'] = false;
         }
 
+        // Status awal transaksi adalah 'pending' (menunggu verifikasi owner)
         $validated['status'] = $request->input('status', 'pending');
 
         if (empty($validated['start_time'])) {
@@ -124,6 +174,7 @@ class BookingController extends Controller
             $validated['end_time'] = $validated['start_time'];
         }
 
+        // Simpan data lampiran KTP dan bukti pembayaran
         if ($request->filled('ktp_image')) {
             $validated['ktp_image'] = $request->ktp_image;
         }
@@ -147,7 +198,7 @@ class BookingController extends Controller
             $validated['dp_amount'] = 0;
         }
 
-        // Satukan catatan tambahan jika ada lokasi jemput atau kota pengorder
+        // Satukan catatan tambahan (kota & titik penjemputan)
         $extraNotes = [];
         if ($request->filled('customer_city')) {
             $extraNotes[] = 'Kota: ' . $request->customer_city;
@@ -162,6 +213,7 @@ class BookingController extends Controller
             $validated['notes'] = implode(' | ', $extraNotes);
         }
 
+        // Simpan baris transaksi ke tabel 'bookings' di database MySQL
         $booking = Booking::create($validated);
 
         return response()->json([
@@ -172,7 +224,10 @@ class BookingController extends Controller
     }
 
     /**
-     * Display the specified booking.
+     * METHOD: show()
+     * ----------------------------------------------------------------------
+     * Fungsi: Mengambil detail satu pesanan spesifik beserta data unit mobilnya.
+     * Larinya kemana: Modal preview pesanan di dashboard admin untuk melihat foto KTP & bukti bayar.
      */
     public function show(string $id)
     {
@@ -185,7 +240,11 @@ class BookingController extends Controller
     }
 
     /**
-     * Update the specified booking in storage.
+     * METHOD: update()
+     * ----------------------------------------------------------------------
+     * Fungsi: Memperbarui data pesanan (contoh: admin menginput nominal denda keterlambatan).
+     * Input dari: admin.js: handleSavePenalty()
+     * Larinya kemana: Mengupdate kolom penalty_amount dan status pada tabel 'bookings'.
      */
     public function update(Request $request, string $id)
     {
@@ -231,7 +290,7 @@ class BookingController extends Controller
             $updatePayload['dp_amount'] = 0;
         }
 
-        // Jika status pemesanan sudah 'confirmed' (Verifikasi), hanya izinkan perubahan status menjadi 'completed' (Selesai)
+        // Kunci integritas: Jika pesanan sudah disetujui (confirmed), hanya boleh ditutup menjadi selesai (completed)
         if ($booking->status === 'confirmed' && isset($updatePayload['status']) && !in_array($updatePayload['status'], ['confirmed', 'completed'])) {
             $updatePayload['status'] = 'confirmed';
         }
@@ -246,7 +305,16 @@ class BookingController extends Controller
     }
 
     /**
-     * Update booking status.
+     * METHOD: updateStatus()
+     * ----------------------------------------------------------------------
+     * Fungsi: 
+     * Mengubah status pesanan secara instan dari tabel admin:
+     * - 'confirmed' (Disetujui/Terverifikasi) -> Mobil otomatis menjadi 'in_use' pada tanggal sewa.
+     * - 'completed' (Selesai/Mobil Dikembalikan) -> Sewa ditutup, mobil kembali 'ready'.
+     * - 'cancelled' (Dibatalkan) -> Jadwal sewa dilepaskan.
+     * 
+     * Input dari: admin.js: handleBookingStatusChange()
+     * Larinya kemana: Memperbarui kolom 'status' pada tabel 'bookings' di database MySQL.
      */
     public function updateStatus(Request $request, string $id)
     {
@@ -271,7 +339,6 @@ class BookingController extends Controller
 
         $booking = Booking::findOrFail($id);
 
-        // Jika status pemesanan sudah 'confirmed' (Verifikasi), hanya izinkan perubahan menjadi 'completed' (Selesai)
         if ($booking->status === 'confirmed' && !in_array($validated['status'], ['confirmed', 'completed'])) {
             return response()->json([
                 'success' => false,
@@ -290,7 +357,11 @@ class BookingController extends Controller
     }
 
     /**
-     * Remove the specified booking.
+     * METHOD: destroy()
+     * ----------------------------------------------------------------------
+     * Fungsi: Menghapus data transaksi pemesanan dari database.
+     * Input dari: admin.js saat admin menghapus pesanan yang dibatalkan.
+     * Larinya kemana: Mengeksekusi DELETE FROM bookings WHERE id = :id di MySQL.
      */
     public function destroy(string $id)
     {

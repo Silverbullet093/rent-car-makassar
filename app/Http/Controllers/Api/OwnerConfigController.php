@@ -6,16 +6,45 @@ use App\Http\Controllers\Controller;
 use App\Models\OwnerConfig;
 use Illuminate\Http\Request;
 
+/**
+ * Controller API OwnerConfigController
+ * --------------------------------------------------------------------------
+ * Fungsi Utama:
+ * Mengelola data profil bisnis RPM Rent Car Makassar, seperti nomor WhatsApp
+ * penerima pemesanan, informasi rekening bank untuk transfer DP, alamat Google Maps,
+ * serta saklar pengaktifan tarif musim libur (Peak Season).
+ * 
+ * Alur Data (Larinya kemana):
+ * - Input:
+ *   1. Permintaan GET saat browser memuat halaman (app.js & admin.js)
+ *   2. Form pengaturan bisnis di dashboard admin (admin.js: handleSaveConfig)
+ * - Output:
+ *   1. Disimpan di tabel 'owner_configs' di database MySQL
+ *   2. Dikirim kembali sebagai respon JSON ke app.js (untuk no WA order) dan admin.js
+ */
 class OwnerConfigController extends Controller
 {
     /**
-     * Display the owner configuration.
+     * METHOD: show()
+     * ----------------------------------------------------------------------
+     * Fungsi: 
+     * Mengambil satu baris konfigurasi bisnis. Jika tabel masih kosong, secara 
+     * otomatis membuat data bawaan (default) agar aplikasi tidak pernah error.
+     * 
+     * Larinya kemana:
+     * - Frontend Pelanggan -> app.js: fetchConfigApi()
+     *   * Digunakan untuk menentukan nomor tujuan WhatsApp saat tombol order diklik.
+     *   * Digunakan untuk mengecek apakah tarif libur (is_holiday_pricing_active) sedang aktif.
+     *   * Digunakan untuk menampilkan nomor rekening bank tujuan transfer DP.
+     * - Frontend Admin -> admin.js: fetchAdminOwnerConfig()
+     *   * Mengisi nilai default pada form tab "Pengaturan" di dashboard.
      */
     public function show()
     {
         try {
             $config = OwnerConfig::first();
 
+            // Fallback: Buat konfigurasi default jika belum ada di database
             if (!$config) {
                 $config = OwnerConfig::create([
                     'business_name' => 'RPM Rent Car',
@@ -66,7 +95,17 @@ class OwnerConfigController extends Controller
     }
 
     /**
-     * Update the owner configuration.
+     * METHOD: update()
+     * ----------------------------------------------------------------------
+     * Fungsi: 
+     * Menyimpan perubahan pengaturan bisnis yang diubah oleh Owner dari dashboard.
+     * 
+     * Input dari: 
+     * Form pengaturan admin -> admin.js: handleSaveConfig(e) melalui HTTP PUT /api/owner-config
+     * 
+     * Larinya kemana:
+     * Mengupdate record pada tabel 'owner_configs' di database MySQL.
+     * Perubahan nomor WA atau tarif libur langsung seketika berdampak pada seluruh kalkulasi di halaman pelanggan!
      */
     public function update(Request $request)
     {

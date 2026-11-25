@@ -22,9 +22,9 @@ rcm/
 │   │   ├── app.js              # Logika frontend pelanggan & pemesanan WA
 │   │   ├── admin.js            # Logika dashboard owner / admin
 │   │   └── data.js             # Data fallback default
-│   ├── hero_full_banner.jpg    # Banner gambar tampilan utama
-│   ├── hero_studio_car.jpg     # Foto studio unit display
-│   ├── logo.png                # Logo resmi Rent Car Makassar
+│   ├── logo_rpm_red.png        # Logo resmi RPM Rent Car Makassar
+│   ├── videos/
+│   │   └── intro-rpm.mp4       # Video cinematic intro RPM
 │   └── index.php               # Entrypoint resmi Laravel
 ├── resources/
 │   └── views/                  # Template Tampilan (Blade Views)

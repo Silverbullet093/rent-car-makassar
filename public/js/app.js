@@ -1,19 +1,36 @@
 /**
- * Aplikasi Rental Mobil RPM — Frontend Pelanggan & Pemesanan
+ * =============================================================================
+ * APLIKASI RENTAL MOBIL RPM — FRONTEND LOGIC PELANGGAN & PEMESANAN (app.js)
+ * =============================================================================
+ * 
+ * FUNGSI UTAMA FILE:
+ * Mengatur seluruh pengalaman interaktif antarmuka pengguna di halaman publik (index.blade.php):
+ * 1. Mengambil data katalog mobil aktif dari server secara asinkron (GET /api/cars).
+ * 2. Mengambil profil kontak bisnis dan status tarif musim libur (GET /api/owner-config).
+ * 3. Menghitung tarif sewa otomatis (durasi hari, jam sewa, supir, tarif peak season).
+ * 4. Memvalidasi unggahan foto KTP penyewa via FileReader.
+ * 5. Mengirim data booking ke database MySQL (POST /api/bookings).
+ * 6. Mengintegrasikan pemesanan ke WhatsApp resmi Owner secara otomatis.
+ * 7. Menampilkan slider testimoni ulasan pelanggan yang telah disetujui (GET /api/reviews).
+ * 
+ * LARINYA KEMANA:
+ * - Terhubung ke view: resources/views/index.blade.php
+ * - Menembak endpoint backend: routes/api.php -> CarController, BookingController, OwnerConfigController, ReviewController
+ * - Menghubungkan pelanggan langsung ke aplikasi WhatsApp pengelola rental.
  */
 
-// Global State
+// Global State: Memori lokal browser untuk menampung data sementara
 let state = {
-    cars: [],
-    ownerConfig: {},
-    reviews: [],
-    selectedCar: null,
-    confirmedBookings: [],
-    ktpImageBase64: null,
-    paymentProofBase64: null,
-    reviewAvatarBase64: null,
-    reviewStories: [],
-    selectedReviewRating: 5,
+    cars: [],                  // Menampung daftar mobil dari API (/api/cars)
+    ownerConfig: {},           // Menampung nomor WA, rekening, dan status tarif libur (/api/owner-config)
+    reviews: [],               // Menampung ulasan pelanggan (/api/reviews)
+    selectedCar: null,         // Mobil yang sedang dipilih pelanggan untuk dipesan
+    confirmedBookings: [],     // Daftar pesanan yang sudah terkonfirmasi (untuk pencegahan bentrok tanggal)
+    ktpImageBase64: null,      // Berkas foto KTP dalam format Base64 untuk dikirim ke backend
+    paymentProofBase64: null,  // Bukti pembayaran DP (opsional)
+    reviewAvatarBase64: null,  // Foto profil pembuat review
+    reviewStories: [],         // Array media story Instagram-like
+    selectedReviewRating: 5,   // Nilai rating default bintang 5
     currentCategoryFilter: 'all',
     searchQuery: '',
     isCatalogExpanded: false
@@ -2433,7 +2450,23 @@ function calculateBookingPrice() {
     }
 }
 
-// Handle Submit Formulir Pemesanan ke WhatsApp & Database Booking
+/**
+ * FUNGSI: handleBookingSubmit(e)
+ * -----------------------------------------------------------------------------
+ * Fungsi: Memproses pengiriman formulir pemesanan sewa mobil saat tombol diklik.
+ * Input dari: Form modal pemesanan di resources/views/index.blade.php
+ * 
+ * Tahapan Eksekusi:
+ * 1. Validasi Kelengkapan: Nama, WhatsApp, Tanggal Sewa, dan Wajib Foto KTP.
+ * 2. Cek Bentrok Tanggal (checkDateConflict): Memastikan mobil belum dibooking orang lain.
+ * 3. Kalkulasi Biaya Akhir: Menghitung total biaya mobil + biaya supir + penyesuaian tarif libur.
+ * 4. Simpan ke Backend: Mengirim HTTP POST ke /api/bookings membawa JSON data pesanan.
+ * 5. Buka WhatsApp Otomatis: Menyusun teks konfirmasi pemesanan dan membuka chat WA Owner.
+ * 
+ * Larinya kemana:
+ * - Data tersimpan di tabel 'bookings' MySQL -> langsung muncul di dashboard Admin.
+ * - Pelanggan dialihkan membuka WhatsApp ke nomor Owner yang didapat dari ownerConfig.
+ */
 async function handleBookingSubmit(e) {
     e.preventDefault();
 
